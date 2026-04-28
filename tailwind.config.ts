@@ -8,10 +8,15 @@ const config: Config = {
   ],
   theme: {
     extend: {
-      backgroundImage: {
-        "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
-        "gradient-conic":
-          "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
+      colors: {
+        bg: '#eae8e0',
+        'hm-text': '#1e2128',
+        'hm-nav': '#4a5068',
+      },
+      fontFamily: {
+        serif: ['var(--font-dm-serif-text)', 'Georgia', 'serif'],
+        garamond: ['Times New Roman', 'Times', 'serif'],
+        sans: ['TeX Gyre Adventor', 'Century Gothic', 'Arial', 'sans-serif'],
       },
     },
   },

@@ -2,32 +2,49 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+@font-face {
+  font-family: 'TeX Gyre Adventor';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/texgyreadventor-regular.woff') format('woff');
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
+@font-face {
+  font-family: 'TeX Gyre Adventor';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/texgyreadventor-bold.woff') format('woff');
 }
+
+:root {
+  --bg: #eae8e0;
+  --text: #1e2128;
+  --nav-text: #4a5068;
+}
+
+html { scroll-behavior: smooth; }
 
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  background-color: var(--bg);
+  color: var(--text);
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slowZoom {
+  from { transform: scale(1.04); }
+  to   { transform: scale(1.0); }
+}
+
+.animate-fade-up {
+  animation: fadeUp 1.1s ease forwards;
+}
+
+.animate-slow-zoom {
+  animation: slowZoom 12s ease forwards;
 }
