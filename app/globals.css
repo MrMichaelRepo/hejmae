@@ -24,8 +24,6 @@
   --nav-text: #4a5068;
 }
 
-html { scroll-behavior: smooth; }
-
 body {
   background-color: var(--bg);
   color: var(--text);
@@ -48,3 +46,25 @@ body {
 .animate-slow-zoom {
   animation: slowZoom 12s ease forwards;
 }
+
+/* Scroll reveal — matches authorproof */
+.reveal { opacity: 0; transform: translateY(18px); transition: opacity 0.65s ease, transform 0.65s ease; }
+.reveal.visible { opacity: 1; transform: translateY(0); }
+.reveal-d1 { transition-delay: 0.1s; }
+.reveal-d2 { transition-delay: 0.2s; }
+.reveal-d3 { transition-delay: 0.3s; }
+
+.nav-item { transition: color 0.15s; }
+.nav-item:hover { color: var(--text); }
+.underline-animated { position: relative; }
+.underline-animated::after {
+  content: '';
+  position: absolute;
+  bottom: -3px;
+  left: 0;
+  width: 0;
+  height: 1px;
+  background: var(--text);
+  transition: width 0.3s;
+}
+.underline-animated:hover::after { width: 100%; }
