@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { UserButton, useAuth } from '@clerk/nextjs'
 
 const NAV_SECTIONS: Array<[string, string]> = [
   ['About', 'about'],
@@ -12,6 +13,7 @@ const NAV_SECTIONS: Array<[string, string]> = [
 ]
 
 export default function HomePage() {
+  const { isSignedIn, isLoaded } = useAuth()
   const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
@@ -86,12 +88,18 @@ export default function HomePage() {
             >
               Contact
             </a>
-            <Link
-              href="/login"
-              className="inline-block font-sans text-[11px] uppercase tracking-[0.2em] border border-hm-text/25 rounded-full px-5 py-2 text-hm-text hover:bg-hm-text hover:text-bg transition-all duration-300"
-            >
-              Login
-            </Link>
+            {isLoaded && (
+              isSignedIn ? (
+                <UserButton />
+              ) : (
+                <Link
+                  href="/sign-in"
+                  className="inline-block font-sans text-[11px] uppercase tracking-[0.2em] border border-hm-text/25 rounded-full px-5 py-2 text-hm-text hover:bg-hm-text hover:text-bg transition-all duration-300"
+                >
+                  Login
+                </Link>
+              )
+            )}
           </div>
         </div>
       </header>

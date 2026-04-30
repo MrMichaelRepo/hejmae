@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { DM_Serif_Text } from 'next/font/google'
+import { ClerkProvider } from '@clerk/nextjs'
 import './globals.css'
 
 const dmSerifText = DM_Serif_Text({
@@ -29,10 +30,26 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={dmSerifText.variable}>
-      <body className="bg-bg text-hm-text font-garamond min-h-screen">
-        {children}
-      </body>
-    </html>
+    <ClerkProvider
+      afterSignOutUrl="/"
+      appearance={{
+        variables: {
+          colorPrimary: '#1e2128',
+          colorBackground: '#eae8e0',
+          colorText: '#1e2128',
+          colorTextSecondary: '#4a5068',
+          colorInputBackground: 'transparent',
+          colorInputText: '#1e2128',
+          fontFamily: 'Times New Roman, Times, serif',
+          borderRadius: '0.25rem',
+        },
+      }}
+    >
+      <html lang="en" className={dmSerifText.variable}>
+        <body className="bg-bg text-hm-text font-garamond min-h-screen">
+          {children}
+        </body>
+      </html>
+    </ClerkProvider>
   )
 }
