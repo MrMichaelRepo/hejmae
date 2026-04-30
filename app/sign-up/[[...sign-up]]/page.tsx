@@ -21,40 +21,22 @@ export default function SignUpPage() {
         </Link>
       </header>
 
-      <main className="flex-1 flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-sm">
-          <div className="text-center mb-8">
-            <h1 className="font-serif text-[clamp(1.8rem,3vw,2.4rem)] leading-[1.1] tracking-[-0.015em] mb-3">
-              Create your studio
-            </h1>
-            <p className="font-garamond text-[1rem] leading-relaxed text-hm-nav">
-              Get started with hejmae.
-            </p>
-          </div>
-
-          <SignUp
-            routing="path"
-            path="/sign-up"
-            signInUrl="/sign-in"
-            forceRedirectUrl="/"
-            appearance={{
-              elements: {
-                rootBox: 'w-full',
-                card: 'bg-transparent shadow-none border-0 p-0',
-                headerTitle: 'hidden',
-                headerSubtitle: 'hidden',
-                socialButtonsBlockButton:
-                  'border border-hm-text/20 rounded-sm hover:bg-hm-text/5',
-                formButtonPrimary:
-                  'bg-hm-text text-bg rounded-full normal-case font-sans text-[12px] uppercase tracking-[0.2em] hover:opacity-90',
-                formFieldInput:
-                  'bg-transparent border border-hm-text/20 rounded-sm focus:border-hm-text/60',
-                footerAction__signUp: 'font-garamond',
-                footer: 'bg-transparent',
-              },
-            }}
-          />
+      <main className="flex-1 flex flex-col items-center justify-center px-6 py-12">
+        <div className="text-center mb-10 max-w-sm">
+          <h1 className="font-serif text-[clamp(1.8rem,3vw,2.4rem)] leading-[1.1] tracking-[-0.015em] mb-3">
+            Create your studio
+          </h1>
+          <p className="font-garamond text-[1rem] leading-relaxed text-hm-nav">
+            Get started with hejmae.
+          </p>
         </div>
+
+        <SignUp
+          routing="path"
+          path="/sign-up"
+          signInUrl="/sign-in"
+          forceRedirectUrl="/"
+        />
       </main>
 
       <footer className="px-8 md:px-12 py-8 text-center">

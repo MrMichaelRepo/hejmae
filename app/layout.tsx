@@ -35,13 +35,9 @@ export default function RootLayout({
       appearance={{
         variables: {
           colorPrimary: '#1e2128',
-          colorBackground: '#eae8e0',
           colorText: '#1e2128',
           colorTextSecondary: '#4a5068',
-          colorInputBackground: 'transparent',
-          colorInputText: '#1e2128',
-          fontFamily: 'Times New Roman, Times, serif',
-          borderRadius: '0.25rem',
+          borderRadius: '0.375rem',
         },
       }}
     >
