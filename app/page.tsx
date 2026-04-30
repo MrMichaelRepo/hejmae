@@ -90,7 +90,15 @@ export default function HomePage() {
             </a>
             {isLoaded && (
               isSignedIn ? (
-                <UserButton />
+                <>
+                  <Link
+                    href="/dashboard"
+                    className="inline-block font-sans text-[11px] uppercase tracking-[0.2em] border border-hm-text/25 rounded-full px-5 py-2 text-hm-text hover:bg-hm-text hover:text-bg transition-all duration-300"
+                  >
+                    Dashboard
+                  </Link>
+                  <UserButton />
+                </>
               ) : (
                 <Link
                   href="/sign-in"
