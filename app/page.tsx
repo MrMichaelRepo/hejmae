@@ -158,7 +158,7 @@ export default function HomePage() {
               </div>
               <h2 className="font-serif text-[clamp(1.8rem,3.2vw,2.8rem)] leading-[1.12] tracking-[-0.015em]">
                 Everything a studio needs.<br />
-                <em className="italic">Nothing it doesn't.</em>
+                <em className="italic">Nothing it doesn&apos;t.</em>
               </h2>
             </div>
             <p className="reveal reveal-d1 font-garamond text-[1.05rem] leading-[1.85] text-hm-nav">
@@ -281,7 +281,7 @@ export default function HomePage() {
               Privacy
             </div>
             <h2 className="font-serif text-[clamp(1.8rem,3.2vw,2.8rem)] leading-[1.12] tracking-[-0.015em] mb-6">
-              Your studio's data,<br />
+              Your studio&apos;s data,<br />
               <em className="italic">on your terms.</em>
             </h2>
             <p className="font-garamond text-[1.05rem] leading-[1.85] text-hm-nav mb-5">
