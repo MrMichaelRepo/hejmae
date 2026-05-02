@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { DM_Serif_Text } from 'next/font/google'
 import { ClerkProvider } from '@clerk/nextjs'
 import './globals.css'
+import { ToastHost } from '@/components/ui/Toast'
 
 const dmSerifText = DM_Serif_Text({
   subsets: ['latin'],
@@ -44,6 +45,7 @@ export default function RootLayout({
       <html lang="en" className={dmSerifText.variable}>
         <body className="bg-bg text-hm-text font-garamond min-h-screen">
           {children}
+          <ToastHost />
         </body>
       </html>
     </ClerkProvider>
