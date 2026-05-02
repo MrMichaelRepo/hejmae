@@ -1,11 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { api } from '@/lib/api'
 import { formatCents, formatDate } from '@/lib/format'
 import { PageSpinner } from '@/components/ui/Spinner'
 import Button from '@/components/ui/Button'
 import { toast } from '@/components/ui/Toast'
+import PaymentForm from './PaymentForm'
 
 interface PortalInvoicePayload {
   invoice: {
@@ -34,36 +36,64 @@ interface PortalInvoicePayload {
   }>
 }
 
+interface PaymentInit {
+  client_secret: string
+  connected_account_id: string
+}
+
 export default function PortalInvoice({ token }: { token: string }) {
+  const searchParams = useSearchParams()
+  const justPaid = searchParams.get('paid') === '1'
+
   const [data, setData] = useState<PortalInvoicePayload | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [paying, setPaying] = useState(false)
+  const [pay, setPay] = useState<PaymentInit | null>(null)
+  const [loadingPay, setLoadingPay] = useState(false)
+
+  const load = async () => {
+    try {
+      const r = await api.get<PortalInvoicePayload>(
+        `/api/portal/invoices/${token}`,
+      )
+      setData(r.data as PortalInvoicePayload)
+    } catch (e) {
+      setError((e as Error).message)
+    }
+  }
 
   useEffect(() => {
-    api
-      .get<PortalInvoicePayload>(`/api/portal/invoices/${token}`)
-      .then((r) => setData(r.data as PortalInvoicePayload))
-      .catch((e) => setError((e as Error).message))
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token])
 
-  const initiatePayment = async () => {
-    setPaying(true)
+  // After Stripe redirects with ?paid=1, the webhook may need a second to
+  // update the invoice status. Poll for a few seconds.
+  useEffect(() => {
+    if (!justPaid) return
+    let n = 0
+    const t = setInterval(async () => {
+      n += 1
+      await load()
+      if (n >= 6) clearInterval(t)
+    }, 1500)
+    return () => clearInterval(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [justPaid, token])
+
+  const initPayment = async () => {
+    setLoadingPay(true)
     try {
-      const res = await api.post<{
-        client_secret: string
-        connected_account_id: string
-        payment_intent_id: string
-      }>(`/api/portal/invoices/${token}/payment-intent`)
-      // TODO: integrate Stripe.js with Elements (using
-      // res.client_secret + stripeAccount: res.connected_account_id) to
-      // collect the card and confirm. For now, surface the intent so the
-      // designer/dev can verify the round-trip.
-      toast.success('Payment intent created — Stripe.js wiring is the next step')
-      void res
+      const res = await api.post<PaymentInit>(
+        `/api/portal/invoices/${token}/payment-intent`,
+      )
+      const cs = (res as { client_secret?: string }).client_secret
+      const acct = (res as { connected_account_id?: string }).connected_account_id
+      if (!cs || !acct) throw new Error('Stripe payment is not set up yet')
+      setPay({ client_secret: cs, connected_account_id: acct })
     } catch (e) {
       toast.error((e as Error).message)
     } finally {
-      setPaying(false)
+      setLoadingPay(false)
     }
   }
 
@@ -173,6 +203,25 @@ export default function PortalInvoice({ token }: { token: string }) {
           Paid {data.invoice.paid_at ? formatDate(data.invoice.paid_at) : ''}.
           Thank you.
         </div>
+      ) : justPaid ? (
+        <div
+          className="px-5 py-4 border rounded-sm font-garamond text-[1rem]"
+          style={{ borderColor: brand, color: brand }}
+        >
+          Payment received — confirming with your designer’s account…
+        </div>
+      ) : pay ? (
+        <div className="border border-hm-text/15 p-5">
+          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-4">
+            Pay {formatCents(data.invoice.total_cents)}
+          </div>
+          <PaymentForm
+            clientSecret={pay.client_secret}
+            connectedAccountId={pay.connected_account_id}
+            brandColor={brand}
+            returnUrl={`${window.location.origin}/portal/invoices/${token}?paid=1`}
+          />
+        </div>
       ) : (
         <div className="border border-hm-text/15 p-5 flex items-center justify-between gap-4 flex-wrap">
           <div>
@@ -183,7 +232,12 @@ export default function PortalInvoice({ token }: { token: string }) {
               Pay securely via Stripe.
             </div>
           </div>
-          <Button variant="primary" size="lg" onClick={initiatePayment} loading={paying}>
+          <Button
+            variant="primary"
+            size="lg"
+            onClick={initPayment}
+            loading={loadingPay}
+          >
             Pay invoice
           </Button>
         </div>

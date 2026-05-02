@@ -30,8 +30,14 @@ export const env = {
 
   // Stripe (platform account)
   stripeSecretKey: () => required('STRIPE_SECRET_KEY'),
+  stripePublishableKey: () => optional('NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY'),
   stripeWebhookSecret: () => required('STRIPE_WEBHOOK_SECRET'),
   stripeConnectWebhookSecret: () => required('STRIPE_CONNECT_WEBHOOK_SECRET'),
+
+  // Resend (transactional email). Optional — sends are no-ops if missing.
+  resendApiKey: () => optional('RESEND_API_KEY'),
+  resendFromEmail: () =>
+    optional('RESEND_FROM_EMAIL') ?? 'hejmae <hello@hejmae.com>',
 
   // Platform config
   appUrl: () => required('NEXT_PUBLIC_APP_URL'),

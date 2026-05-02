@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { api } from '@/lib/api'
 import { formatCents, titleCase } from '@/lib/format'
 import { PageSpinner } from '@/components/ui/Spinner'
@@ -10,6 +11,8 @@ import Button from '@/components/ui/Button'
 import { Field, Input, Select, Textarea, Label } from '@/components/ui/Input'
 import { Drawer } from '@/components/ui/Modal'
 import { toast } from '@/components/ui/Toast'
+import { ManageRoomsButton } from '@/components/ui/RoomManager'
+import EditItemDrawer from './EditItemDrawer'
 import type { Item, Room, CatalogProduct, ItemStatus } from '@/lib/types-ui'
 
 const STATUSES: ItemStatus[] = [
@@ -21,10 +24,15 @@ const STATUSES: ItemStatus[] = [
 ]
 
 export default function ItemsClient({ projectId }: { projectId: string }) {
+  const searchParams = useSearchParams()
+  const initialStatus = searchParams.get('status') ?? undefined
   const [items, setItems] = useState<Item[] | null>(null)
   const [rooms, setRooms] = useState<Room[]>([])
-  const [filter, setFilter] = useState<{ room?: string; status?: string }>({})
+  const [filter, setFilter] = useState<{ room?: string; status?: string }>(
+    initialStatus ? { status: initialStatus } : {},
+  )
   const [openAdd, setOpenAdd] = useState(false)
+  const [editing, setEditing] = useState<Item | null>(null)
 
   const load = async () => {
     const [i, r] = await Promise.all([
@@ -90,9 +98,12 @@ export default function ItemsClient({ projectId }: { projectId: string }) {
             ))}
           </Select>
         </div>
-        <Button variant="primary" onClick={() => setOpenAdd(true)}>
-          + Add item
-        </Button>
+        <div className="flex items-center gap-2">
+          <ManageRoomsButton projectId={projectId} rooms={rooms} onChange={load} />
+          <Button variant="primary" onClick={() => setOpenAdd(true)}>
+            + Add item
+          </Button>
+        </div>
       </div>
 
       {items === null ? (
@@ -129,7 +140,13 @@ export default function ItemsClient({ projectId }: { projectId: string }) {
             return (
               <div
                 key={it.id}
-                className="grid grid-cols-[64px_1fr_auto] md:grid-cols-[64px_2fr_1fr_120px_120px_140px_120px] gap-4 items-center px-4 py-3 border-t border-hm-text/10 hover:bg-hm-text/[0.02] transition-colors"
+                onClick={(e) => {
+                  // Don't open edit when clicking the inline status select.
+                  const tag = (e.target as HTMLElement).tagName
+                  if (tag === 'SELECT' || tag === 'OPTION') return
+                  setEditing(it)
+                }}
+                className="grid grid-cols-[64px_1fr_auto] md:grid-cols-[64px_2fr_1fr_120px_120px_140px_120px] gap-4 items-center px-4 py-3 border-t border-hm-text/10 hover:bg-hm-text/[0.02] transition-colors cursor-pointer"
               >
                 <div className="w-12 h-12 bg-hm-text/[0.05] rounded-sm overflow-hidden shrink-0">
                   {it.image_url ? (
@@ -197,6 +214,22 @@ export default function ItemsClient({ projectId }: { projectId: string }) {
           setOpenAdd(false)
           load()
           toast.success('Item added')
+        }}
+      />
+
+      <EditItemDrawer
+        open={editing !== null}
+        projectId={projectId}
+        item={editing}
+        rooms={rooms}
+        onClose={() => setEditing(null)}
+        onSaved={() => {
+          setEditing(null)
+          load()
+        }}
+        onDeleted={() => {
+          setEditing(null)
+          load()
         }}
       />
     </div>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Link from 'next/link'
 import { api } from '@/lib/api'
 import { formatCents, formatDate } from '@/lib/format'
 import { PageSpinner } from '@/components/ui/Spinner'
@@ -99,8 +100,16 @@ export default function POsClient({ projectId }: { projectId: string }) {
                         : ''}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap">
                     <StatusBadge kind="po" status={po.status} />
+                    <Link
+                      href={`/dashboard/projects/${projectId}/purchase-orders/${po.id}/print`}
+                      target="_blank"
+                    >
+                      <Button size="sm" variant="ghost">
+                        Print
+                      </Button>
+                    </Link>
                     <NextAction status={po.status} onAdvance={(a) => advance(po.id, a)} />
                   </div>
                 </div>

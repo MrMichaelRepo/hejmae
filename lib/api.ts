@@ -35,6 +35,18 @@ async function request<T>(
       ...(init.headers ?? {}),
     },
   })
+  // Bounce to sign-in on auth failures so dashboard pages don't spin forever
+  // when a session expired. Skip the bounce for portal endpoints which use
+  // magic-link auth instead of Clerk.
+  if (
+    res.status === 401 &&
+    typeof window !== 'undefined' &&
+    !path.startsWith('/api/portal/')
+  ) {
+    window.location.href = '/sign-in'
+    // Throw anyway so callers stop waiting.
+    throw new ApiError(401, 'unauthorized', 'Not signed in')
+  }
   const text = await res.text()
   const body = text ? JSON.parse(text) : {}
   if (!res.ok) {

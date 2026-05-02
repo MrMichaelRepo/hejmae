@@ -7,12 +7,14 @@ import { PageHeader } from '@/components/ui/EmptyState'
 import { PageSpinner } from '@/components/ui/Spinner'
 import { Input } from '@/components/ui/Input'
 import EmptyState from '@/components/ui/EmptyState'
+import AddToProjectModal from './AddToProjectModal'
 import type { CatalogProduct } from '@/lib/types-ui'
 
 export default function CatalogPage() {
   const [tab, setTab] = useState<'library' | 'master'>('library')
   const [q, setQ] = useState('')
   const [results, setResults] = useState<CatalogProduct[] | null>(null)
+  const [picking, setPicking] = useState<CatalogProduct | null>(null)
 
   useEffect(() => {
     setResults(null)
@@ -87,14 +89,12 @@ export default function CatalogPage() {
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {results.map((p) => (
-            <a
+            <button
               key={p.id}
-              href={p.source_url ?? '#'}
-              target={p.source_url ? '_blank' : undefined}
-              rel="noreferrer"
-              className="border border-hm-text/10 p-3 hover:bg-hm-text/[0.03] transition-colors"
+              onClick={() => setPicking(p)}
+              className="text-left border border-hm-text/10 p-3 hover:bg-hm-text/[0.03] transition-colors group"
             >
-              <div className="aspect-square bg-hm-text/[0.05] mb-2.5">
+              <div className="aspect-square bg-hm-text/[0.05] mb-2.5 relative overflow-hidden">
                 {p.image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -103,6 +103,11 @@ export default function CatalogPage() {
                     className="w-full h-full object-cover"
                   />
                 ) : null}
+                <div className="absolute inset-0 bg-hm-text/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-bg">
+                    + Add to project
+                  </span>
+                </div>
               </div>
               <div className="font-garamond text-[0.95rem] leading-tight line-clamp-2">
                 {p.name}
@@ -115,10 +120,16 @@ export default function CatalogPage() {
                   {formatCents(p.retail_price_cents)}
                 </div>
               ) : null}
-            </a>
+            </button>
           ))}
         </div>
       )}
+
+      <AddToProjectModal
+        open={picking !== null}
+        onClose={() => setPicking(null)}
+        product={picking}
+      />
     </div>
   )
 }

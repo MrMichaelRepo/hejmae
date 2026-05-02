@@ -4,6 +4,9 @@ import { loadOwnedProject } from '@/lib/auth/ownership'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, notFound, badRequest } from '@/lib/errors'
 import { logActivity } from '@/lib/activity'
+import { env } from '@/lib/env'
+import { sendEmail } from '@/lib/email/send'
+import { renderPOEmail } from '@/lib/email/templates'
 
 interface Ctx {
   params: Promise<{ projectId: string; poId: string }>
@@ -35,8 +38,8 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 export async function PATCH(req: NextRequest, { params }: Ctx) {
   return withErrorHandling(async () => {
     const { projectId, poId } = await params
-    const { designerId } = await requireDesigner()
-    await loadOwnedProject(designerId, projectId)
+    const { designerId, user } = await requireDesigner()
+    const project = await loadOwnedProject(designerId, projectId)
     await loadPo(designerId, projectId, poId)
 
     const body = (await req.json()) as {
@@ -80,20 +83,57 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       .single()
     if (error) throw error
 
+    let emailResult: { ok: boolean; reason?: string } | null = null
     if (body.action === 'send') {
-      // TODO: send vendor email via Resend.
+      // Compute total from line items for the email body.
+      const { data: lines } = await supabaseAdmin()
+        .from('purchase_order_line_items')
+        .select('total_trade_price_cents')
+        .eq('po_id', poId)
+        .eq('designer_id', designerId)
+      const total = (lines ?? []).reduce(
+        (a, l) => a + l.total_trade_price_cents,
+        0,
+      )
+
+      if (data.vendor_email) {
+        const printUrl = `${env.appUrl()}/dashboard/projects/${projectId}/purchase-orders/${poId}/print`
+        const tpl = renderPOEmail({
+          brand: {
+            studio_name: user.studio_name,
+            name: user.name,
+            logo_url: user.logo_url,
+            brand_color: user.brand_color,
+          },
+          vendorName: data.vendor_name,
+          projectName: project.name,
+          poId,
+          totalCents: total,
+          expectedLeadTimeDays: data.expected_lead_time_days,
+          printUrl,
+          notes: data.notes,
+        })
+        emailResult = await sendEmail({
+          to: data.vendor_email,
+          subject: tpl.subject,
+          html: tpl.html,
+          text: tpl.text,
+          replyTo: user.email,
+        })
+      }
+
       await logActivity({
         designerId,
         projectId,
         actorType: 'designer',
         actorId: designerId,
         eventType: 'po.sent',
-        description: `PO sent to ${data.vendor_name}`,
-        metadata: { po_id: poId },
+        description: `PO sent to ${data.vendor_name}${emailResult?.ok ? ' (email delivered)' : ''}`,
+        metadata: { po_id: poId, email: emailResult },
       })
     }
 
-    return NextResponse.json({ data })
+    return NextResponse.json({ data, email: emailResult })
   })
 }
 

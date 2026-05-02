@@ -6,6 +6,8 @@ import { withErrorHandling, notFound, badRequest } from '@/lib/errors'
 import { generateMagicToken } from '@/lib/tokens'
 import { logActivity } from '@/lib/activity'
 import { env } from '@/lib/env'
+import { sendEmail } from '@/lib/email/send'
+import { renderInvoiceEmail } from '@/lib/email/templates'
 
 interface Ctx {
   params: Promise<{ projectId: string; invoiceId: string }>
@@ -39,8 +41,8 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 export async function PATCH(req: NextRequest, { params }: Ctx) {
   return withErrorHandling(async () => {
     const { projectId, invoiceId } = await params
-    const { designerId } = await requireDesigner()
-    await loadOwnedProject(designerId, projectId)
+    const { designerId, user } = await requireDesigner()
+    const project = await loadOwnedProject(designerId, projectId)
     const existing = await loadInvoice(designerId, projectId, invoiceId)
 
     const body = (await req.json()) as {
@@ -76,19 +78,53 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       .single()
     if (error) throw error
 
-    if (body.action === 'send') {
+    let emailResult: { ok: boolean; reason?: string } | null = null
+    if (body.action === 'send' && data.magic_link_token) {
+      const url = `${env.appUrl()}/portal/invoices/${data.magic_link_token}`
+
+      if (project.client_id) {
+        const { data: client } = await supabaseAdmin()
+          .from('clients')
+          .select('name, email')
+          .eq('id', project.client_id)
+          .maybeSingle()
+        if (client?.email) {
+          const tpl = renderInvoiceEmail({
+            brand: {
+              studio_name: user.studio_name,
+              name: user.name,
+              logo_url: user.logo_url,
+              brand_color: user.brand_color,
+            },
+            clientName: client.name,
+            projectName: project.name,
+            invoiceType: data.type,
+            totalCents: data.total_cents,
+            invoiceUrl: url,
+            notes: data.notes,
+          })
+          emailResult = await sendEmail({
+            to: client.email,
+            subject: tpl.subject,
+            html: tpl.html,
+            text: tpl.text,
+            replyTo: user.email,
+          })
+        }
+      }
+
       await logActivity({
         designerId,
         projectId,
         actorType: 'designer',
         actorId: designerId,
         eventType: 'invoice.sent',
-        description: `Invoice sent`,
-        metadata: { invoice_id: invoiceId },
+        description: `Invoice sent${emailResult?.ok ? ' (email delivered)' : ''}`,
+        metadata: { invoice_id: invoiceId, email: emailResult },
       })
     }
 
-    const out: Record<string, unknown> = { data }
+    const out: Record<string, unknown> = { data, email: emailResult }
     if (data.magic_link_token) {
       out.magic_link_url = `${env.appUrl()}/portal/invoices/${data.magic_link_token}`
     }

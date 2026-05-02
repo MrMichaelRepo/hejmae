@@ -123,19 +123,6 @@ export default function OverviewClient({ projectId }: { projectId: string }) {
           </Link>
         </div>
       </section>
-
-      {false ? (
-        <div className="border border-hm-text/15 p-5 flex flex-wrap items-center gap-3 justify-between">
-          <div className="font-garamond text-[0.95rem] text-hm-nav truncate" />
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => {}}
-          >
-            Copy
-          </Button>
-        </div>
-      ) : null}
     </div>
   )
 }
