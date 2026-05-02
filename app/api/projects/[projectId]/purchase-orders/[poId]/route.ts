@@ -73,6 +73,9 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       default:
         throw badRequest('Unknown action')
     }
+    if (!Object.keys(updates).length) {
+      throw badRequest('No valid fields to update')
+    }
 
     const { data, error } = await supabaseAdmin()
       .from('purchase_orders')

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { requireDesigner } from '@/lib/auth/designer'
 import { loadOwnedProject } from '@/lib/auth/ownership'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import { withErrorHandling, notFound } from '@/lib/errors'
+import { withErrorHandling, notFound, badRequest } from '@/lib/errors'
 import { updateProposal } from '@/lib/validations/proposal'
 
 interface Ctx {
@@ -53,6 +53,25 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     }
 
     if (body.room_ids) {
+      const uniqueRoomIds = [...new Set(body.room_ids)]
+      if (uniqueRoomIds.length !== body.room_ids.length) {
+        throw badRequest('room_ids contains duplicate ids')
+      }
+      if (uniqueRoomIds.length) {
+        const { data: rooms, error: roomErr } = await supabaseAdmin()
+          .from('rooms')
+          .select('id')
+          .in('id', uniqueRoomIds)
+          .eq('project_id', projectId)
+          .eq('designer_id', designerId)
+        if (roomErr) throw roomErr
+        if ((rooms ?? []).length !== uniqueRoomIds.length) {
+          throw badRequest(
+            'One or more room_ids do not belong to this project',
+          )
+        }
+      }
+
       // Replace the room set entirely. TODO: smarter diff that preserves
       // approval state on rooms that are still present.
       await supabaseAdmin()

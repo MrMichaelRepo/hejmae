@@ -63,10 +63,16 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
         updates.magic_link_token = generateMagicToken()
       }
     } else if (body.action === 'mark_paid') {
+      if (existing.status === 'paid') {
+        throw badRequest('Invoice is already paid')
+      }
       // Manual mark-paid (e.g. paid by check). Stripe-driven payments are
       // recorded by the webhook handler. TODO: reconcile any over-payment.
       updates.status = 'paid'
       updates.paid_at = new Date().toISOString()
+    }
+    if (!Object.keys(updates).length) {
+      throw badRequest('No valid fields to update')
     }
 
     const { data, error } = await supabaseAdmin()
@@ -77,6 +83,25 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       .select()
       .single()
     if (error) throw error
+
+    if (body.action === 'mark_paid') {
+      const paidAlready = (existing.payments ?? []).reduce(
+        (a: number, p: { amount_cents: number }) => a + p.amount_cents,
+        0,
+      )
+      const manualAmount = Math.max(0, existing.total_cents - paidAlready)
+      if (manualAmount > 0) {
+        const { error: payErr } = await supabaseAdmin().from('payments').insert({
+          designer_id: designerId,
+          invoice_id: invoiceId,
+          amount_cents: manualAmount,
+          stripe_charge_id: null,
+          stripe_payment_intent_id: null,
+          platform_fee_cents: 0,
+        })
+        if (payErr) throw payErr
+      }
+    }
 
     let emailResult: { ok: boolean; reason?: string } | null = null
     if (body.action === 'send' && data.magic_link_token) {

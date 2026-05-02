@@ -51,11 +51,14 @@ export async function requireDesigner(): Promise<DesignerContext> {
 
   const { data: inserted, error: insertErr } = await sb
     .from('users')
-    .insert({
-      clerk_user_id: clerkUserId,
-      email,
-      name: [cu.firstName, cu.lastName].filter(Boolean).join(' ') || null,
-    })
+    .upsert(
+      {
+        clerk_user_id: clerkUserId,
+        email,
+        name: [cu.firstName, cu.lastName].filter(Boolean).join(' ') || null,
+      },
+      { onConflict: 'clerk_user_id' },
+    )
     .select()
     .single()
   if (insertErr) throw insertErr

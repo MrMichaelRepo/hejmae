@@ -53,8 +53,7 @@ export async function POST(req: NextRequest) {
         await handlePaymentIntentSucceeded(event)
         break
       case 'charge.refunded':
-        // TODO: reverse payment + adjust invoice status when a refund
-        // happens. Out of scope for v1 scaffold.
+        await handleChargeRefunded(event)
         break
       case 'account.updated':
         await handleAccountUpdated(event)
@@ -78,6 +77,7 @@ async function handlePaymentIntentSucceeded(event: Stripe.Event) {
   const pi = event.data.object as Stripe.PaymentIntent
   const invoiceId = pi.metadata?.invoice_id
   const designerId = pi.metadata?.designer_id
+  const eventAccount = event.account ?? null
   if (!invoiceId || !designerId) {
     console.warn('[stripe-connect] PI without invoice metadata', pi.id)
     return
@@ -96,6 +96,32 @@ async function handlePaymentIntentSucceeded(event: Stripe.Event) {
     console.warn('[stripe-connect] invoice not found for PI', pi.id)
     return
   }
+  if (!eventAccount) {
+    console.warn('[stripe-connect] missing event.account for PI', {
+      event_id: event.id,
+      invoice_id: invoiceId,
+      payment_intent_id: pi.id,
+    })
+    return
+  }
+  if (!invoice.stripe_account_id) {
+    console.warn('[stripe-connect] invoice missing stripe_account_id', {
+      event_id: event.id,
+      invoice_id: invoiceId,
+      event_account: eventAccount,
+    })
+    return
+  }
+  if (invoice.stripe_account_id !== eventAccount) {
+    console.warn('[stripe-connect] account mismatch for PI', {
+      event_id: event.id,
+      invoice_id: invoiceId,
+      invoice_account: invoice.stripe_account_id,
+      event_account: eventAccount,
+      payment_intent_id: pi.id,
+    })
+    return
+  }
 
   // The PI's amount_received is what actually settled. Application fee
   // amount is what the platform collected.
@@ -106,23 +132,42 @@ async function handlePaymentIntentSucceeded(event: Stripe.Event) {
     typeof pi.latest_charge === 'string' ? pi.latest_charge : pi.latest_charge?.id ?? null
 
   // Record the payment idempotently — charge id is unique.
+  let paymentWasInserted = false
   if (chargeId) {
     const { data: existing } = await sb
       .from('payments')
       .select('id')
       .eq('stripe_charge_id', chargeId)
       .maybeSingle()
-    if (existing) return
+    if (!existing) {
+      await sb.from('payments').insert({
+        designer_id: designerId,
+        invoice_id: invoiceId,
+        amount_cents: amount,
+        stripe_charge_id: chargeId,
+        stripe_payment_intent_id: pi.id,
+        platform_fee_cents: platformFee,
+      })
+      paymentWasInserted = true
+    }
+  } else {
+    const { data: existingByPi } = await sb
+      .from('payments')
+      .select('id')
+      .eq('stripe_payment_intent_id', pi.id)
+      .maybeSingle()
+    if (!existingByPi) {
+      await sb.from('payments').insert({
+        designer_id: designerId,
+        invoice_id: invoiceId,
+        amount_cents: amount,
+        stripe_charge_id: null,
+        stripe_payment_intent_id: pi.id,
+        platform_fee_cents: platformFee,
+      })
+      paymentWasInserted = true
+    }
   }
-
-  await sb.from('payments').insert({
-    designer_id: designerId,
-    invoice_id: invoiceId,
-    amount_cents: amount,
-    stripe_charge_id: chargeId,
-    stripe_payment_intent_id: pi.id,
-    platform_fee_cents: platformFee,
-  })
 
   // Recompute invoice status from sum of payments.
   const { data: paySum } = await sb
@@ -139,19 +184,135 @@ async function handlePaymentIntentSucceeded(event: Stripe.Event) {
     })
     .eq('id', invoiceId)
 
-  await logActivity({
-    designerId,
-    projectId: invoice.project_id,
-    actorType: 'client',
-    eventType: 'invoice.paid',
-    description: `Payment received: ${(amount / 100).toFixed(2)} USD`,
-    metadata: {
-      invoice_id: invoiceId,
-      payment_intent_id: pi.id,
-      charge_id: chargeId,
-      platform_fee_cents: platformFee,
-    },
-  })
+  if (paymentWasInserted) {
+    await logActivity({
+      designerId,
+      projectId: invoice.project_id,
+      actorType: 'client',
+      eventType: 'invoice.paid',
+      description: `Payment received: ${(amount / 100).toFixed(2)} USD`,
+      metadata: {
+        invoice_id: invoiceId,
+        payment_intent_id: pi.id,
+        charge_id: chargeId,
+        platform_fee_cents: platformFee,
+      },
+    })
+  }
+}
+
+async function handleChargeRefunded(event: Stripe.Event) {
+  const charge = event.data.object as Stripe.Charge
+  const chargeId = charge.id
+  const eventAccount = event.account ?? null
+  if (!chargeId) return
+
+  const sb = supabaseAdmin()
+  const { data: payment, error: payErr } = await sb
+    .from('payments')
+    .select('id, invoice_id, designer_id, amount_cents')
+    .eq('stripe_charge_id', chargeId)
+    .maybeSingle()
+  if (payErr) throw payErr
+  if (!payment) return
+
+  // Keep the payment row aligned to Stripe's net-captured amount after refunds.
+  const netCaptured = Math.max(0, charge.amount - charge.amount_refunded)
+  const previousAmount = payment.amount_cents
+  if (netCaptured === 0) {
+    const { error: delErr } = await sb.from('payments').delete().eq('id', payment.id)
+    if (delErr) throw delErr
+  } else if (netCaptured !== previousAmount) {
+    const { error: updErr } = await sb
+      .from('payments')
+      .update({ amount_cents: netCaptured })
+      .eq('id', payment.id)
+    if (updErr) throw updErr
+  }
+
+  const { data: invoice, error: invErr } = await sb
+    .from('invoices')
+    .select('id, project_id, total_cents, paid_at')
+    .eq('id', payment.invoice_id)
+    .eq('designer_id', payment.designer_id)
+    .maybeSingle()
+  if (invErr) throw invErr
+  if (!invoice) return
+  if (!eventAccount) {
+    console.warn('[stripe-connect] missing event.account for refund', {
+      event_id: event.id,
+      invoice_id: invoice.id,
+      stripe_charge_id: chargeId,
+    })
+    return
+  }
+  const { data: invoiceAccountRow, error: invoiceAccountErr } = await sb
+    .from('invoices')
+    .select('stripe_account_id')
+    .eq('id', invoice.id)
+    .maybeSingle()
+  if (invoiceAccountErr) throw invoiceAccountErr
+  if (!invoiceAccountRow?.stripe_account_id) {
+    console.warn('[stripe-connect] invoice missing stripe_account_id on refund', {
+      event_id: event.id,
+      invoice_id: invoice.id,
+      event_account: eventAccount,
+      stripe_charge_id: chargeId,
+    })
+    return
+  }
+  if (invoiceAccountRow.stripe_account_id !== eventAccount) {
+    console.warn('[stripe-connect] account mismatch for refund', {
+      event_id: event.id,
+      invoice_id: invoice.id,
+      invoice_account: invoiceAccountRow.stripe_account_id,
+      event_account: eventAccount,
+      stripe_charge_id: chargeId,
+    })
+    return
+  }
+
+  const { data: paySum, error: sumErr } = await sb
+    .from('payments')
+    .select('amount_cents')
+    .eq('invoice_id', invoice.id)
+  if (sumErr) throw sumErr
+  const totalPaid = (paySum ?? []).reduce((a, p) => a + p.amount_cents, 0)
+  const newStatus =
+    totalPaid >= invoice.total_cents
+      ? 'paid'
+      : totalPaid > 0
+        ? 'partially_paid'
+        : 'sent'
+  const { error: invUpdErr } = await sb
+    .from('invoices')
+    .update({
+      status: newStatus,
+      paid_at:
+        newStatus === 'paid'
+          ? invoice.paid_at ?? new Date().toISOString()
+          : null,
+    })
+    .eq('id', invoice.id)
+  if (invUpdErr) throw invUpdErr
+
+  if (netCaptured !== previousAmount) {
+    const refundedAmount = Math.max(0, previousAmount - netCaptured)
+    await logActivity({
+      designerId: payment.designer_id,
+      projectId: invoice.project_id,
+      actorType: 'client',
+      eventType: 'invoice.refunded',
+      description: `Refund applied: ${(refundedAmount / 100).toFixed(2)} USD`,
+      metadata: {
+        invoice_id: invoice.id,
+        stripe_charge_id: chargeId,
+        refund_event_id: event.id,
+        previous_amount_cents: previousAmount,
+        net_amount_cents: netCaptured,
+      },
+    })
+  }
 }
 
 async function handleAccountUpdated(event: Stripe.Event) {

@@ -1,13 +1,13 @@
 // Server-side Supabase clients.
 //
 // We expose two flavors:
-//   * supabaseAdmin() — service-role client. Bypasses RLS. Use ONLY from
+//   * supabaseAdmin() — secret-key client. Bypasses RLS. Use ONLY from
 //     server code (API routes, server actions, webhook handlers) and ONLY
 //     after validating ownership in code.
-//   * supabaseAsDesigner(jwt) — anon-key client carrying a Clerk-issued JWT
-//     in Authorization. RLS applies. Useful when we want belt-and-suspenders
-//     enforcement, but most API routes use the admin client + explicit
-//     designer_id checks.
+//   * supabaseAsDesigner(jwt) — publishable-key client carrying a
+//     Clerk-issued JWT in Authorization. RLS applies. Useful when we want
+//     belt-and-suspenders enforcement, but most API routes use the admin
+//     client + explicit designer_id checks.
 //
 // Never import this file from a client component.
 
@@ -18,7 +18,7 @@ let _admin: SupabaseClient | null = null
 
 export function supabaseAdmin(): SupabaseClient {
   if (_admin) return _admin
-  _admin = createClient(env.supabaseUrl(), env.supabaseServiceRoleKey(), {
+  _admin = createClient(env.supabaseUrl(), env.supabaseSecretKey(), {
     auth: { autoRefreshToken: false, persistSession: false },
     global: { headers: { 'X-Client-Info': 'hejmae-server' } },
   })
@@ -26,7 +26,7 @@ export function supabaseAdmin(): SupabaseClient {
 }
 
 export function supabaseAsDesigner(clerkJwt: string): SupabaseClient {
-  return createClient(env.supabaseUrl(), env.supabaseAnonKey(), {
+  return createClient(env.supabaseUrl(), env.supabasePublishableKey(), {
     auth: { autoRefreshToken: false, persistSession: false },
     global: {
       headers: {

@@ -19,10 +19,15 @@ function optional(name: string): string | undefined {
 }
 
 export const env = {
-  // Supabase
+  // Supabase — using the new (2025) API key naming.
+  //   * publishable_key (sb_publishable_…) → browser-safe; replaces "anon"
+  //   * secret_key (sb_secret_…)            → server-only; replaces "service role"
+  // The supabase-js client treats these as opaque strings, so legacy JWT
+  // anon/service_role keys still work if pasted into the same slots.
   supabaseUrl: () => required('NEXT_PUBLIC_SUPABASE_URL'),
-  supabaseAnonKey: () => required('NEXT_PUBLIC_SUPABASE_ANON_KEY'),
-  supabaseServiceRoleKey: () => required('SUPABASE_SERVICE_ROLE_KEY'),
+  supabasePublishableKey: () =>
+    required('NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY'),
+  supabaseSecretKey: () => required('SUPABASE_SECRET_KEY'),
 
   // Clerk
   clerkSecretKey: () => required('CLERK_SECRET_KEY'),

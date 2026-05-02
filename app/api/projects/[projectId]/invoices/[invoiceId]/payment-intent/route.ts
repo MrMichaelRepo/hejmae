@@ -5,7 +5,7 @@ import { requireDesigner } from '@/lib/auth/designer'
 import { loadOwnedProject } from '@/lib/auth/ownership'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, notFound, badRequest } from '@/lib/errors'
-import { createInvoicePaymentIntent } from '@/lib/stripe/connect'
+import { ensureInvoicePaymentIntent } from '@/lib/stripe/connect'
 
 interface Ctx {
   params: Promise<{ projectId: string; invoiceId: string }>
@@ -32,11 +32,12 @@ export async function POST(_req: NextRequest, { params }: Ctx) {
     if (!invoice) throw notFound('Invoice not found')
     if (invoice.status === 'paid') throw badRequest('Invoice already paid')
 
-    const pi = await createInvoicePaymentIntent({
+    const pi = await ensureInvoicePaymentIntent({
       totalCents: invoice.total_cents,
       invoiceId: invoice.id,
       designerId,
       connectedAccountId: user.stripe_account_id,
+      existingPaymentIntentId: invoice.stripe_payment_intent_id,
     })
 
     await supabaseAdmin()

@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { requireDesigner } from '@/lib/auth/designer'
 import { loadOwnedProject } from '@/lib/auth/ownership'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import { withErrorHandling } from '@/lib/errors'
+import { withErrorHandling, badRequest } from '@/lib/errors'
 import { updateProject } from '@/lib/validations/project'
 
 interface Ctx {
@@ -25,6 +25,17 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     const { designerId } = await requireDesigner()
     await loadOwnedProject(designerId, projectId)
     const body = updateProject.parse(await req.json())
+
+    if (body.client_id !== undefined && body.client_id !== null) {
+      const { data: client, error: clientErr } = await supabaseAdmin()
+        .from('clients')
+        .select('id')
+        .eq('id', body.client_id)
+        .eq('designer_id', designerId)
+        .maybeSingle()
+      if (clientErr) throw clientErr
+      if (!client) throw badRequest('client_id does not belong to this designer')
+    }
 
     const { data, error } = await supabaseAdmin()
       .from('projects')

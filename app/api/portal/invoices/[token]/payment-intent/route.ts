@@ -8,7 +8,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { loadInvoiceByToken } from '@/lib/portal/auth'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, badRequest } from '@/lib/errors'
-import { createInvoicePaymentIntent } from '@/lib/stripe/connect'
+import { ensureInvoicePaymentIntent } from '@/lib/stripe/connect'
 
 interface Ctx {
   params: Promise<{ token: string }>
@@ -31,11 +31,12 @@ export async function POST(_req: NextRequest, { params }: Ctx) {
       throw badRequest('Designer has not finished Stripe onboarding')
     }
 
-    const pi = await createInvoicePaymentIntent({
+    const pi = await ensureInvoicePaymentIntent({
       totalCents: invoice.total_cents,
       invoiceId: invoice.id,
       designerId: invoice.designer_id,
       connectedAccountId: designer.stripe_account_id,
+      existingPaymentIntentId: invoice.stripe_payment_intent_id,
     })
 
     await sb

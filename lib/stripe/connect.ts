@@ -75,3 +75,52 @@ export async function createInvoicePaymentIntent(opts: {
     { stripeAccount: opts.connectedAccountId },
   )
 }
+
+// Reuse an existing PaymentIntent when possible so repeated calls don't create
+// multiple live intents for a single invoice.
+export async function ensureInvoicePaymentIntent(opts: {
+  totalCents: number
+  invoiceId: string
+  designerId: string
+  connectedAccountId: string
+  existingPaymentIntentId?: string | null
+  customerEmail?: string | null
+}): Promise<Stripe.PaymentIntent> {
+  const s = stripe()
+  if (opts.existingPaymentIntentId) {
+    try {
+      const existing = await s.paymentIntents.retrieve(
+        opts.existingPaymentIntentId,
+        {},
+        { stripeAccount: opts.connectedAccountId },
+      )
+      // Do not create a new intent once payment is already in flight/succeeded.
+      if (
+        existing.status === 'processing' ||
+        existing.status === 'requires_capture' ||
+        existing.status === 'succeeded'
+      ) {
+        return existing
+      }
+      if (existing.status !== 'canceled') {
+        return s.paymentIntents.update(
+          existing.id,
+          {
+            amount: opts.totalCents,
+            currency: 'usd',
+            application_fee_amount: applicationFeeCents(opts.totalCents),
+            metadata: {
+              invoice_id: opts.invoiceId,
+              designer_id: opts.designerId,
+            },
+            receipt_email: opts.customerEmail ?? undefined,
+          },
+          { stripeAccount: opts.connectedAccountId },
+        )
+      }
+    } catch {
+      // Fall through to create when the stored PI id is stale/invalid.
+    }
+  }
+  return createInvoicePaymentIntent(opts)
+}

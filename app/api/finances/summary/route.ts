@@ -18,7 +18,7 @@ export async function GET() {
           .eq('designer_id', designerId),
         sb
           .from('payments')
-          .select('amount_cents')
+          .select('invoice_id, amount_cents')
           .eq('designer_id', designerId),
         sb
           .from('purchase_order_line_items')
@@ -35,10 +35,21 @@ export async function GET() {
         .reduce((a, i) => a + i.total_cents, 0) ?? 0
     const totalReceived =
       payments?.reduce((a, p) => a + p.amount_cents, 0) ?? 0
+    const paidByInvoice = new Map<string, number>()
+    for (const p of payments ?? []) {
+      if (!p.invoice_id) continue
+      paidByInvoice.set(
+        p.invoice_id,
+        (paidByInvoice.get(p.invoice_id) ?? 0) + p.amount_cents,
+      )
+    }
     const totalOutstanding =
       invoices
         ?.filter((i) => i.status === 'sent' || i.status === 'partially_paid')
-        .reduce((a, i) => a + i.total_cents, 0) ?? 0
+        .reduce(
+          (a, i) => a + Math.max(0, i.total_cents - (paidByInvoice.get(i.id) ?? 0)),
+          0,
+        ) ?? 0
     const totalCogs =
       poLines?.reduce((a, l) => a + l.total_trade_price_cents, 0) ?? 0
 
