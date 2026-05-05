@@ -26,6 +26,7 @@ export default function POsClient({ projectId }: { projectId: string }) {
   const [pos, setPos] = useState<POWith[] | null>(null)
   const [items, setItems] = useState<Item[]>([])
   const [openCreate, setOpenCreate] = useState(false)
+  const [editing, setEditing] = useState<POWith | null>(null)
 
   const load = async () => {
     const [p, i] = await Promise.all([
@@ -156,6 +157,16 @@ export default function POsClient({ projectId }: { projectId: string }) {
           toast.success('PO drafted')
         }}
       />
+      <TrackingModal
+        po={editing}
+        projectId={projectId}
+        onClose={() => setEditing(null)}
+        onSaved={() => {
+          setEditing(null)
+          load()
+          toast.success('Tracking updated')
+        }}
+      />
     </div>
   )
 }
@@ -194,6 +205,22 @@ function NextAction({
       </Button>
     )
   return null
+}
+
+function DeliveryBadge({ po }: { po: POWith }) {
+  const label = po.delivered_at
+    ? `Delivered ${formatDate(po.delivered_at)}`
+    : po.shipped_at
+      ? `Shipped ${formatDate(po.shipped_at)}`
+      : po.expected_delivery_date
+        ? `ETA ${formatDate(po.expected_delivery_date)}`
+        : null
+  if (!label) return null
+  return (
+    <span className="text-[10px] uppercase tracking-[0.18em] px-2 py-1 border border-hm-text/15 text-hm-nav">
+      {label}
+    </span>
+  )
 }
 
 function CreatePOModal({
@@ -323,6 +350,105 @@ function CreatePOModal({
         </Button>
         <Button variant="primary" onClick={submit} loading={submitting}>
           Create draft
+        </Button>
+      </div>
+    </Modal>
+  )
+}
+
+function TrackingModal({
+  po,
+  projectId,
+  onClose,
+  onSaved,
+}: {
+  po: POWith | null
+  projectId: string
+  onClose: () => void
+  onSaved: () => void
+}) {
+  const [expectedDate, setExpectedDate] = useState('')
+  const [trackingNumber, setTrackingNumber] = useState('')
+  const [trackingUrl, setTrackingUrl] = useState('')
+  const [shippedAt, setShippedAt] = useState('')
+  const [deliveredAt, setDeliveredAt] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  useEffect(() => {
+    if (!po) return
+    setExpectedDate(po.expected_delivery_date?.slice(0, 10) ?? '')
+    setTrackingNumber(po.tracking_number ?? '')
+    setTrackingUrl(po.tracking_url ?? '')
+    setShippedAt(po.shipped_at?.slice(0, 10) ?? '')
+    setDeliveredAt(po.delivered_at?.slice(0, 10) ?? '')
+  }, [po])
+
+  const submit = async () => {
+    if (!po) return
+    setSubmitting(true)
+    try {
+      await api.patch(`/api/projects/${projectId}/purchase-orders/${po.id}`, {
+        expected_delivery_date: expectedDate || null,
+        tracking_number: trackingNumber.trim() || null,
+        tracking_url: trackingUrl.trim() || null,
+        shipped_at: shippedAt ? new Date(shippedAt).toISOString() : null,
+        delivered_at: deliveredAt ? new Date(deliveredAt).toISOString() : null,
+      })
+      onSaved()
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <Modal open={Boolean(po)} onClose={onClose} title="Tracking">
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Expected delivery">
+          <Input
+            type="date"
+            value={expectedDate}
+            onChange={(e) => setExpectedDate(e.target.value)}
+          />
+        </Field>
+        <Field label="Tracking number">
+          <Input
+            value={trackingNumber}
+            onChange={(e) => setTrackingNumber(e.target.value)}
+            placeholder="1Z..."
+          />
+        </Field>
+      </div>
+      <Field label="Tracking URL">
+        <Input
+          value={trackingUrl}
+          onChange={(e) => setTrackingUrl(e.target.value)}
+          placeholder="https://..."
+        />
+      </Field>
+      <div className="grid grid-cols-2 gap-4">
+        <Field label="Shipped at">
+          <Input
+            type="date"
+            value={shippedAt}
+            onChange={(e) => setShippedAt(e.target.value)}
+          />
+        </Field>
+        <Field label="Delivered at">
+          <Input
+            type="date"
+            value={deliveredAt}
+            onChange={(e) => setDeliveredAt(e.target.value)}
+          />
+        </Field>
+      </div>
+      <div className="flex justify-end gap-3">
+        <Button variant="ghost" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button variant="primary" onClick={submit} loading={submitting}>
+          Save
         </Button>
       </div>
     </Modal>
