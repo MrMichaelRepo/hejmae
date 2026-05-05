@@ -11,6 +11,7 @@ export type {
   InvoiceStatus,
   PoStatus,
   ActorType,
+  PolygonPoint,
   ProjectRow as Project,
   ClientRow as Client,
   RoomRow as Room,

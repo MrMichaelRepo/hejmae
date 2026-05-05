@@ -13,6 +13,7 @@ import { Drawer } from '@/components/ui/Modal'
 import { toast } from '@/components/ui/Toast'
 import { ManageRoomsButton } from '@/components/ui/RoomManager'
 import EditItemDrawer from './EditItemDrawer'
+import ImageUploader from '@/components/ui/ImageUploader'
 import type { Item, Room, CatalogProduct, ItemStatus } from '@/lib/types-ui'
 
 const STATUSES: ItemStatus[] = [
@@ -551,13 +552,12 @@ function NewItemForm({
           />
         </Field>
       </div>
-      <Field label="Image URL">
-        <Input
-          value={imageUrl}
-          onChange={(e) => setImageUrl(e.target.value)}
-          placeholder="https://…"
-        />
-      </Field>
+      <ImageUploader
+        value={imageUrl || null}
+        onChange={(v) => setImageUrl(v ?? '')}
+        projectId={projectId}
+        ownerId="new"
+      />
       <Field label="Source URL">
         <Input
           value={sourceUrl}

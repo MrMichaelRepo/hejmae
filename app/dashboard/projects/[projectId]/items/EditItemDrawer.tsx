@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button'
 import { Field, Input, Select, Textarea } from '@/components/ui/Input'
 import { Drawer } from '@/components/ui/Modal'
 import { toast } from '@/components/ui/Toast'
+import ImageUploader from '@/components/ui/ImageUploader'
 import type { Item, Room, ItemStatus } from '@/lib/types-ui'
 
 const STATUSES: ItemStatus[] = [
@@ -105,12 +106,12 @@ export default function EditItemDrawer({
 
   return (
     <Drawer open={open} onClose={onClose} title="Edit item" width={560}>
-      {imageUrl ? (
-        <div className="aspect-video bg-hm-text/[0.05] mb-5 max-w-full overflow-hidden">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={imageUrl} alt="" className="w-full h-full object-contain" />
-        </div>
-      ) : null}
+      <ImageUploader
+        value={imageUrl || null}
+        onChange={(v) => setImageUrl(v ?? '')}
+        projectId={projectId}
+        ownerId={item.id}
+      />
 
       <Field label="Name">
         <Input value={name} onChange={(e) => setName(e.target.value)} required />
@@ -166,9 +167,6 @@ export default function EditItemDrawer({
           />
         </Field>
       </div>
-      <Field label="Image URL">
-        <Input value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
-      </Field>
       <Field label="Source URL">
         <Input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} />
       </Field>

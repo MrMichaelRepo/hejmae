@@ -43,6 +43,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
         floor_plan_y: body.floor_plan_y ?? null,
         floor_plan_width: body.floor_plan_width ?? null,
         floor_plan_height: body.floor_plan_height ?? null,
+        floor_plan_polygon: body.floor_plan_polygon ?? null,
         position: body.position ?? 0,
       })
       .select()

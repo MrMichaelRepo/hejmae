@@ -68,6 +68,11 @@ export interface ProjectRow {
   updated_at: string
 }
 
+export interface PolygonPoint {
+  x: number
+  y: number
+}
+
 export interface RoomRow {
   id: string
   designer_id: string
@@ -77,6 +82,7 @@ export interface RoomRow {
   floor_plan_y: number | null
   floor_plan_width: number | null
   floor_plan_height: number | null
+  floor_plan_polygon: PolygonPoint[] | null
   position: number
   created_at: string
   updated_at: string
