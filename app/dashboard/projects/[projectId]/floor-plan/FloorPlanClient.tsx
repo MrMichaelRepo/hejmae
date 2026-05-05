@@ -32,6 +32,14 @@ const PIN_COLOR: Record<string, string> = {
 }
 
 type Mode = 'idle' | 'place' | 'draw'
+type DrawShape = 'polygon' | 'rectangle'
+
+interface RectDrag {
+  startX: number
+  startY: number
+  endX: number
+  endY: number
+}
 
 // While dragging a placed pin, we hold the in-flight position locally so the
 // PATCH only fires on mouseup. Avoids a request per move.
@@ -86,10 +94,13 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
   const [rooms, setRooms] = useState<Room[]>([])
   const [selectedItem, setSelectedItem] = useState<string | null>(null)
   const [mode, setMode] = useState<Mode>('idle')
+  const [drawShape, setDrawShape] = useState<DrawShape>('polygon')
 
-  // In-progress polygon (draw mode).
+  // In-progress polygon (draw mode, polygon shape).
   const [drawPts, setDrawPts] = useState<PolygonPoint[]>([])
   const [hover, setHover] = useState<PolygonPoint | null>(null)
+  // In-progress rectangle (draw mode, rectangle shape).
+  const [rectDrag, setRectDrag] = useState<RectDrag | null>(null)
   const [naming, setNaming] = useState<PolygonPoint[] | null>(null)
 
   // In-progress pin drag (idle mode).
@@ -155,7 +166,7 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
       return
     }
 
-    if (mode === 'draw') {
+    if (mode === 'draw' && drawShape === 'polygon') {
       // If clicking near the first point and we have ≥3 points, close.
       if (drawPts.length >= 3) {
         const first = drawPts[0]
@@ -172,6 +183,7 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
       setDrawPts((s) => [...s, f])
       return
     }
+    // Rectangle is mousedown/move/up — click is a no-op.
 
     // Idle: click empty space dismisses popover.
     setPopover(null)
@@ -191,19 +203,47 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
     })
   }
 
-  // Mouse move: update drag position OR draw-hover line.
+  // Mouse move: update pin drag, polygon hover-line, or rectangle drag.
   const handleMove = (e: React.MouseEvent) => {
     const f = fractionFromEvent(e)
     if (!f) return
     if (pinDrag) {
       setPinDrag({ ...pinDrag, x: f.x, y: f.y })
-    } else if (mode === 'draw' && drawPts.length > 0) {
+    } else if (rectDrag) {
+      setRectDrag({ ...rectDrag, endX: f.x, endY: f.y })
+    } else if (mode === 'draw' && drawShape === 'polygon' && drawPts.length > 0) {
       setHover(f)
     }
   }
 
-  // Mouse up: commit pin drag.
+  // Mouse down on canvas (not on a pin): start a rectangle drag if in
+  // rectangle draw mode.
+  const handleCanvasMouseDown = (e: React.MouseEvent) => {
+    if (mode !== 'draw' || drawShape !== 'rectangle') return
+    const f = fractionFromEvent(e)
+    if (!f) return
+    setRectDrag({ startX: f.x, startY: f.y, endX: f.x, endY: f.y })
+  }
+
+  // Mouse up: commit pin drag OR finalize rectangle.
   const handleMouseUp = async () => {
+    if (rectDrag) {
+      const { startX, startY, endX, endY } = rectDrag
+      setRectDrag(null)
+      const w = Math.abs(endX - startX)
+      const h = Math.abs(endY - startY)
+      if (w < 0.02 || h < 0.02) return // ignore tiny drags
+      const x = Math.min(startX, endX)
+      const y = Math.min(startY, endY)
+      // Convert to a 4-point polygon so storage is uniform with custom shapes.
+      setNaming([
+        { x, y },
+        { x: x + w, y },
+        { x: x + w, y: y + h },
+        { x, y: y + h },
+      ])
+      return
+    }
     if (!pinDrag) return
     const { itemId, x, y } = pinDrag
     const before = items.find((i) => i.id === itemId)
@@ -237,6 +277,7 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
   const cancelDraw = () => {
     setDrawPts([])
     setHover(null)
+    setRectDrag(null)
     setMode('idle')
   }
 
@@ -254,18 +295,19 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
     setHover(null)
   }
 
-  // Keyboard: Escape cancels, Enter finishes, Backspace undoes a point.
+  // Keyboard: Escape cancels (both shapes); Enter/Backspace are
+  // polygon-only.
   useEffect(() => {
     if (mode !== 'draw') return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') cancelDraw()
-      else if (e.key === 'Enter') finishDraw()
-      else if (e.key === 'Backspace') undoLastPoint()
+      else if (drawShape === 'polygon' && e.key === 'Enter') finishDraw()
+      else if (drawShape === 'polygon' && e.key === 'Backspace') undoLastPoint()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, drawPts])
+  }, [mode, drawShape, drawPts])
 
   const removePin = async (itemId: string) => {
     setPopover(null)
@@ -365,6 +407,7 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
             viewBox="0 0 1 1"
             preserveAspectRatio="none"
             onMouseMove={handleMove}
+            onMouseDown={handleCanvasMouseDown}
             onMouseUp={handleMouseUp}
             onClick={handleCanvasClick}
           >
@@ -399,8 +442,23 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
               )
             })}
 
+            {/* In-progress rectangle drag */}
+            {mode === 'draw' && drawShape === 'rectangle' && rectDrag ? (
+              <rect
+                x={Math.min(rectDrag.startX, rectDrag.endX)}
+                y={Math.min(rectDrag.startY, rectDrag.endY)}
+                width={Math.abs(rectDrag.endX - rectDrag.startX)}
+                height={Math.abs(rectDrag.endY - rectDrag.startY)}
+                fill="rgba(30,33,40,0.08)"
+                stroke="rgba(30,33,40,0.7)"
+                strokeWidth={0.004}
+                strokeDasharray="0.012,0.008"
+                vectorEffect="non-scaling-stroke"
+              />
+            ) : null}
+
             {/* In-progress draw: previous points + closing line + ghost line */}
-            {mode === 'draw' && drawPts.length > 0 ? (
+            {mode === 'draw' && drawShape === 'polygon' && drawPts.length > 0 ? (
               <g>
                 {drawPts.length > 1 ? (
                   <polyline
@@ -545,37 +603,20 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
       <aside className="space-y-4">
         <div className="space-y-2">
           {mode === 'draw' ? (
-            <>
-              <div className="border border-sky-700/30 bg-sky-50/30 px-3 py-2 font-garamond text-[0.9rem] text-hm-text">
-                Click to drop points. Click the first point or press Enter to
-                close. Backspace undoes, Escape cancels.
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={undoLastPoint}
-                  disabled={drawPts.length === 0}
-                >
-                  Undo
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={cancelDraw}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={finishDraw}
-                  disabled={drawPts.length < 3}
-                >
-                  Finish
-                </Button>
-              </div>
-            </>
+            <DrawPanel
+              shape={drawShape}
+              onShapeChange={(s) => {
+                // Switching shape resets the in-progress draw.
+                setDrawPts([])
+                setRectDrag(null)
+                setHover(null)
+                setDrawShape(s)
+              }}
+              polygonPointCount={drawPts.length}
+              onUndo={undoLastPoint}
+              onCancel={cancelDraw}
+              onFinish={finishDraw}
+            />
           ) : (
             <Button
               variant="secondary"
@@ -695,6 +736,119 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
         }}
       />
     </div>
+  )
+}
+
+function DrawPanel({
+  shape,
+  onShapeChange,
+  polygonPointCount,
+  onUndo,
+  onCancel,
+  onFinish,
+}: {
+  shape: DrawShape
+  onShapeChange: (s: DrawShape) => void
+  polygonPointCount: number
+  onUndo: () => void
+  onCancel: () => void
+  onFinish: () => void
+}) {
+  return (
+    <div className="border border-hm-text/15 bg-hm-text/[0.02]">
+      <div className="px-3 pt-3 pb-2">
+        <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
+          Draw a room
+        </div>
+        <div className="flex border border-hm-text/15 rounded-sm overflow-hidden">
+          {(
+            [
+              ['rectangle', 'Rectangle'],
+              ['polygon', 'Polygon'],
+            ] as Array<[DrawShape, string]>
+          ).map(([k, label]) => (
+            <button
+              key={k}
+              onClick={() => onShapeChange(k)}
+              className={[
+                'flex-1 font-sans text-[10px] uppercase tracking-[0.22em] py-2 transition-colors',
+                shape === k
+                  ? 'bg-hm-text text-bg'
+                  : 'bg-bg text-hm-nav hover:text-hm-text',
+              ].join(' ')}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="px-3 pb-3">
+        {shape === 'rectangle' ? (
+          <ol className="font-garamond text-[0.9rem] leading-[1.7] text-hm-nav list-decimal pl-4 space-y-0.5">
+            <li>Click and drag on the floor plan to define the room.</li>
+            <li>Release to name it.</li>
+          </ol>
+        ) : (
+          <ol className="font-garamond text-[0.9rem] leading-[1.7] text-hm-nav list-decimal pl-4 space-y-0.5">
+            <li>Click to drop each corner of the room.</li>
+            <li>
+              When you&rsquo;re done, click the first point again — or press
+              <KeyHint>Enter</KeyHint>.
+            </li>
+            <li>
+              <KeyHint>Backspace</KeyHint> undoes the last point,{' '}
+              <KeyHint>Esc</KeyHint> cancels.
+            </li>
+          </ol>
+        )}
+
+        {shape === 'polygon' ? (
+          <div className="flex items-center justify-between mt-3 font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav/70">
+            <span>{polygonPointCount} point{polygonPointCount === 1 ? '' : 's'}</span>
+            <span>min 3 to close</span>
+          </div>
+        ) : null}
+
+        <div className="grid grid-cols-3 gap-2 mt-3">
+          {shape === 'polygon' ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onUndo}
+              disabled={polygonPointCount === 0}
+            >
+              Undo
+            </Button>
+          ) : (
+            <div />
+          )}
+          <Button variant="ghost" size="sm" onClick={onCancel}>
+            Cancel
+          </Button>
+          {shape === 'polygon' ? (
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={onFinish}
+              disabled={polygonPointCount < 3}
+            >
+              Finish
+            </Button>
+          ) : (
+            <div />
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function KeyHint({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="inline-block font-sans text-[10px] uppercase tracking-[0.16em] border border-hm-text/20 rounded-sm px-1.5 py-0.5 mx-0.5 bg-bg">
+      {children}
+    </kbd>
   )
 }
 

@@ -203,6 +203,11 @@ export interface PurchaseOrderRow {
   vendor_email: string | null
   status: PoStatus
   expected_lead_time_days: number | null
+  expected_delivery_date: string | null
+  shipped_at: string | null
+  delivered_at: string | null
+  tracking_number: string | null
+  tracking_url: string | null
   sent_at: string | null
   pdf_url: string | null
   notes: string | null

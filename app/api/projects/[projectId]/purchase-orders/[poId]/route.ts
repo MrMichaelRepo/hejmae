@@ -43,27 +43,60 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     await loadPo(designerId, projectId, poId)
 
     const body = (await req.json()) as {
-      action?: 'send' | 'mark_acknowledged' | 'mark_received' | 'mark_complete'
+      action?:
+        | 'send'
+        | 'mark_acknowledged'
+        | 'mark_shipped'
+        | 'mark_received'
+        | 'mark_delivered'
+        | 'mark_complete'
       pdf_url?: string | null
       expected_lead_time_days?: number | null
+      expected_delivery_date?: string | null
+      shipped_at?: string | null
+      delivered_at?: string | null
+      tracking_number?: string | null
+      tracking_url?: string | null
+      vendor_name?: string
+      vendor_email?: string | null
       notes?: string | null
     }
     const updates: Record<string, unknown> = {}
     if (body.pdf_url !== undefined) updates.pdf_url = body.pdf_url
     if (body.expected_lead_time_days !== undefined)
       updates.expected_lead_time_days = body.expected_lead_time_days
+    if (body.expected_delivery_date !== undefined)
+      updates.expected_delivery_date = body.expected_delivery_date
+    if (body.shipped_at !== undefined) updates.shipped_at = body.shipped_at
+    if (body.delivered_at !== undefined) updates.delivered_at = body.delivered_at
+    if (body.tracking_number !== undefined)
+      updates.tracking_number = body.tracking_number
+    if (body.tracking_url !== undefined) updates.tracking_url = body.tracking_url
+    if (body.vendor_name !== undefined) updates.vendor_name = body.vendor_name
+    if (body.vendor_email !== undefined)
+      updates.vendor_email = body.vendor_email
     if (body.notes !== undefined) updates.notes = body.notes
 
+    const nowIso = new Date().toISOString()
     switch (body.action) {
       case 'send':
         updates.status = 'sent'
-        updates.sent_at = new Date().toISOString()
+        updates.sent_at = nowIso
         break
       case 'mark_acknowledged':
         updates.status = 'acknowledged'
         break
+      case 'mark_shipped':
+        updates.shipped_at = nowIso
+        // Don't transition main status — shipped is in-flight; leave as
+        // acknowledged/sent.
+        break
       case 'mark_received':
         updates.status = 'partially_received'
+        break
+      case 'mark_delivered':
+        updates.delivered_at = nowIso
+        updates.status = 'complete'
         break
       case 'mark_complete':
         updates.status = 'complete'

@@ -102,6 +102,10 @@ export default function POsClient({ projectId }: { projectId: string }) {
                   </div>
                   <div className="flex items-center gap-3 flex-wrap">
                     <StatusBadge kind="po" status={po.status} />
+                    <DeliveryBadge po={po} />
+                    <Button size="sm" variant="ghost" onClick={() => setEditing(po)}>
+                      Tracking
+                    </Button>
                     <Link
                       href={`/dashboard/projects/${projectId}/purchase-orders/${po.id}/print`}
                       target="_blank"
