@@ -13,12 +13,12 @@ export async function GET() {
 
 export async function PATCH(req: NextRequest) {
   return withErrorHandling(async () => {
-    const { designerId } = await requireDesigner()
+    const { user } = await requireDesigner()
     const body = updateSettings.parse(await req.json())
     const { data, error } = await supabaseAdmin()
       .from('users')
       .update(body)
-      .eq('id', designerId)
+      .eq('id', user.id)
       .select()
       .single()
     if (error) throw error

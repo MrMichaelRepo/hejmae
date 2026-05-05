@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { api } from '@/lib/api'
 import { PageHeader } from '@/components/ui/EmptyState'
 import { PageSpinner } from '@/components/ui/Spinner'
@@ -142,6 +143,19 @@ export default function SettingsPage() {
           Save settings
         </Button>
       </div>
+
+      <Section title="Team">
+        <p className="font-garamond text-[0.95rem] text-hm-nav mb-4">
+          Invite collaborators and manage their access to projects, finances,
+          and purchase orders.
+        </p>
+        <Link
+          href="/dashboard/settings/team"
+          className="inline-flex items-center gap-2 font-sans text-[10px] uppercase tracking-[0.2em] text-hm-text border border-hm-text/25 hover:bg-hm-text hover:text-bg rounded-full px-6 py-2.5 transition-colors"
+        >
+          Manage team →
+        </Link>
+      </Section>
 
       <Section title="Payments — Stripe Connect">
         <p className="font-garamond text-[0.95rem] text-hm-nav mb-4">

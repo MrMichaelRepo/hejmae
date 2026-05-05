@@ -169,6 +169,38 @@ export function renderPOEmail(opts: {
   }
 }
 
+export function renderStudioInviteEmail(opts: {
+  brand: DesignerBrand
+  inviterName: string
+  acceptUrl: string
+  role: string
+}): { subject: string; html: string; text: string } {
+  const color = opts.brand.brand_color || FALLBACK_COLOR
+  const studio = opts.brand.studio_name || opts.brand.name || 'a studio'
+  const subject = `${opts.inviterName} invited you to ${studio} on hejmae`
+  const body = `
+    <h1 style="font-family:Georgia,'Times New Roman',serif;font-size:26px;line-height:1.15;margin:0 0 16px;color:#1e2128;">
+      You're invited to ${escape(studio)}
+    </h1>
+    <p style="font-size:16px;line-height:1.7;color:#4a5068;margin:0 0 16px;">
+      ${escape(opts.inviterName)} added you as a <strong>${escape(opts.role)}</strong> on ${escape(studio)} in hejmae. Accept to start collaborating on projects, rooms, and proposals.
+    </p>
+    ${ctaButton(opts.acceptUrl, 'Accept invite', color)}
+    <p style="font-size:14px;line-height:1.7;color:#4a5068;margin:16px 0 0;">
+      Or paste this URL into your browser:<br/>
+      <a href="${escapeAttr(opts.acceptUrl)}" style="color:${color};word-break:break-all;">${escape(opts.acceptUrl)}</a>
+    </p>
+    <p style="font-size:13px;line-height:1.6;color:#7a8090;margin:20px 0 0;">
+      If you didn't expect this email, you can safely ignore it.
+    </p>
+  `
+  return {
+    subject,
+    html: shell({ brand: opts.brand, preheader: `Join ${studio} on hejmae`, body }),
+    text: `${opts.inviterName} invited you to join ${studio} on hejmae as a ${opts.role}.\n\nAccept your invite:\n${opts.acceptUrl}\n\nIf you didn't expect this, ignore this email.`,
+  }
+}
+
 // HTML escapers — small but essential.
 function escape(s: string): string {
   return String(s)

@@ -2,22 +2,34 @@
 // designer doesn't have one yet and returns a one-time onboarding URL.
 import { NextResponse } from 'next/server'
 import { requireDesigner } from '@/lib/auth/designer'
+import { requireRole } from '@/lib/auth/permissions'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling } from '@/lib/errors'
 import { createConnectAccount, createOnboardingLink } from '@/lib/stripe/connect'
 
 export async function POST() {
   return withErrorHandling(async () => {
-    const { designerId, user } = await requireDesigner()
+    const ctx = await requireDesigner()
+    requireRole(ctx, 'owner')
+    const { designerId } = ctx
 
-    let accountId = user.stripe_account_id
+    // Stripe Connect is studio-level — load the owner's row, not the caller's.
+    const sb = supabaseAdmin()
+    const { data: ownerRow, error: ownerErr } = await sb
+      .from('users')
+      .select('stripe_account_id, email')
+      .eq('id', designerId)
+      .single()
+    if (ownerErr) throw ownerErr
+
+    let accountId = ownerRow.stripe_account_id
     if (!accountId) {
       const account = await createConnectAccount({
-        email: user.email,
+        email: ownerRow.email,
         designerId,
       })
       accountId = account.id
-      await supabaseAdmin()
+      await sb
         .from('users')
         .update({ stripe_account_id: accountId })
         .eq('id', designerId)
