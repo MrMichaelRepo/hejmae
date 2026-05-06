@@ -12,6 +12,7 @@
     "@anthropic-ai/sdk": "^0.94.0",
     "@clerk/elements": "^0.24.16",
     "@clerk/nextjs": "^6.39.3",
+    "@napi-rs/canvas": "^1.0.0",
     "@stripe/react-stripe-js": "^6.3.0",
     "@stripe/stripe-js": "^9.4.0",
     "@supabase/supabase-js": "^2.105.1",

@@ -17,6 +17,7 @@ import { supabaseAdmin } from '@/lib/supabase/server'
 import { normalizeImage } from '@/lib/image/normalize'
 import { rasterizePdfFirstPage } from '@/lib/image/pdf'
 import { straightenFloorPlan } from '@/lib/image/straighten'
+import { postprocessFloorPlan } from '@/lib/image/postprocess'
 
 export const STORAGE_BUCKET = 'hejmae'
 
@@ -151,13 +152,23 @@ async function processForKind(
     return { buffer: norm.buffer, contentType: norm.contentType, ext: norm.ext }
   }
 
+  // Tier-3: AI deskew + crop. Soft-fails to the normalized buffer.
   const straightened = await straightenFloorPlan(
     norm.buffer,
     norm.width,
     norm.height,
   )
+
+  // Final pass: force-landscape + whiten-background. Always runs, whether
+  // or not the AI step found corners.
+  const finalImg = await postprocessFloorPlan(
+    straightened.buffer,
+    straightened.width,
+    straightened.height,
+  )
+
   return {
-    buffer: straightened.buffer,
+    buffer: finalImg.buffer,
     contentType: 'image/webp',
     ext: 'webp',
     straightened: straightened.applied,

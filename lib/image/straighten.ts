@@ -155,12 +155,18 @@ function rotatePoint(p: Point, cx: number, cy: number, angleRad: number): Point 
   return { x: cx + dx * cos - dy * sin, y: cy + dx * sin + dy * cos }
 }
 
+interface DeskewResult {
+  buffer: Buffer
+  width: number
+  height: number
+}
+
 async function deskewAndCrop(
   input: Buffer,
   width: number,
   height: number,
   q: Quad,
-): Promise<Buffer> {
+): Promise<DeskewResult> {
   // Convert fractional corners to pixel coords.
   const cornersPx: Point[] = [
     { x: q.topLeft.x * width, y: q.topLeft.y * height },
@@ -169,13 +175,24 @@ async function deskewAndCrop(
     { x: q.bottomLeft.x * width, y: q.bottomLeft.y * height },
   ]
 
-  // Use the quad's top edge to compute rotation needed to make it horizontal.
-  const dx = cornersPx[1].x - cornersPx[0].x
-  const dy = cornersPx[1].y - cornersPx[0].y
-  const angleDeg = (Math.atan2(dy, dx) * 180) / Math.PI
+  // Compute deviation-from-horizontal for each of the four edges, then take
+  // the median. Median (vs. just the top edge) is more robust to perspective
+  // distortion and to Haiku occasionally jittering one corner.
+  //
+  // Verticals are expressed as (their angle - 90°) so all four numbers
+  // share the same "off horizontal" reference.
+  const edgeAngles: number[] = [
+    Math.atan2(cornersPx[1].y - cornersPx[0].y, cornersPx[1].x - cornersPx[0].x),
+    Math.atan2(cornersPx[2].y - cornersPx[3].y, cornersPx[2].x - cornersPx[3].x),
+    Math.atan2(cornersPx[3].y - cornersPx[0].y, cornersPx[3].x - cornersPx[0].x) - Math.PI / 2,
+    Math.atan2(cornersPx[2].y - cornersPx[1].y, cornersPx[2].x - cornersPx[1].x) - Math.PI / 2,
+  ]
+  edgeAngles.sort((a, b) => a - b)
+  const medianRad = (edgeAngles[1] + edgeAngles[2]) / 2
+  const angleDeg = (medianRad * 180) / Math.PI
 
   // Sharp rotates clockwise for positive degrees; we want to rotate the
-  // image opposite to the top-edge slope so the slope ends at 0°.
+  // image opposite to the edge slope so the slope ends at 0°.
   const rotateBy = -angleDeg
 
   // After rotation around the image center, sharp expands the canvas to
@@ -200,10 +217,10 @@ async function deskewAndCrop(
   })
 
   // Bounding box of the rotated quad, with padding so we don't shave the
-  // floor plan's outer wall. Haiku's corner coordinates land within ~0.5–2%
-  // of the true corners; 1.5% of the smaller dimension (~36px on a 2400px
-  // image) gives a comfortable buffer without including too much background.
-  const pad = Math.round(Math.min(newW, newH) * 0.015)
+  // floor plan's outer wall. 2.5% of the smaller dimension (~50px on a
+  // 2000px image) gives a comfortable buffer that absorbs both Haiku's
+  // corner jitter and a bit of breathing room around the drawing.
+  const pad = Math.round(Math.min(newW, newH) * 0.025)
   const minX = Math.max(0, Math.floor(Math.min(...rotated.map((p) => p.x)) - pad))
   const minY = Math.max(0, Math.floor(Math.min(...rotated.map((p) => p.y)) - pad))
   const maxX = Math.min(newW, Math.ceil(Math.max(...rotated.map((p) => p.x)) + pad))
@@ -214,15 +231,18 @@ async function deskewAndCrop(
     throw new Error('Computed crop is empty')
   }
 
-  return await sharp(input)
+  const buffer = await sharp(input)
     .rotate(rotateBy, { background: { r: 255, g: 255, b: 255, alpha: 1 } })
     .extract({ left: minX, top: minY, width: cropW, height: cropH })
-    .webp({ quality: 88 })
+    .webp({ quality: 78 })
     .toBuffer()
+  return { buffer, width: cropW, height: cropH }
 }
 
 export interface StraightenResult {
   buffer: Buffer
+  width: number
+  height: number
   // True when the AI step ran and produced a usable result.
   applied: boolean
 }
@@ -233,17 +253,17 @@ export async function straightenFloorPlan(
   height: number,
 ): Promise<StraightenResult> {
   if (!env.floorPlanAutoStraighten() || !env.anthropicApiKey()) {
-    return { buffer: input, applied: false }
+    return { buffer: input, width, height, applied: false }
   }
   try {
     const detected = await detectCorners(input)
     if (!detected || !detected.found || !detected.corners) {
-      return { buffer: input, applied: false }
+      return { buffer: input, width, height, applied: false }
     }
     const out = await deskewAndCrop(input, width, height, detected.corners)
-    return { buffer: out, applied: true }
+    return { ...out, applied: true }
   } catch (err) {
     console.warn('[image] auto-straighten failed; using normalized input', err)
-    return { buffer: input, applied: false }
+    return { buffer: input, width, height, applied: false }
   }
 }

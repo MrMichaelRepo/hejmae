@@ -29,10 +29,15 @@ interface NormalizeResult {
 }
 
 const PRESETS: Record<NormalizeKind, { maxWidth: number; quality: number }> = {
-  // Floor plans: keep enough detail that text labels stay legible.
-  'floor-plan': { maxWidth: 2400, quality: 88 },
-  // Item images: phone-camera product shots — smaller is fine.
-  'item-image': { maxWidth: 1600, quality: 82 },
+  // Floor plans are mostly white background with thin lines; WebP encodes
+  // that very efficiently, so we can drop both width and quality with no
+  // visible loss. 2000px is plenty for any browser display, and quality 78
+  // keeps text labels legible while halving file size vs quality 88.
+  'floor-plan': { maxWidth: 2000, quality: 78 },
+  // Item images are photographic — quality 78 is still well within
+  // imperceptible-loss range for product shots viewed at thumbnail or
+  // detail-pane size.
+  'item-image': { maxWidth: 1400, quality: 78 },
 }
 
 export async function normalizeImage(
