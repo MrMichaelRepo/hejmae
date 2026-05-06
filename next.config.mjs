@@ -1,5 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // pdf-to-img and pdfjs-dist are ESM-only and break webpack's CJS interop
+  // when bundled for the server runtime ("Object.defineProperty called on
+  // non-object" at import time). sharp ships native binaries that shouldn't
+  // go through webpack either. Tell Next.js to require() these at runtime.
+  serverExternalPackages: ['pdf-to-img', 'pdfjs-dist', 'sharp'],
   async headers() {
     return [
       {
