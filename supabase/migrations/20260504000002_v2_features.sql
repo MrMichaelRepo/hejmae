@@ -95,7 +95,10 @@ create trigger studios_set_updated_at
 
 create index if not exists studios_owner_idx on public.studios (owner_user_id);
 
-create type studio_role as enum ('owner', 'admin', 'member');
+do $$ begin
+  create type studio_role as enum ('owner', 'admin', 'member');
+exception when duplicate_object then null;
+end $$;
 
 create table if not exists public.studio_members (
   id           uuid primary key default gen_random_uuid(),
@@ -159,15 +162,10 @@ alter table public.studio_members  force row level security;
 alter table public.studio_invites  force row level security;
 
 -- time_entries: same designer_id-based pattern as the rest of the schema.
-do $$
-declare s text;
-begin
-  for s in select unnest(array['select','insert','update','delete']) loop
-    execute format($f$
-      drop policy if exists time_entries_%I_own on public.time_entries;
-    $f$, s);
-  end loop;
-end $$;
+drop policy if exists time_entries_select_own on public.time_entries;
+drop policy if exists time_entries_insert_own on public.time_entries;
+drop policy if exists time_entries_update_own on public.time_entries;
+drop policy if exists time_entries_delete_own on public.time_entries;
 
 create policy time_entries_select_own on public.time_entries
   for select using (designer_id = public.current_designer_id());
