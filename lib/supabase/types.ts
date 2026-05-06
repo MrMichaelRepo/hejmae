@@ -62,6 +62,7 @@ export interface ProjectRow {
   location: string | null
   notes: string | null
   floor_plan_url: string | null
+  floor_plan_vector: FloorPlanVector | null
   pricing_mode: PricingMode
   markup_percent: number
   created_at: string
@@ -71,6 +72,55 @@ export interface ProjectRow {
 export interface PolygonPoint {
   x: number
   y: number
+}
+
+// Vectorized floor plan: walls + door/window glyphs in 0..1 fractional
+// coords. Rendered as SVG (instead of, or alongside, the photo upload).
+//
+// All coordinates are 0..1 fractions of the *original image's* width and
+// height — so the spec is interoperable with the existing room polygons
+// and pin positions, which use the same convention.
+export interface FloorPlanVectorWall {
+  a: PolygonPoint
+  b: PolygonPoint
+  // Exterior walls render thicker; interior walls thinner. Defaults to
+  // 'interior' if omitted.
+  kind?: 'exterior' | 'interior'
+}
+
+export interface FloorPlanVectorDoor {
+  // The wall opening segment (the gap in the wall the door sits in).
+  a: PolygonPoint
+  b: PolygonPoint
+  // Which endpoint the door pivots from, and which side it swings to.
+  // Used to render the conventional 90° arc. Defaults: pivot 'a',
+  // swing 'cw' if omitted.
+  pivot?: 'a' | 'b'
+  swing?: 'cw' | 'ccw'
+}
+
+export interface FloorPlanVectorWindow {
+  a: PolygonPoint
+  b: PolygonPoint
+}
+
+export interface FloorPlanVectorRoomLabel {
+  name: string
+  // Where to place the label.
+  at: PolygonPoint
+}
+
+export interface FloorPlanVector {
+  version: 1
+  // width / height of the source image. The renderer uses this so the
+  // standalone vector view has the same proportions as the photo would.
+  aspect_ratio: number
+  walls: FloorPlanVectorWall[]
+  doors: FloorPlanVectorDoor[]
+  windows: FloorPlanVectorWindow[]
+  // Optional auto-detected room labels — purely cosmetic. Authoritative
+  // rooms live in the `rooms` table.
+  room_labels?: FloorPlanVectorRoomLabel[]
 }
 
 export interface RoomRow {
@@ -225,6 +275,27 @@ export interface PurchaseOrderLineItemRow {
   trade_price_cents: number
   total_trade_price_cents: number
   position: number
+  created_at: string
+  updated_at: string
+}
+
+export interface VendorRow {
+  id: string
+  designer_id: string
+  name: string
+  account_number: string | null
+  account_email: string | null
+  contact_name: string | null
+  contact_email: string | null
+  contact_phone: string | null
+  website: string | null
+  // Stored as numeric(5,2). Supabase returns numeric as a string by
+  // default; we normalize to number at the API layer before sending.
+  trade_discount_percent: number | null
+  default_lead_time_days: number | null
+  payment_terms: string | null
+  shipping_notes: string | null
+  notes: string | null
   created_at: string
   updated_at: string
 }

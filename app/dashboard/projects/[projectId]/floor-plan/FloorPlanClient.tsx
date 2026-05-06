@@ -2,15 +2,18 @@
 
 // Floor plan tab.
 //
-// Coords are stored 0..1 (fractions of image width/height) so the layout
-// stays correct across screen sizes. An overlay <svg viewBox="0 0 1 1">
-// sits on top of the floor-plan image — its own coordinate system is also
-// 0..1, so we can render polygons + lines directly without per-resize math.
+// Single coordinate system: every position (rooms, pins, in-progress drag)
+// is a 0..1 fraction of the visible media element's CSS box. We measure
+// clicks against the same `<div ref={mediaRef}>` that wraps the image (or
+// VectorView), and we render every overlay as an absolutely-positioned
+// `<div>` inside that same wrapper using `left/top: ${pct}%`. No SVG
+// overlay, no aspect-ratio juggling — what you click on is what gets
+// stored, and what gets stored is what gets rendered.
 //
-// Three interaction modes:
-//   - 'idle'   — pins are draggable; clicking on canvas does nothing
-//   - 'place'  — click on canvas drops the selected (unplaced) item
-//   - 'draw'   — click to add polygon points; close to commit a new room
+// Rooms are rectangles with {floor_plan_x, _y, _width, _height} (0..1).
+// Legacy polygon rooms render as their bounding box so they don't
+// disappear; new rooms are always rectangles. The polygon column stays
+// in the DB but the UI no longer writes to it.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '@/lib/api'
 import { PageSpinner } from '@/components/ui/Spinner'
@@ -21,7 +24,13 @@ import Modal from '@/components/ui/Modal'
 import { ManageRoomsButton } from '@/components/ui/RoomManager'
 import { toast } from '@/components/ui/Toast'
 import { titleCase } from '@/lib/format'
-import type { Project, Room, Item, PolygonPoint } from '@/lib/types-ui'
+import VectorView from '@/components/floor-plan/VectorView'
+import type {
+  Project,
+  Room,
+  Item,
+  FloorPlanVector,
+} from '@/lib/types-ui'
 
 const PIN_COLOR: Record<string, string> = {
   sourcing: '#9ca3af',
@@ -32,7 +41,6 @@ const PIN_COLOR: Record<string, string> = {
 }
 
 type Mode = 'idle' | 'place' | 'draw'
-type DrawShape = 'polygon' | 'rectangle'
 
 interface RectDrag {
   startX: number
@@ -41,51 +49,49 @@ interface RectDrag {
   endY: number
 }
 
-// While dragging a placed pin, we hold the in-flight position locally so the
-// PATCH only fires on mouseup. Avoids a request per move.
 interface PinDrag {
   itemId: string
   x: number
   y: number
 }
 
-// Returns 4-point polygon for legacy rectangle rooms so we can render them
-// uniformly with the new polygon system.
-function rectToPolygon(r: Room): PolygonPoint[] | null {
+interface Rect {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
+// Resolve a room (rectangle or legacy polygon) to a single bounding rect
+// in 0..1 image-fraction coords. Returns null if neither field is set.
+function roomRect(r: Room): Rect | null {
   if (
-    r.floor_plan_x == null ||
-    r.floor_plan_y == null ||
-    r.floor_plan_width == null ||
-    r.floor_plan_height == null
-  )
-    return null
-  const x = r.floor_plan_x
-  const y = r.floor_plan_y
-  const w = r.floor_plan_width
-  const h = r.floor_plan_height
-  return [
-    { x, y },
-    { x: x + w, y },
-    { x: x + w, y: y + h },
-    { x, y: y + h },
-  ]
-}
-
-function roomPolygon(r: Room): PolygonPoint[] | null {
-  if (r.floor_plan_polygon && r.floor_plan_polygon.length >= 3)
-    return r.floor_plan_polygon
-  return rectToPolygon(r)
-}
-
-function polygonCentroid(pts: PolygonPoint[]): PolygonPoint {
-  // Simple centroid (good enough for label placement).
-  let sx = 0
-  let sy = 0
-  for (const p of pts) {
-    sx += p.x
-    sy += p.y
+    r.floor_plan_x != null &&
+    r.floor_plan_y != null &&
+    r.floor_plan_width != null &&
+    r.floor_plan_height != null
+  ) {
+    return {
+      x: r.floor_plan_x,
+      y: r.floor_plan_y,
+      w: r.floor_plan_width,
+      h: r.floor_plan_height,
+    }
   }
-  return { x: sx / pts.length, y: sy / pts.length }
+  if (r.floor_plan_polygon && r.floor_plan_polygon.length >= 3) {
+    let minX = 1
+    let minY = 1
+    let maxX = 0
+    let maxY = 0
+    for (const p of r.floor_plan_polygon) {
+      if (p.x < minX) minX = p.x
+      if (p.y < minY) minY = p.y
+      if (p.x > maxX) maxX = p.x
+      if (p.y > maxY) maxY = p.y
+    }
+    return { x: minX, y: minY, w: maxX - minX, h: maxY - minY }
+  }
+  return null
 }
 
 export default function FloorPlanClient({ projectId }: { projectId: string }) {
@@ -94,25 +100,27 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
   const [rooms, setRooms] = useState<Room[]>([])
   const [selectedItem, setSelectedItem] = useState<string | null>(null)
   const [mode, setMode] = useState<Mode>('idle')
-  const [drawShape, setDrawShape] = useState<DrawShape>('polygon')
 
-  // In-progress polygon (draw mode, polygon shape).
-  const [drawPts, setDrawPts] = useState<PolygonPoint[]>([])
-  const [hover, setHover] = useState<PolygonPoint | null>(null)
-  // In-progress rectangle (draw mode, rectangle shape).
+  // In-progress rectangle drag.
   const [rectDrag, setRectDrag] = useState<RectDrag | null>(null)
-  const [naming, setNaming] = useState<PolygonPoint[] | null>(null)
+  const [naming, setNaming] = useState<Rect | null>(null)
 
-  // In-progress pin drag (idle mode).
+  // In-progress pin drag.
   const [pinDrag, setPinDrag] = useState<PinDrag | null>(null)
 
-  // Item info popover.
   const [popover, setPopover] = useState<{ itemId: string; x: number; y: number } | null>(
     null,
   )
 
   const [openUpload, setOpenUpload] = useState(false)
-  const imgRef = useRef<HTMLImageElement>(null)
+  const [view, setView] = useState<'photo' | 'vector'>('photo')
+  const [vectorizing, setVectorizing] = useState(false)
+  // Click coords are measured against this wrapper, and every overlay is
+  // an absolute child of it. The wrapper's height is established by the
+  // image (or VectorView) inside, so its bounds always match what the
+  // user is looking at.
+  const mediaRef = useRef<HTMLDivElement>(null)
+  const initializedRef = useRef(false)
 
   const load = async () => {
     const [p, i, r] = await Promise.all([
@@ -120,9 +128,14 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
       api.get<Item[]>(`/api/projects/${projectId}/items`),
       api.get<Room[]>(`/api/projects/${projectId}/rooms`),
     ])
-    setProject(p.data as Project)
+    const proj = p.data as Project
+    setProject(proj)
     setItems((i.data as Item[]) ?? [])
     setRooms((r.data as Room[]) ?? [])
+    if (!initializedRef.current) {
+      initializedRef.current = true
+      if (proj.floor_plan_vector) setView('vector')
+    }
   }
 
   useEffect(() => {
@@ -130,8 +143,8 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId])
 
-  const fractionFromEvent = (e: { clientX: number; clientY: number }): PolygonPoint | null => {
-    const rect = imgRef.current?.getBoundingClientRect()
+  const fractionFromEvent = (e: { clientX: number; clientY: number }) => {
+    const rect = mediaRef.current?.getBoundingClientRect()
     if (!rect || rect.width === 0 || rect.height === 0) return null
     return {
       x: Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width)),
@@ -139,71 +152,79 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
     }
   }
 
-  // ---- Click on canvas ----
-  const handleCanvasClick = async (e: React.MouseEvent) => {
+  const vectorize = async () => {
+    if (vectorizing) return
+    setVectorizing(true)
+    try {
+      const res = await api.post<FloorPlanVector>(
+        `/api/projects/${projectId}/floor-plan/vectorize`,
+        {},
+      )
+      setProject((p) =>
+        p ? { ...p, floor_plan_vector: res.data as FloorPlanVector } : p,
+      )
+      setView('vector')
+      toast.success('Floor plan vectorized')
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setVectorizing(false)
+    }
+  }
+
+  const removeVector = async () => {
+    if (!confirm('Remove the generated vector floor plan? You can regenerate it later.')) return
+    try {
+      await api.del(`/api/projects/${projectId}/floor-plan/vectorize`)
+      setProject((p) => (p ? { ...p, floor_plan_vector: null } : p))
+      setView('photo')
+      toast.success('Vector floor plan removed')
+    } catch (e) {
+      toast.error((e as Error).message)
+    }
+  }
+
+  // Mousedown on the canvas (not on a pin):
+  //   - place mode → drop pin and PATCH
+  //   - draw mode  → start rectangle drag
+  //   - idle       → no-op (popover closes via the explicit Close button)
+  const handleCanvasMouseDown = (e: React.MouseEvent) => {
     const f = fractionFromEvent(e)
     if (!f) return
 
     if (mode === 'place' && selectedItem) {
-      try {
-        await api.patch(`/api/projects/${projectId}/items/${selectedItem}`, {
-          floor_plan_pin_x: f.x,
-          floor_plan_pin_y: f.y,
-        })
-        setItems((s) =>
-          s.map((it) =>
-            it.id === selectedItem
-              ? { ...it, floor_plan_pin_x: f.x, floor_plan_pin_y: f.y }
-              : it,
-          ),
-        )
-        setSelectedItem(null)
-        setMode('idle')
-        toast.success('Item placed')
-      } catch (e) {
-        toast.error((e as Error).message)
-      }
-      return
-    }
-
-    if (mode === 'draw' && drawShape === 'polygon') {
-      // If clicking near the first point and we have ≥3 points, close.
-      if (drawPts.length >= 3) {
-        const first = drawPts[0]
-        const dx = first.x - f.x
-        const dy = first.y - f.y
-        const dist = Math.sqrt(dx * dx + dy * dy)
-        if (dist < 0.025) {
-          setNaming(drawPts)
-          setDrawPts([])
-          setHover(null)
-          return
+      void (async () => {
+        try {
+          await api.patch(`/api/projects/${projectId}/items/${selectedItem}`, {
+            floor_plan_pin_x: f.x,
+            floor_plan_pin_y: f.y,
+          })
+          setItems((s) =>
+            s.map((it) =>
+              it.id === selectedItem
+                ? { ...it, floor_plan_pin_x: f.x, floor_plan_pin_y: f.y }
+                : it,
+            ),
+          )
+          setSelectedItem(null)
+          setMode('idle')
+          toast.success('Item placed')
+        } catch (err) {
+          toast.error((err as Error).message)
         }
-      }
-      setDrawPts((s) => [...s, f])
+      })()
       return
     }
-    // Rectangle is mousedown/move/up — click is a no-op.
 
-    // Idle: click empty space dismisses popover.
+    if (mode === 'draw') {
+      setRectDrag({ startX: f.x, startY: f.y, endX: f.x, endY: f.y })
+      return
+    }
+
+    // idle: clicking empty canvas dismisses the popover.
     setPopover(null)
   }
 
-  // ---- Pin drag ----
-  const startPinDrag = (e: React.MouseEvent, itemId: string) => {
-    if (mode !== 'idle') return
-    e.preventDefault()
-    e.stopPropagation()
-    const it = items.find((i) => i.id === itemId)
-    if (!it) return
-    setPinDrag({
-      itemId,
-      x: it.floor_plan_pin_x ?? 0,
-      y: it.floor_plan_pin_y ?? 0,
-    })
-  }
-
-  // Mouse move: update pin drag, polygon hover-line, or rectangle drag.
   const handleMove = (e: React.MouseEvent) => {
     const f = fractionFromEvent(e)
     if (!f) return
@@ -211,44 +232,29 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
       setPinDrag({ ...pinDrag, x: f.x, y: f.y })
     } else if (rectDrag) {
       setRectDrag({ ...rectDrag, endX: f.x, endY: f.y })
-    } else if (mode === 'draw' && drawShape === 'polygon' && drawPts.length > 0) {
-      setHover(f)
     }
   }
 
-  // Mouse down on canvas (not on a pin): start a rectangle drag if in
-  // rectangle draw mode.
-  const handleCanvasMouseDown = (e: React.MouseEvent) => {
-    if (mode !== 'draw' || drawShape !== 'rectangle') return
-    const f = fractionFromEvent(e)
-    if (!f) return
-    setRectDrag({ startX: f.x, startY: f.y, endX: f.x, endY: f.y })
-  }
-
-  // Mouse up: commit pin drag OR finalize rectangle.
   const handleMouseUp = async () => {
     if (rectDrag) {
       const { startX, startY, endX, endY } = rectDrag
       setRectDrag(null)
       const w = Math.abs(endX - startX)
       const h = Math.abs(endY - startY)
-      if (w < 0.02 || h < 0.02) return // ignore tiny drags
-      const x = Math.min(startX, endX)
-      const y = Math.min(startY, endY)
-      // Convert to a 4-point polygon so storage is uniform with custom shapes.
-      setNaming([
-        { x, y },
-        { x: x + w, y },
-        { x: x + w, y: y + h },
-        { x, y: y + h },
-      ])
+      // Tiny drags are almost always accidental clicks, not rooms.
+      if (w < 0.02 || h < 0.02) return
+      setNaming({
+        x: Math.min(startX, endX),
+        y: Math.min(startY, endY),
+        w,
+        h,
+      })
       return
     }
     if (!pinDrag) return
     const { itemId, x, y } = pinDrag
     const before = items.find((i) => i.id === itemId)
     setPinDrag(null)
-    // No-op if position barely changed.
     if (
       before &&
       Math.abs((before.floor_plan_pin_x ?? 0) - x) < 0.001 &&
@@ -273,41 +279,32 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
     }
   }
 
-  // Cancel/abort handlers
+  const startPinDrag = (e: React.MouseEvent, itemId: string) => {
+    if (mode !== 'idle') return
+    e.preventDefault()
+    e.stopPropagation()
+    const it = items.find((i) => i.id === itemId)
+    if (!it) return
+    setPinDrag({
+      itemId,
+      x: it.floor_plan_pin_x ?? 0,
+      y: it.floor_plan_pin_y ?? 0,
+    })
+  }
+
   const cancelDraw = () => {
-    setDrawPts([])
-    setHover(null)
     setRectDrag(null)
     setMode('idle')
   }
 
-  const undoLastPoint = () => {
-    setDrawPts((s) => s.slice(0, -1))
-  }
-
-  const finishDraw = () => {
-    if (drawPts.length < 3) {
-      toast.error('Need at least 3 points')
-      return
-    }
-    setNaming(drawPts)
-    setDrawPts([])
-    setHover(null)
-  }
-
-  // Keyboard: Escape cancels (both shapes); Enter/Backspace are
-  // polygon-only.
   useEffect(() => {
     if (mode !== 'draw') return
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') cancelDraw()
-      else if (drawShape === 'polygon' && e.key === 'Enter') finishDraw()
-      else if (drawShape === 'polygon' && e.key === 'Backspace') undoLastPoint()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode, drawShape, drawPts])
+  }, [mode])
 
   const removePin = async (itemId: string) => {
     setPopover(null)
@@ -370,165 +367,84 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
     )
   }
 
-  // Polygons to render (existing rooms + in-progress draw).
-  const renderableRooms = rooms
-    .map((r) => ({ room: r, poly: roomPolygon(r) }))
-    .filter((x): x is { room: Room; poly: PolygonPoint[] } => x.poly != null)
+  const visibleRooms = rooms
+    .map((r) => ({ room: r, rect: roomRect(r) }))
+    .filter((x): x is { room: Room; rect: Rect } => x.rect != null)
+
+  const showVector = view === 'vector' && project.floor_plan_vector
+  const cursor =
+    mode === 'place' || mode === 'draw'
+      ? 'cursor-crosshair'
+      : pinDrag
+      ? 'cursor-grabbing'
+      : 'cursor-default'
 
   return (
     <div className="grid md:grid-cols-[1fr_300px] gap-6">
       <div className="border border-hm-text/10 relative bg-hm-text/[0.02] select-none">
-        <div className="relative">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            ref={imgRef}
-            src={project.floor_plan_url}
-            alt="Floor plan"
-            draggable={false}
-            className="w-full h-auto block"
-            onMouseMove={handleMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={() => {
-              if (pinDrag) handleMouseUp()
-              if (mode === 'draw') setHover(null)
-            }}
-          />
+        <div
+          ref={mediaRef}
+          className="relative"
+          onMouseDown={handleCanvasMouseDown}
+          onMouseMove={handleMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={() => {
+            if (pinDrag) handleMouseUp()
+          }}
+        >
+          {showVector ? (
+            <VectorView
+              spec={project.floor_plan_vector as FloorPlanVector}
+              className={['w-full block', cursor].join(' ')}
+            />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={project.floor_plan_url}
+              alt="Floor plan"
+              draggable={false}
+              className={['w-full h-auto block', cursor].join(' ')}
+            />
+          )}
 
-          {/* Overlay SVG with viewBox 0..1 so we can render in fraction coords. */}
-          <svg
-            className={[
-              'absolute inset-0 w-full h-full',
-              mode === 'place' || mode === 'draw'
-                ? 'cursor-crosshair'
-                : pinDrag
-                ? 'cursor-grabbing'
-                : 'cursor-default',
-            ].join(' ')}
-            viewBox="0 0 1 1"
-            preserveAspectRatio="none"
-            onMouseMove={handleMove}
-            onMouseDown={handleCanvasMouseDown}
-            onMouseUp={handleMouseUp}
-            onClick={handleCanvasClick}
-          >
-            {/* Existing rooms */}
-            {renderableRooms.map(({ room, poly }) => {
-              const c = polygonCentroid(poly)
-              return (
-                <g key={room.id}>
-                  <polygon
-                    points={poly.map((p) => `${p.x},${p.y}`).join(' ')}
-                    fill="rgba(30,33,40,0.06)"
-                    stroke="rgba(30,33,40,0.35)"
-                    strokeWidth={0.003}
-                    vectorEffect="non-scaling-stroke"
-                    style={{ pointerEvents: 'none' }}
-                  />
-                  {/* Label rendered as foreignObject so it uses real CSS */}
-                  <foreignObject
-                    x={c.x - 0.1}
-                    y={c.y - 0.02}
-                    width={0.2}
-                    height={0.04}
-                    style={{ pointerEvents: 'none', overflow: 'visible' }}
-                  >
-                    <div className="flex items-center justify-center w-full h-full">
-                      <span className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-text bg-bg/80 px-1.5 py-0.5 whitespace-nowrap">
-                        {room.name}
-                      </span>
-                    </div>
-                  </foreignObject>
-                </g>
-              )
-            })}
+          {/* Existing rooms — pure CSS rectangles. */}
+          {visibleRooms.map(({ room, rect }) => (
+            <div
+              key={room.id}
+              className="absolute pointer-events-none border border-hm-text/30 bg-hm-text/[0.06]"
+              style={{
+                left: `${rect.x * 100}%`,
+                top: `${rect.y * 100}%`,
+                width: `${rect.w * 100}%`,
+                height: `${rect.h * 100}%`,
+              }}
+            >
+              <div className="absolute top-1 left-2 font-sans text-[10px] uppercase tracking-[0.18em] text-hm-text bg-bg/80 px-1.5">
+                {room.name}
+              </div>
+            </div>
+          ))}
 
-            {/* In-progress rectangle drag */}
-            {mode === 'draw' && drawShape === 'rectangle' && rectDrag ? (
-              <rect
-                x={Math.min(rectDrag.startX, rectDrag.endX)}
-                y={Math.min(rectDrag.startY, rectDrag.endY)}
-                width={Math.abs(rectDrag.endX - rectDrag.startX)}
-                height={Math.abs(rectDrag.endY - rectDrag.startY)}
-                fill="rgba(30,33,40,0.08)"
-                stroke="rgba(30,33,40,0.7)"
-                strokeWidth={0.004}
-                strokeDasharray="0.012,0.008"
-                vectorEffect="non-scaling-stroke"
-              />
-            ) : null}
+          {/* In-progress drag rect. */}
+          {rectDrag ? (
+            <div
+              className="absolute pointer-events-none border border-dashed border-hm-text/70 bg-hm-text/[0.08]"
+              style={{
+                left: `${Math.min(rectDrag.startX, rectDrag.endX) * 100}%`,
+                top: `${Math.min(rectDrag.startY, rectDrag.endY) * 100}%`,
+                width: `${Math.abs(rectDrag.endX - rectDrag.startX) * 100}%`,
+                height: `${Math.abs(rectDrag.endY - rectDrag.startY) * 100}%`,
+              }}
+            />
+          ) : null}
 
-            {/* In-progress draw: previous points + closing line + ghost line */}
-            {mode === 'draw' && drawShape === 'polygon' && drawPts.length > 0 ? (
-              <g>
-                {drawPts.length > 1 ? (
-                  <polyline
-                    points={drawPts.map((p) => `${p.x},${p.y}`).join(' ')}
-                    fill="none"
-                    stroke="rgba(30,33,40,0.7)"
-                    strokeWidth={0.004}
-                    vectorEffect="non-scaling-stroke"
-                  />
-                ) : null}
-                {hover ? (
-                  <line
-                    x1={drawPts[drawPts.length - 1].x}
-                    y1={drawPts[drawPts.length - 1].y}
-                    x2={hover.x}
-                    y2={hover.y}
-                    stroke="rgba(30,33,40,0.4)"
-                    strokeWidth={0.004}
-                    strokeDasharray="0.01,0.008"
-                    vectorEffect="non-scaling-stroke"
-                  />
-                ) : null}
-                {/* Closing hint when near first point */}
-                {hover && drawPts.length >= 3
-                  ? (() => {
-                      const dx = drawPts[0].x - hover.x
-                      const dy = drawPts[0].y - hover.y
-                      const dist = Math.sqrt(dx * dx + dy * dy)
-                      if (dist < 0.025) {
-                        return (
-                          <line
-                            x1={hover.x}
-                            y1={hover.y}
-                            x2={drawPts[0].x}
-                            y2={drawPts[0].y}
-                            stroke="#0369a1"
-                            strokeWidth={0.005}
-                            vectorEffect="non-scaling-stroke"
-                          />
-                        )
-                      }
-                      return null
-                    })()
-                  : null}
-                {/* Vertices */}
-                {drawPts.map((p, i) => (
-                  <circle
-                    key={i}
-                    cx={p.x}
-                    cy={p.y}
-                    r={0.006}
-                    fill={i === 0 ? '#0369a1' : '#1e2128'}
-                  />
-                ))}
-              </g>
-            ) : null}
-          </svg>
-
-          {/* Placed item pins (positioned over the SVG so they can capture
-              mousedown for drag). */}
+          {/* Pins. */}
           {placedItems.map((it) => {
             const isDragging = pinDrag?.itemId === it.id
             const x =
-              isDragging && pinDrag
-                ? pinDrag.x
-                : (it.floor_plan_pin_x ?? 0)
+              isDragging && pinDrag ? pinDrag.x : (it.floor_plan_pin_x ?? 0)
             const y =
-              isDragging && pinDrag
-                ? pinDrag.y
-                : (it.floor_plan_pin_y ?? 0)
+              isDragging && pinDrag ? pinDrag.y : (it.floor_plan_pin_y ?? 0)
             return (
               <div
                 key={it.id}
@@ -540,15 +456,13 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
                   onClick={(e) => {
                     e.stopPropagation()
                     if (mode !== 'idle') return
-                    setPopover({
-                      itemId: it.id,
-                      x,
-                      y,
-                    })
+                    setPopover({ itemId: it.id, x, y })
                   }}
                   className={[
                     'w-3.5 h-3.5 rounded-full ring-2 ring-bg shadow transition-transform',
-                    isDragging ? 'scale-125 cursor-grabbing' : 'cursor-grab hover:scale-110',
+                    isDragging
+                      ? 'scale-125 cursor-grabbing'
+                      : 'cursor-grab hover:scale-110',
                   ].join(' ')}
                   style={{ background: PIN_COLOR[it.status] ?? '#9ca3af' }}
                   aria-label={`Item ${it.name}`}
@@ -558,7 +472,7 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
             )
           })}
 
-          {/* Item popover */}
+          {/* Pin popover. */}
           {popover
             ? (() => {
                 const it = items.find((i) => i.id === popover.itemId)
@@ -571,6 +485,7 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
                       top: `calc(${popover.y * 100}% - 14px)`,
                     }}
                     onClick={(e) => e.stopPropagation()}
+                    onMouseDown={(e) => e.stopPropagation()}
                   >
                     <div className="font-serif text-[1rem] leading-tight mb-0.5">
                       {it.name}
@@ -603,20 +518,18 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
       <aside className="space-y-4">
         <div className="space-y-2">
           {mode === 'draw' ? (
-            <DrawPanel
-              shape={drawShape}
-              onShapeChange={(s) => {
-                // Switching shape resets the in-progress draw.
-                setDrawPts([])
-                setRectDrag(null)
-                setHover(null)
-                setDrawShape(s)
-              }}
-              polygonPointCount={drawPts.length}
-              onUndo={undoLastPoint}
-              onCancel={cancelDraw}
-              onFinish={finishDraw}
-            />
+            <div className="border border-hm-text/15 bg-hm-text/[0.02] px-3 py-3">
+              <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-1.5">
+                Draw a room
+              </div>
+              <div className="font-garamond text-[0.9rem] leading-[1.6] text-hm-nav mb-3">
+                Click and drag on the floor plan to define the room. Release
+                to name it. <KeyHint>Esc</KeyHint> cancels.
+              </div>
+              <Button variant="ghost" size="sm" onClick={cancelDraw} className="w-full">
+                Cancel
+              </Button>
+            </div>
           ) : (
             <Button
               variant="secondary"
@@ -690,6 +603,74 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
 
         <div className="pt-4 border-t border-hm-text/10">
           <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
+            View
+          </div>
+          <div className="flex border border-hm-text/15 rounded-sm overflow-hidden mb-2">
+            {(
+              [
+                ['photo', 'Photo'],
+                ['vector', 'Vector'],
+              ] as Array<['photo' | 'vector', string]>
+            ).map(([k, label]) => {
+              const disabled = k === 'vector' && !project.floor_plan_vector
+              return (
+                <button
+                  key={k}
+                  onClick={() => !disabled && setView(k)}
+                  disabled={disabled}
+                  className={[
+                    'flex-1 font-sans text-[10px] uppercase tracking-[0.22em] py-2 transition-colors',
+                    view === k
+                      ? 'bg-hm-text text-bg'
+                      : disabled
+                      ? 'bg-bg text-hm-nav/40 cursor-not-allowed'
+                      : 'bg-bg text-hm-nav hover:text-hm-text',
+                  ].join(' ')}
+                >
+                  {label}
+                </button>
+              )
+            })}
+          </div>
+          {project.floor_plan_vector ? (
+            <div className="flex flex-col items-start gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={vectorize}
+                loading={vectorizing}
+              >
+                Regenerate vector
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={removeVector}
+                className="text-red-700 hover:text-red-800"
+              >
+                Remove vector
+              </Button>
+            </div>
+          ) : (
+            <>
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={vectorize}
+                loading={vectorizing}
+                className="w-full"
+              >
+                Generate clean version
+              </Button>
+              <div className="font-garamond text-[0.85rem] text-hm-nav leading-[1.55] mt-2">
+                Uses a vision model to extract walls, doors, and windows from the photo and renders them in the Hejmae style.
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="pt-4 border-t border-hm-text/10">
+          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
             Legend
           </div>
           <div className="space-y-1.5">
@@ -707,15 +688,32 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
           </div>
         </div>
 
-        <div className="pt-4 border-t border-hm-text/10">
+        <div className="pt-4 border-t border-hm-text/10 flex flex-col items-start gap-2">
           <Button variant="ghost" size="sm" onClick={() => setOpenUpload(true)}>
             Replace floor plan
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={async () => {
+              if (!confirm('Remove the floor plan? Room shapes and pin positions will stay on the project but will not be visible until a new plan is uploaded.')) return
+              try {
+                await api.patch(`/api/projects/${projectId}`, { floor_plan_url: null })
+                toast.success('Floor plan removed')
+                load()
+              } catch (e) {
+                toast.error((e as Error).message)
+              }
+            }}
+            className="text-red-700 hover:text-red-800"
+          >
+            Remove floor plan
           </Button>
         </div>
       </aside>
 
       <NameRoomModal
-        polygon={naming}
+        rect={naming}
         projectId={projectId}
         existingCount={rooms.length}
         onClose={() => setNaming(null)}
@@ -739,111 +737,6 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
   )
 }
 
-function DrawPanel({
-  shape,
-  onShapeChange,
-  polygonPointCount,
-  onUndo,
-  onCancel,
-  onFinish,
-}: {
-  shape: DrawShape
-  onShapeChange: (s: DrawShape) => void
-  polygonPointCount: number
-  onUndo: () => void
-  onCancel: () => void
-  onFinish: () => void
-}) {
-  return (
-    <div className="border border-hm-text/15 bg-hm-text/[0.02]">
-      <div className="px-3 pt-3 pb-2">
-        <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
-          Draw a room
-        </div>
-        <div className="flex border border-hm-text/15 rounded-sm overflow-hidden">
-          {(
-            [
-              ['rectangle', 'Rectangle'],
-              ['polygon', 'Polygon'],
-            ] as Array<[DrawShape, string]>
-          ).map(([k, label]) => (
-            <button
-              key={k}
-              onClick={() => onShapeChange(k)}
-              className={[
-                'flex-1 font-sans text-[10px] uppercase tracking-[0.22em] py-2 transition-colors',
-                shape === k
-                  ? 'bg-hm-text text-bg'
-                  : 'bg-bg text-hm-nav hover:text-hm-text',
-              ].join(' ')}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="px-3 pb-3">
-        {shape === 'rectangle' ? (
-          <ol className="font-garamond text-[0.9rem] leading-[1.7] text-hm-nav list-decimal pl-4 space-y-0.5">
-            <li>Click and drag on the floor plan to define the room.</li>
-            <li>Release to name it.</li>
-          </ol>
-        ) : (
-          <ol className="font-garamond text-[0.9rem] leading-[1.7] text-hm-nav list-decimal pl-4 space-y-0.5">
-            <li>Click to drop each corner of the room.</li>
-            <li>
-              When you&rsquo;re done, click the first point again — or press
-              <KeyHint>Enter</KeyHint>.
-            </li>
-            <li>
-              <KeyHint>Backspace</KeyHint> undoes the last point,{' '}
-              <KeyHint>Esc</KeyHint> cancels.
-            </li>
-          </ol>
-        )}
-
-        {shape === 'polygon' ? (
-          <div className="flex items-center justify-between mt-3 font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav/70">
-            <span>{polygonPointCount} point{polygonPointCount === 1 ? '' : 's'}</span>
-            <span>min 3 to close</span>
-          </div>
-        ) : null}
-
-        <div className="grid grid-cols-3 gap-2 mt-3">
-          {shape === 'polygon' ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onUndo}
-              disabled={polygonPointCount === 0}
-            >
-              Undo
-            </Button>
-          ) : (
-            <div />
-          )}
-          <Button variant="ghost" size="sm" onClick={onCancel}>
-            Cancel
-          </Button>
-          {shape === 'polygon' ? (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={onFinish}
-              disabled={polygonPointCount < 3}
-            >
-              Finish
-            </Button>
-          ) : (
-            <div />
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
 function KeyHint({ children }: { children: React.ReactNode }) {
   return (
     <kbd className="inline-block font-sans text-[10px] uppercase tracking-[0.16em] border border-hm-text/20 rounded-sm px-1.5 py-0.5 mx-0.5 bg-bg">
@@ -853,13 +746,13 @@ function KeyHint({ children }: { children: React.ReactNode }) {
 }
 
 function NameRoomModal({
-  polygon,
+  rect,
   projectId,
   existingCount,
   onClose,
   onCreated,
 }: {
-  polygon: PolygonPoint[] | null
+  rect: Rect | null
   projectId: string
   existingCount: number
   onClose: () => void
@@ -869,10 +762,10 @@ function NameRoomModal({
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
-    if (polygon) setName('')
-  }, [polygon])
+    if (rect) setName('')
+  }, [rect])
 
-  if (!polygon) return null
+  if (!rect) return null
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -881,7 +774,10 @@ function NameRoomModal({
     try {
       await api.post(`/api/projects/${projectId}/rooms`, {
         name: name.trim(),
-        floor_plan_polygon: polygon,
+        floor_plan_x: rect.x,
+        floor_plan_y: rect.y,
+        floor_plan_width: rect.w,
+        floor_plan_height: rect.h,
         position: existingCount,
       })
       onCreated()
@@ -894,7 +790,7 @@ function NameRoomModal({
   }
 
   return (
-    <Modal open={polygon !== null} onClose={onClose} title="Name the room">
+    <Modal open={rect !== null} onClose={onClose} title="Name the room">
       <form onSubmit={submit}>
         <Field label="Room name">
           <Input

@@ -7,7 +7,7 @@ import { Field, Input, Select, Textarea } from '@/components/ui/Input'
 import { Drawer } from '@/components/ui/Modal'
 import { toast } from '@/components/ui/Toast'
 import ImageUploader from '@/components/ui/ImageUploader'
-import type { Item, Room, ItemStatus } from '@/lib/types-ui'
+import type { Item, Room, ItemStatus, Vendor } from '@/lib/types-ui'
 
 const STATUSES: ItemStatus[] = [
   'sourcing',
@@ -46,6 +46,18 @@ export default function EditItemDrawer({
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [vendors, setVendors] = useState<Vendor[]>([])
+
+  // Fetch vendors lazily on first drawer open. Per-designer count is
+  // small (tens, not thousands), so we cache the full list and look up
+  // by name client-side.
+  useEffect(() => {
+    if (!open || vendors.length > 0) return
+    api
+      .get<Vendor[]>('/api/vendors')
+      .then((r) => setVendors((r.data as Vendor[]) ?? []))
+      .catch(() => {})
+  }, [open, vendors.length])
 
   useEffect(() => {
     if (item) {
@@ -63,6 +75,24 @@ export default function EditItemDrawer({
   }, [item])
 
   if (!item) return null
+
+  // Look up the vendor record matching the typed vendor name. Returns
+  // the row or null. Case-insensitive exact match — same logic as the
+  // backend so what the user sees is what the server will compute.
+  const matchedVendor = vendor.trim()
+    ? vendors.find(
+        (v) => v.name.toLowerCase() === vendor.trim().toLowerCase(),
+      ) ?? null
+    : null
+
+  // Suggested trade dollars given the matched vendor + retail entered.
+  const retailCents = retail ? Math.round(Number(retail) * 100) : null
+  const suggestedTradeDollars = (() => {
+    if (!matchedVendor || retailCents == null) return null
+    const pct = Number(matchedVendor.trade_discount_percent)
+    if (!Number.isFinite(pct) || pct <= 0 || pct > 100) return null
+    return ((retailCents * (1 - pct / 100)) / 100).toFixed(2)
+  })()
 
   const save = async () => {
     setSaving(true)
@@ -167,6 +197,20 @@ export default function EditItemDrawer({
           />
         </Field>
       </div>
+      {suggestedTradeDollars && trade !== suggestedTradeDollars ? (
+        <div className="-mt-3 mb-5 flex items-center justify-between gap-3 px-3 py-2 border border-hm-text/10 bg-hm-text/[0.03]">
+          <div className="font-garamond text-[0.9rem] text-hm-nav">
+            {matchedVendor?.name} trade ({Number(matchedVendor?.trade_discount_percent)}% off): ${suggestedTradeDollars}
+          </div>
+          <button
+            type="button"
+            onClick={() => setTrade(suggestedTradeDollars)}
+            className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-text hover:underline"
+          >
+            Apply
+          </button>
+        </div>
+      ) : null}
       <Field label="Source URL">
         <Input value={sourceUrl} onChange={(e) => setSourceUrl(e.target.value)} />
       </Field>

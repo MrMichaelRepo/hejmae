@@ -17,6 +17,11 @@ import { withErrorHandling, badRequest } from '@/lib/errors'
 import { createItem } from '@/lib/validations/item'
 import { calculateClientPriceCents } from '@/lib/pricing'
 import { upsertCatalogProduct } from '@/lib/catalog'
+import {
+  findVendorByName,
+  shouldAutoFillTradePrice,
+  tradePriceFromDiscount,
+} from '@/lib/vendors'
 import { logActivity } from '@/lib/activity'
 
 interface Ctx {
@@ -104,13 +109,27 @@ export async function POST(req: NextRequest, { params }: Ctx) {
       catalogProductId = cat.id
     }
 
+    // Auto-populate trade price from the matching vendor record when the
+    // user didn't supply one. We look up case-insensitively by exact name
+    // — fuzzy match would risk applying the wrong vendor's discount,
+    // which silently misprices items. Always overrideable: if the user
+    // entered a non-zero trade_price_cents, we respect it as-is.
+    let tradePriceCents = body.trade_price_cents
+    if (vendor && shouldAutoFillTradePrice(tradePriceCents)) {
+      const vendorRow = await findVendorByName(designerId, vendor)
+      const derived = vendorRow
+        ? tradePriceFromDiscount(retailPriceCents, vendorRow.trade_discount_percent)
+        : null
+      if (derived != null) tradePriceCents = derived
+    }
+
     const { clientPriceCents } = calculateClientPriceCents(
       {
         pricingMode: project.pricing_mode,
         markupPercent: Number(project.markup_percent),
       },
       {
-        tradePriceCents: body.trade_price_cents,
+        tradePriceCents,
         retailPriceCents: retailPriceCents,
       },
     )
@@ -126,7 +145,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
         vendor,
         image_url: imageUrl,
         source_url: sourceUrl,
-        trade_price_cents: body.trade_price_cents,
+        trade_price_cents: tradePriceCents,
         retail_price_cents: retailPriceCents,
         client_price_cents: clientPriceCents,
         quantity: body.quantity ?? 1,

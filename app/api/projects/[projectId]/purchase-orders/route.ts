@@ -6,6 +6,7 @@ import { loadOwnedProject } from '@/lib/auth/ownership'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, badRequest } from '@/lib/errors'
 import { createPurchaseOrder } from '@/lib/validations/po'
+import { findVendorByName } from '@/lib/vendors'
 
 interface Ctx {
   params: Promise<{ projectId: string }>
@@ -70,14 +71,27 @@ export async function POST(req: NextRequest, { params }: Ctx) {
 
     if (!lines.length) throw badRequest('PO has no lines')
 
+    // Auto-populate vendor email + lead time from the matching vendor
+    // record when the caller didn't supply them. Only fills blanks —
+    // explicit values from the request always win.
+    let vendorEmail = body.vendor_email ?? null
+    let leadTimeDays = body.expected_lead_time_days ?? null
+    if (vendorEmail == null || leadTimeDays == null) {
+      const vendorRow = await findVendorByName(designerId, body.vendor_name)
+      if (vendorRow) {
+        if (vendorEmail == null) vendorEmail = vendorRow.contact_email
+        if (leadTimeDays == null) leadTimeDays = vendorRow.default_lead_time_days
+      }
+    }
+
     const { data: po, error: poErr } = await supabaseAdmin()
       .from('purchase_orders')
       .insert({
         designer_id: designerId,
         project_id: projectId,
         vendor_name: body.vendor_name,
-        vendor_email: body.vendor_email ?? null,
-        expected_lead_time_days: body.expected_lead_time_days ?? null,
+        vendor_email: vendorEmail,
+        expected_lead_time_days: leadTimeDays,
         notes: body.notes ?? null,
         status: 'draft',
       })

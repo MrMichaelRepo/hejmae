@@ -12,6 +12,11 @@ export type {
   PoStatus,
   ActorType,
   PolygonPoint,
+  FloorPlanVector,
+  FloorPlanVectorWall,
+  FloorPlanVectorDoor,
+  FloorPlanVectorWindow,
+  FloorPlanVectorRoomLabel,
   ProjectRow as Project,
   ClientRow as Client,
   RoomRow as Room,
@@ -25,5 +30,6 @@ export type {
   PurchaseOrderRow as PurchaseOrder,
   PurchaseOrderLineItemRow as PurchaseOrderLine,
   ActivityLogRow as ActivityLog,
+  VendorRow as Vendor,
   UserRow as DesignerUser,
 } from '@/lib/supabase/types'

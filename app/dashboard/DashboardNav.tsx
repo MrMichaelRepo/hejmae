@@ -7,6 +7,7 @@ const NAV: Array<[string, string]> = [
   ['Overview', '/dashboard'],
   ['Projects', '/dashboard/projects'],
   ['Catalog', '/dashboard/catalog'],
+  ['Vendors', '/dashboard/vendors'],
   ['Clients', '/dashboard/clients'],
   ['Finances', '/dashboard/finances'],
   ['Settings', '/dashboard/settings'],
