@@ -956,9 +956,14 @@ function UploadFloorPlanModal({
       if (!res.ok) throw new Error(body?.error?.message ?? `Upload failed (${res.status})`)
       const url = body?.data?.publicUrl as string | undefined
       if (!url) throw new Error('Upload succeeded but no URL was returned')
+      const straightened = body?.data?.straightened === true
       await api.patch(`/api/projects/${projectId}`, { floor_plan_url: url })
       onUploaded()
-      toast.success('Floor plan uploaded')
+      toast.success(
+        straightened
+          ? 'Floor plan uploaded · auto-straightened'
+          : 'Floor plan uploaded',
+      )
     } catch (e) {
       toast.error((e as Error).message)
     } finally {

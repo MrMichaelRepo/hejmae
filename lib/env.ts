@@ -44,6 +44,17 @@ export const env = {
   resendFromEmail: () =>
     optional('RESEND_FROM_EMAIL') ?? 'hejmae <hello@hejmae.com>',
 
+  // Anthropic — used for vision-based floor-plan auto-straightening.
+  // Optional: if missing, uploads still get tier-1 normalization (resize +
+  // EXIF auto-orient + WebP) but skip the AI corner-detect/crop step.
+  anthropicApiKey: () => optional('ANTHROPIC_API_KEY'),
+  // Default on; set to '0' / 'false' to disable per-deployment.
+  floorPlanAutoStraighten: () => {
+    const v = optional('FLOOR_PLAN_AUTO_STRAIGHTEN')
+    if (v == null) return true
+    return !['0', 'false', 'no', 'off'].includes(v.toLowerCase())
+  },
+
   // Platform config
   appUrl: () => required('NEXT_PUBLIC_APP_URL'),
   platformFeeBps: () => Number(optional('PLATFORM_FEE_BPS') ?? '10'), // 0.1% = 10 bps

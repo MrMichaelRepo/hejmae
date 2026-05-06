@@ -18,6 +18,10 @@ import { withErrorHandling, badRequest } from '@/lib/errors'
 import { uploadAsset, type UploadKind } from '@/lib/storage'
 
 export const runtime = 'nodejs'
+// Floor-plan uploads run a multi-stage pipeline (PDF rasterize, sharp
+// resize/encode, Claude Haiku vision call). 60s leaves comfortable headroom;
+// requires Vercel Pro (Hobby caps at 10s).
+export const maxDuration = 60
 
 interface Ctx {
   params: Promise<{ projectId: string }>

@@ -9,15 +9,18 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.94.0",
     "@clerk/elements": "^0.24.16",
     "@clerk/nextjs": "^6.39.3",
     "@stripe/react-stripe-js": "^6.3.0",
     "@stripe/stripe-js": "^9.4.0",
     "@supabase/supabase-js": "^2.105.1",
     "next": "^15.5.15",
+    "pdf-to-img": "^6.0.0",
     "react": "^18",
     "react-dom": "^18",
     "resend": "^6.12.2",
+    "sharp": "^0.34.5",
     "stripe": "^22.1.0",
     "svix": "^1.92.2",
     "zod": "^4.4.1"
