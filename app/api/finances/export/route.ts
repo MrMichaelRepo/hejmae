@@ -1,6 +1,7 @@
 // CSV export of all transactions for accountant / tax prep.
 import { NextResponse } from 'next/server'
 import { requireDesigner } from '@/lib/auth/designer'
+import { requirePermission } from '@/lib/auth/permissions'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling } from '@/lib/errors'
 
@@ -13,7 +14,8 @@ function csvCell(v: unknown): string {
 
 export async function GET() {
   return withErrorHandling(async () => {
-    const { designerId } = await requireDesigner()
+    const { designerId, role, permissions } = await requireDesigner()
+    requirePermission({ role, permissions }, 'finances:view')
     const sb = supabaseAdmin()
 
     const { data: invoices, error } = await sb

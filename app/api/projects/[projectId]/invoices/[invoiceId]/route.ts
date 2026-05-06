@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { requireDesigner } from '@/lib/auth/designer'
+import { requirePermission } from '@/lib/auth/permissions'
 import { loadOwnedProject } from '@/lib/auth/ownership'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, notFound, badRequest } from '@/lib/errors'
@@ -29,7 +30,8 @@ async function loadInvoice(designerId: string, projectId: string, invoiceId: str
 export async function GET(_req: NextRequest, { params }: Ctx) {
   return withErrorHandling(async () => {
     const { projectId, invoiceId } = await params
-    const { designerId } = await requireDesigner()
+    const { designerId, role, permissions } = await requireDesigner()
+    requirePermission({ role, permissions }, 'finances:view')
     await loadOwnedProject(designerId, projectId)
     const inv = await loadInvoice(designerId, projectId, invoiceId)
     return NextResponse.json({ data: inv })
@@ -41,7 +43,12 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 export async function PATCH(req: NextRequest, { params }: Ctx) {
   return withErrorHandling(async () => {
     const { projectId, invoiceId } = await params
-    const { designerId, user } = await requireDesigner()
+    const { designerId, user, role, permissions } = await requireDesigner()
+    if ((await req.clone().json() as { action?: string }).action === 'mark_paid') {
+      requirePermission({ role, permissions }, 'finances:record_payments')
+    } else {
+      requirePermission({ role, permissions }, 'finances:manage_invoices')
+    }
     const project = await loadOwnedProject(designerId, projectId)
     const existing = await loadInvoice(designerId, projectId, invoiceId)
 
@@ -160,7 +167,8 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
   return withErrorHandling(async () => {
     const { projectId, invoiceId } = await params
-    const { designerId } = await requireDesigner()
+    const { designerId, role, permissions } = await requireDesigner()
+    requirePermission({ role, permissions }, 'finances:manage_invoices')
     await loadOwnedProject(designerId, projectId)
     const existing = await loadInvoice(designerId, projectId, invoiceId)
     if (existing.status !== 'draft') {

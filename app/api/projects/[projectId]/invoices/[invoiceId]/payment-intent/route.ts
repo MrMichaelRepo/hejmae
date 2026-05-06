@@ -2,6 +2,7 @@
 // pay endpoint mirrors this for the client side.
 import { NextResponse, type NextRequest } from 'next/server'
 import { requireDesigner } from '@/lib/auth/designer'
+import { requirePermission } from '@/lib/auth/permissions'
 import { loadOwnedProject } from '@/lib/auth/ownership'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, notFound, badRequest } from '@/lib/errors'
@@ -14,7 +15,8 @@ interface Ctx {
 export async function POST(_req: NextRequest, { params }: Ctx) {
   return withErrorHandling(async () => {
     const { projectId, invoiceId } = await params
-    const { designerId, user } = await requireDesigner()
+    const { designerId, user, role, permissions } = await requireDesigner()
+    requirePermission({ role, permissions }, 'finances:record_payments')
     await loadOwnedProject(designerId, projectId)
 
     if (!user.stripe_account_id) {

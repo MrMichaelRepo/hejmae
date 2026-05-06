@@ -2,12 +2,14 @@
 // Numbers are derived from invoices + payments + PO line items, not stored.
 import { NextResponse } from 'next/server'
 import { requireDesigner } from '@/lib/auth/designer'
+import { requirePermission } from '@/lib/auth/permissions'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling } from '@/lib/errors'
 
 export async function GET() {
   return withErrorHandling(async () => {
-    const { designerId } = await requireDesigner()
+    const { designerId, role, permissions } = await requireDesigner()
+    requirePermission({ role, permissions }, 'finances:view')
     const sb = supabaseAdmin()
 
     const [{ data: invoices, error: e1 }, { data: payments, error: e2 }, { data: poLines, error: e3 }] =

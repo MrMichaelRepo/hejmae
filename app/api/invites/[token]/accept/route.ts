@@ -46,11 +46,16 @@ export async function POST(
     )
     if (memberErr) throw memberErr
 
-    await sb
+    const { data: acceptedInvite, error: acceptErr } = await sb
       .from('studio_invites')
       .update({ accepted_at: new Date().toISOString() })
       .eq('id', invite.id)
       .is('accepted_at', null)
+      .is('revoked_at', null)
+      .select('id')
+      .maybeSingle()
+    if (acceptErr) throw acceptErr
+    if (!acceptedInvite) throw badRequest('Invite is no longer available')
 
     return NextResponse.json({
       data: { studio_id: invite.studio_id, role: invite.role },

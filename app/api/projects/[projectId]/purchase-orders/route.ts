@@ -1,6 +1,7 @@
 // /api/projects/[projectId]/purchase-orders — list + create
 import { NextResponse, type NextRequest } from 'next/server'
 import { requireDesigner } from '@/lib/auth/designer'
+import { requirePermission } from '@/lib/auth/permissions'
 import { loadOwnedProject } from '@/lib/auth/ownership'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, badRequest } from '@/lib/errors'
@@ -20,7 +21,8 @@ interface PoLineInput {
 export async function GET(_req: NextRequest, { params }: Ctx) {
   return withErrorHandling(async () => {
     const { projectId } = await params
-    const { designerId } = await requireDesigner()
+    const { designerId, role, permissions } = await requireDesigner()
+    requirePermission({ role, permissions }, 'po:manage')
     await loadOwnedProject(designerId, projectId)
 
     const { data, error } = await supabaseAdmin()
@@ -41,7 +43,8 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 export async function POST(req: NextRequest, { params }: Ctx) {
   return withErrorHandling(async () => {
     const { projectId } = await params
-    const { designerId } = await requireDesigner()
+    const { designerId, role, permissions } = await requireDesigner()
+    requirePermission({ role, permissions }, 'po:manage')
     await loadOwnedProject(designerId, projectId)
     const body = createPurchaseOrder.parse(await req.json())
 

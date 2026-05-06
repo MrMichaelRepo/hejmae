@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { requireDesigner } from '@/lib/auth/designer'
+import { requirePermission } from '@/lib/auth/permissions'
 import { loadOwnedProject } from '@/lib/auth/ownership'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, notFound, badRequest } from '@/lib/errors'
@@ -28,7 +29,8 @@ async function loadPo(designerId: string, projectId: string, poId: string) {
 export async function GET(_req: NextRequest, { params }: Ctx) {
   return withErrorHandling(async () => {
     const { projectId, poId } = await params
-    const { designerId } = await requireDesigner()
+    const { designerId, role, permissions } = await requireDesigner()
+    requirePermission({ role, permissions }, 'po:manage')
     await loadOwnedProject(designerId, projectId)
     const po = await loadPo(designerId, projectId, poId)
     return NextResponse.json({ data: po })
@@ -38,7 +40,8 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 export async function PATCH(req: NextRequest, { params }: Ctx) {
   return withErrorHandling(async () => {
     const { projectId, poId } = await params
-    const { designerId, user } = await requireDesigner()
+    const { designerId, user, role, permissions } = await requireDesigner()
+    requirePermission({ role, permissions }, 'po:manage')
     const project = await loadOwnedProject(designerId, projectId)
     await loadPo(designerId, projectId, poId)
 
@@ -176,7 +179,8 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
 export async function DELETE(_req: NextRequest, { params }: Ctx) {
   return withErrorHandling(async () => {
     const { projectId, poId } = await params
-    const { designerId } = await requireDesigner()
+    const { designerId, role, permissions } = await requireDesigner()
+    requirePermission({ role, permissions }, 'po:manage')
     await loadOwnedProject(designerId, projectId)
     const existing = await loadPo(designerId, projectId, poId)
     if (existing.status !== 'draft') {
