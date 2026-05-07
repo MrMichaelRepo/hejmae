@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { api } from '@/lib/api'
 import { formatCents, formatDate } from '@/lib/format'
 import { PageSpinner } from '@/components/ui/Spinner'
@@ -87,11 +88,13 @@ export default function PortalProposal({ token }: { token: string }) {
       >
         <div className="flex items-center gap-4">
           {data.designer?.logo_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={data.designer.logo_url}
               alt=""
-              className="h-10 w-auto"
+              width={200}
+              height={40}
+              className="h-10 w-auto object-contain"
+              unoptimized
             />
           ) : (
             <div
@@ -208,13 +211,15 @@ function RoomSection({
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {room.items.map((it) => (
             <div key={it.id} className="border border-hm-text/10 p-3">
-              <div className="aspect-square bg-hm-text/[0.05] mb-3">
+              <div className="aspect-square bg-hm-text/[0.05] mb-3 relative overflow-hidden">
                 {it.image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <Image
                     src={it.image_url}
                     alt=""
-                    className="w-full h-full object-cover"
+                    fill
+                    sizes="(min-width: 640px) 33vw, 50vw"
+                    className="object-cover"
+                    unoptimized
                   />
                 ) : null}
               </div>

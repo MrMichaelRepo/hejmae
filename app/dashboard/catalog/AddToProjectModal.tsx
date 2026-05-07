@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { api } from '@/lib/api'
 import { formatCents } from '@/lib/format'
 import Button from '@/components/ui/Button'
@@ -84,13 +85,15 @@ export default function AddToProjectModal({
   return (
     <Modal open={open} onClose={onClose} title="Add to project">
       <div className="flex gap-4 items-start mb-5 pb-5 border-b border-hm-text/10">
-        <div className="w-20 h-20 bg-hm-text/[0.05] shrink-0">
+        <div className="w-20 h-20 bg-hm-text/[0.05] shrink-0 relative overflow-hidden">
           {product.image_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={product.image_url}
               alt=""
-              className="w-full h-full object-cover"
+              fill
+              sizes="80px"
+              className="object-cover"
+              unoptimized
             />
           ) : null}
         </div>

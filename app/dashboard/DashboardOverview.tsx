@@ -1,15 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { api } from '@/lib/api'
 import { formatCents } from '@/lib/format'
 import { StatusBadge } from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
-import { PageSpinner } from '@/components/ui/Spinner'
 import EmptyState from '@/components/ui/EmptyState'
 
-interface ProjectListItem {
+export interface ProjectListItem {
   id: string
   name: string
   status: string
@@ -18,7 +15,7 @@ interface ProjectListItem {
   updated_at: string
 }
 
-interface FinanceSummary {
+export interface FinanceSummary {
   total_invoiced_cents: number
   total_received_cents: number
   total_outstanding_cents: number
@@ -27,41 +24,14 @@ interface FinanceSummary {
   gross_margin_pct: number | null
 }
 
-export default function DashboardOverview() {
-  const [projects, setProjects] = useState<ProjectListItem[] | null>(null)
-  const [summary, setSummary] = useState<FinanceSummary | null>(null)
-  const [error, setError] = useState<string | null>(null)
+interface Props {
+  initialProjects: ProjectListItem[]
+  initialSummary: FinanceSummary
+}
 
-  useEffect(() => {
-    let alive = true
-    Promise.all([
-      api.get<ProjectListItem[]>('/api/projects'),
-      api.get<FinanceSummary>('/api/finances/summary'),
-    ])
-      .then(([p, s]) => {
-        if (!alive) return
-        setProjects((p.data as ProjectListItem[]) ?? [])
-        setSummary((s.data as FinanceSummary) ?? null)
-      })
-      .catch((e) => {
-        if (!alive) return
-        setError(e.message ?? 'Failed to load')
-      })
-    return () => {
-      alive = false
-    }
-  }, [])
-
-  if (error) {
-    return (
-      <div className="border border-red-700/30 p-6 font-garamond text-[0.95rem] text-red-900">
-        {error}
-      </div>
-    )
-  }
-
-  if (!projects || !summary) return <PageSpinner />
-
+export default function DashboardOverview({ initialProjects, initialSummary }: Props) {
+  const projects = initialProjects
+  const summary = initialSummary
   const active = projects.filter((p) => p.status === 'active')
 
   return (

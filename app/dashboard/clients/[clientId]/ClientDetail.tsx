@@ -1,35 +1,36 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import { formatCents, formatDate } from '@/lib/format'
-import { PageSpinner } from '@/components/ui/Spinner'
 import Button from '@/components/ui/Button'
 import { StatusBadge } from '@/components/ui/Badge'
 import { toast } from '@/components/ui/Toast'
 import { ClientFormModal } from '../ClientFormModal'
 import type { Client, Project } from '@/lib/types-ui'
 
-export default function ClientDetail({ clientId }: { clientId: string }) {
+interface Props {
+  clientId: string
+  initialClient: Client
+  initialProjects: Project[]
+}
+
+export default function ClientDetail({ clientId, initialClient, initialProjects }: Props) {
   const router = useRouter()
-  const [client, setClient] = useState<Client | null>(null)
-  const [projects, setProjects] = useState<Project[]>([])
+  const [client, setClient] = useState<Client>(initialClient)
+  const [projects, setProjects] = useState<Project[]>(initialProjects)
   const [openEdit, setOpenEdit] = useState(false)
 
-  const load = async () => {
+  const reload = async () => {
     const [c, p] = await Promise.all([
       api.get<Client>(`/api/clients/${clientId}`),
       api.get<Project[]>(`/api/projects?client_id=${clientId}`),
     ])
-    setClient((c.data as Client) ?? null)
+    if (c.data) setClient(c.data as Client)
     setProjects((p.data as Project[]) ?? [])
   }
-  useEffect(() => {
-    load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clientId])
 
   const remove = async () => {
     if (!confirm('Delete this client? Projects will keep referencing them but the client record will be gone.')) return
@@ -41,8 +42,6 @@ export default function ClientDetail({ clientId }: { clientId: string }) {
       toast.error((e as Error).message)
     }
   }
-
-  if (!client) return <PageSpinner />
 
   return (
     <div className="max-w-4xl">
@@ -121,7 +120,7 @@ export default function ClientDetail({ clientId }: { clientId: string }) {
         initial={client}
         onSaved={() => {
           setOpenEdit(false)
-          load()
+          reload()
           toast.success('Client updated')
         }}
       />

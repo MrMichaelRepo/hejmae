@@ -1,50 +1,20 @@
-'use client'
-
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { api } from '@/lib/api'
+import { requireDesigner } from '@/lib/auth/designer'
+import { requirePermission } from '@/lib/auth/permissions'
+import { getStudioSummary, getProjectPL } from '@/lib/finances/rollup'
 import { formatCents, formatPercent } from '@/lib/format'
 import { PageHeader } from '@/components/ui/EmptyState'
-import { PageSpinner } from '@/components/ui/Spinner'
 import EmptyState from '@/components/ui/EmptyState'
 import Button from '@/components/ui/Button'
 
-interface FinanceSummary {
-  total_invoiced_cents: number
-  total_received_cents: number
-  total_outstanding_cents: number
-  total_cogs_cents: number
-  gross_profit_cents: number
-  gross_margin_pct: number | null
-}
+export default async function FinancesPage() {
+  const { designerId, role, permissions } = await requireDesigner()
+  requirePermission({ role, permissions }, 'finances:view')
 
-interface ProjectPL {
-  project_id: string
-  project_name: string
-  status: string
-  client_id: string | null
-  invoiced_cents: number
-  received_cents: number
-  cogs_cents: number
-  gross_profit_cents: number
-  margin_pct: number | null
-}
-
-export default function FinancesPage() {
-  const [summary, setSummary] = useState<FinanceSummary | null>(null)
-  const [projects, setProjects] = useState<ProjectPL[] | null>(null)
-
-  useEffect(() => {
-    Promise.all([
-      api.get<FinanceSummary>('/api/finances/summary'),
-      api.get<ProjectPL[]>('/api/finances/projects'),
-    ]).then(([s, p]) => {
-      setSummary(s.data as FinanceSummary)
-      setProjects((p.data as ProjectPL[]) ?? [])
-    })
-  }, [])
-
-  if (!summary || projects === null) return <PageSpinner />
+  const [summary, projects] = await Promise.all([
+    getStudioSummary(designerId),
+    getProjectPL(designerId),
+  ])
 
   return (
     <div>

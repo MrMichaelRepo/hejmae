@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { api } from '@/lib/api'
 import { formatCents, formatDate } from '@/lib/format'
-import { PageSpinner } from '@/components/ui/Spinner'
 import EmptyState from '@/components/ui/EmptyState'
 import Button from '@/components/ui/Button'
 import { Field } from '@/components/ui/Input'
@@ -12,14 +12,26 @@ import { StatusBadge } from '@/components/ui/Badge'
 import { toast } from '@/components/ui/Toast'
 import type { Proposal, ProposalRoom, Room, Item } from '@/lib/types-ui'
 
-interface ProposalWithRooms extends Proposal {
+export interface ProposalWithRooms extends Proposal {
   proposal_rooms?: ProposalRoom[]
 }
 
-export default function ProposalClient({ projectId }: { projectId: string }) {
-  const [proposals, setProposals] = useState<ProposalWithRooms[] | null>(null)
-  const [rooms, setRooms] = useState<Room[]>([])
-  const [items, setItems] = useState<Item[]>([])
+interface Props {
+  projectId: string
+  initialProposals: ProposalWithRooms[]
+  initialRooms: Room[]
+  initialItems: Item[]
+}
+
+export default function ProposalClient({
+  projectId,
+  initialProposals,
+  initialRooms,
+  initialItems,
+}: Props) {
+  const [proposals, setProposals] = useState<ProposalWithRooms[]>(initialProposals)
+  const [rooms, setRooms] = useState<Room[]>(initialRooms)
+  const [items, setItems] = useState<Item[]>(initialItems)
   const [openCreate, setOpenCreate] = useState(false)
 
   const load = async () => {
@@ -32,11 +44,6 @@ export default function ProposalClient({ projectId }: { projectId: string }) {
     setRooms((r.data as Room[]) ?? [])
     setItems((i.data as Item[]) ?? [])
   }
-
-  useEffect(() => {
-    load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId])
 
   const send = async (proposalId: string) => {
     try {
@@ -55,8 +62,6 @@ export default function ProposalClient({ projectId }: { projectId: string }) {
       toast.error((e as Error).message)
     }
   }
-
-  if (proposals === null) return <PageSpinner />
 
   return (
     <div>
@@ -151,13 +156,15 @@ export default function ProposalClient({ projectId }: { projectId: string }) {
                               key={it.id}
                               className="border border-hm-text/10 p-2"
                             >
-                              <div className="aspect-square bg-hm-text/[0.05] mb-2">
+                              <div className="aspect-square bg-hm-text/[0.05] mb-2 relative overflow-hidden">
                                 {it.image_url ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img
+                                  <Image
                                     src={it.image_url}
                                     alt=""
-                                    className="w-full h-full object-cover"
+                                    fill
+                                    sizes="200px"
+                                    className="object-cover"
+                                    unoptimized
                                   />
                                 ) : null}
                               </div>

@@ -1,9 +1,7 @@
-'use client'
-
-import { useEffect, useMemo, useState } from 'react'
-import { api } from '@/lib/api'
+import { requireDesigner } from '@/lib/auth/designer'
+import { requirePermission } from '@/lib/auth/permissions'
+import { supabaseAdmin } from '@/lib/supabase/server'
 import { PageHeader } from '@/components/ui/EmptyState'
-import { PageSpinner } from '@/components/ui/Spinner'
 import type { AccountRow, AccountType } from '@/lib/supabase/types'
 
 const TYPE_ORDER: AccountType[] = [
@@ -21,29 +19,20 @@ const TYPE_LABEL: Record<AccountType, string> = {
   expense: 'Expenses',
 }
 
-export default function AccountsPage() {
-  const [accounts, setAccounts] = useState<AccountRow[] | null>(null)
+export default async function AccountsPage() {
+  const { designerId, role, permissions } = await requireDesigner()
+  requirePermission({ role, permissions }, 'finances:view')
 
-  useEffect(() => {
-    api
-      .get<AccountRow[]>('/api/finances/accounts')
-      .then((res) => setAccounts((res.data as AccountRow[]) ?? []))
-  }, [])
+  const { data } = await supabaseAdmin()
+    .from('accounts')
+    .select('*')
+    .eq('designer_id', designerId)
+    .order('code', { ascending: true })
 
-  const grouped = useMemo(() => {
-    const out = new Map<AccountType, AccountRow[]>()
-    for (const t of TYPE_ORDER) out.set(t, [])
-    for (const a of accounts ?? []) {
-      const list = out.get(a.type)
-      if (list) list.push(a)
-    }
-    for (const list of out.values()) {
-      list.sort((x, y) => x.code.localeCompare(y.code))
-    }
-    return out
-  }, [accounts])
-
-  if (!accounts) return <PageSpinner />
+  const accounts = (data ?? []) as AccountRow[]
+  const grouped = new Map<AccountType, AccountRow[]>()
+  for (const t of TYPE_ORDER) grouped.set(t, [])
+  for (const a of accounts) grouped.get(a.type)?.push(a)
 
   return (
     <div>

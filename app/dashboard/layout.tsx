@@ -1,9 +1,18 @@
 import { currentUser } from '@clerk/nextjs/server'
-import { UserButton } from '@clerk/nextjs'
+import { ClerkProvider, UserButton } from '@clerk/nextjs'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import DashboardNav from './DashboardNav'
 import MobileNavTrigger from './MobileNavTrigger'
+
+const clerkAppearance = {
+  variables: {
+    colorPrimary: '#1e2128',
+    colorText: '#1e2128',
+    colorTextSecondary: '#4a5068',
+    borderRadius: '0.375rem',
+  },
+}
 
 export default async function DashboardLayout({
   children,
@@ -17,6 +26,7 @@ export default async function DashboardLayout({
     user.firstName ? `${user.firstName}'s studio` : 'Your studio'
 
   return (
+    <ClerkProvider afterSignOutUrl="/" appearance={clerkAppearance}>
     <div className="min-h-screen flex">
       {/* ── Sidebar ───────────────────────────────────────────────────────── */}
       <aside className="hidden md:flex print:hidden w-60 shrink-0 flex-col border-r border-hm-text/10 px-6 py-8">
@@ -49,5 +59,6 @@ export default async function DashboardLayout({
         <main className="flex-1 px-6 md:px-10 py-10 print:p-0">{children}</main>
       </div>
     </div>
+    </ClerkProvider>
   )
 }

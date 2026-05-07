@@ -1,9 +1,79 @@
-import { currentUser } from '@clerk/nextjs/server'
 import Link from 'next/link'
-import DashboardOverview from './DashboardOverview'
+import { currentUser } from '@clerk/nextjs/server'
+import { requireDesigner } from '@/lib/auth/designer'
+import { supabaseAdmin } from '@/lib/supabase/server'
+import DashboardOverview, { type ProjectListItem, type FinanceSummary } from './DashboardOverview'
+
+async function loadOverview(): Promise<{
+  projects: ProjectListItem[]
+  summary: FinanceSummary
+}> {
+  const { designerId } = await requireDesigner()
+  const sb = supabaseAdmin()
+
+  const [projectsRes, invoicesRes, paymentsRes, poLinesRes] = await Promise.all([
+    sb
+      .from('projects')
+      .select('id, name, status, client_id, budget_cents, updated_at')
+      .eq('designer_id', designerId)
+      .order('created_at', { ascending: false }),
+    sb
+      .from('invoices')
+      .select('id, status, total_cents')
+      .eq('designer_id', designerId),
+    sb
+      .from('payments')
+      .select('invoice_id, amount_cents')
+      .eq('designer_id', designerId),
+    sb
+      .from('purchase_order_line_items')
+      .select('total_trade_price_cents')
+      .eq('designer_id', designerId),
+  ])
+
+  const projects = (projectsRes.data ?? []) as ProjectListItem[]
+  const invoices = invoicesRes.data ?? []
+  const payments = paymentsRes.data ?? []
+  const poLines = poLinesRes.data ?? []
+
+  const totalInvoiced = invoices
+    .filter((i) => i.status !== 'draft')
+    .reduce((a, i) => a + i.total_cents, 0)
+  const totalReceived = payments.reduce((a, p) => a + p.amount_cents, 0)
+  const paidByInvoice = new Map<string, number>()
+  for (const p of payments) {
+    if (!p.invoice_id) continue
+    paidByInvoice.set(
+      p.invoice_id,
+      (paidByInvoice.get(p.invoice_id) ?? 0) + p.amount_cents,
+    )
+  }
+  const totalOutstanding = invoices
+    .filter((i) => i.status === 'sent' || i.status === 'partially_paid')
+    .reduce(
+      (a, i) => a + Math.max(0, i.total_cents - (paidByInvoice.get(i.id) ?? 0)),
+      0,
+    )
+  const totalCogs = poLines.reduce((a, l) => a + l.total_trade_price_cents, 0)
+  const grossProfit = totalReceived - totalCogs
+  const grossMarginPct =
+    totalReceived > 0 ? (grossProfit / totalReceived) * 100 : null
+
+  return {
+    projects,
+    summary: {
+      total_invoiced_cents: totalInvoiced,
+      total_received_cents: totalReceived,
+      total_outstanding_cents: totalOutstanding,
+      total_cogs_cents: totalCogs,
+      gross_profit_cents: grossProfit,
+      gross_margin_pct: grossMarginPct,
+    },
+  }
+}
 
 export default async function DashboardPage() {
-  const user = await currentUser()
+  const [user, overview] = await Promise.all([currentUser(), loadOverview()])
   const firstName = user?.firstName ?? 'there'
 
   return (
@@ -20,7 +90,10 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <DashboardOverview />
+      <DashboardOverview
+        initialProjects={overview.projects}
+        initialSummary={overview.summary}
+      />
 
       <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-px" style={{ background: 'rgba(30,33,40,0.1)' }}>
         {[

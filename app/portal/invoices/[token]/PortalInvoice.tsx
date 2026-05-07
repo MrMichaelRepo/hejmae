@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import { api } from '@/lib/api'
 import { formatCents, formatDate } from '@/lib/format'
@@ -117,11 +118,13 @@ export default function PortalInvoice({ token }: { token: string }) {
       >
         <div>
           {data.designer?.logo_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={data.designer.logo_url}
               alt=""
-              className="h-10 w-auto mb-2"
+              width={200}
+              height={40}
+              className="h-10 w-auto mb-2 object-contain"
+              unoptimized
             />
           ) : (
             <div

@@ -94,10 +94,22 @@ function roomRect(r: Room): Rect | null {
   return null
 }
 
-export default function FloorPlanClient({ projectId }: { projectId: string }) {
-  const [project, setProject] = useState<Project | null>(null)
-  const [items, setItems] = useState<Item[]>([])
-  const [rooms, setRooms] = useState<Room[]>([])
+interface Props {
+  projectId: string
+  initialProject: Project
+  initialItems: Item[]
+  initialRooms: Room[]
+}
+
+export default function FloorPlanClient({
+  projectId,
+  initialProject,
+  initialItems,
+  initialRooms,
+}: Props) {
+  const [project, setProject] = useState<Project | null>(initialProject)
+  const [items, setItems] = useState<Item[]>(initialItems)
+  const [rooms, setRooms] = useState<Room[]>(initialRooms)
   const [selectedItem, setSelectedItem] = useState<string | null>(null)
   const [mode, setMode] = useState<Mode>('idle')
 
@@ -132,16 +144,14 @@ export default function FloorPlanClient({ projectId }: { projectId: string }) {
     setProject(proj)
     setItems((i.data as Item[]) ?? [])
     setRooms((r.data as Room[]) ?? [])
-    if (!initializedRef.current) {
-      initializedRef.current = true
-      if (proj.floor_plan_vector) setView('vector')
-    }
   }
 
   useEffect(() => {
-    load()
+    if (initializedRef.current) return
+    initializedRef.current = true
+    if (initialProject.floor_plan_vector) setView('vector')
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId])
+  }, [])
 
   const fractionFromEvent = (e: { clientX: number; clientY: number }) => {
     const rect = mediaRef.current?.getBoundingClientRect()

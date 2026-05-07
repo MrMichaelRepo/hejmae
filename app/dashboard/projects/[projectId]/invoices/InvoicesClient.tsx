@@ -1,9 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { api } from '@/lib/api'
 import { formatCents, formatDate } from '@/lib/format'
-import { PageSpinner } from '@/components/ui/Spinner'
 import EmptyState from '@/components/ui/EmptyState'
 import { StatusBadge } from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
@@ -12,7 +11,7 @@ import Modal from '@/components/ui/Modal'
 import { toast } from '@/components/ui/Toast'
 import type { Invoice, InvoiceLine, Payment, InvoiceType } from '@/lib/types-ui'
 
-interface InvoiceWith extends Invoice {
+export interface InvoiceWith extends Invoice {
   invoice_line_items?: InvoiceLine[]
   payments?: Payment[]
 }
@@ -23,18 +22,19 @@ interface NewLine {
   unit_price_cents: number
 }
 
-export default function InvoicesClient({ projectId }: { projectId: string }) {
-  const [invoices, setInvoices] = useState<InvoiceWith[] | null>(null)
+interface Props {
+  projectId: string
+  initialInvoices: InvoiceWith[]
+}
+
+export default function InvoicesClient({ projectId, initialInvoices }: Props) {
+  const [invoices, setInvoices] = useState<InvoiceWith[]>(initialInvoices)
   const [openCreate, setOpenCreate] = useState(false)
 
   const load = async () => {
     const r = await api.get<InvoiceWith[]>(`/api/projects/${projectId}/invoices`)
     setInvoices((r.data as InvoiceWith[]) ?? [])
   }
-  useEffect(() => {
-    load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId])
 
   const sendInvoice = async (id: string) => {
     try {
@@ -66,8 +66,6 @@ export default function InvoicesClient({ projectId }: { projectId: string }) {
       toast.error((e as Error).message)
     }
   }
-
-  if (invoices === null) return <PageSpinner />
 
   return (
     <div>
@@ -113,6 +111,22 @@ export default function InvoicesClient({ projectId }: { projectId: string }) {
                   </div>
                   <div className="flex items-center gap-3">
                     <StatusBadge kind="invoice" status={inv.status} />
+                    <a
+                      href={`/dashboard/projects/${projectId}/invoices/${inv.id}/print`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav hover:text-hm-text"
+                    >
+                      Print
+                    </a>
+                    <a
+                      href={`/api/projects/${projectId}/invoices/${inv.id}/pdf`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav hover:text-hm-text"
+                    >
+                      PDF
+                    </a>
                     {inv.status === 'draft' ? (
                       <Button size="sm" variant="primary" onClick={() => sendInvoice(inv.id)}>
                         Send

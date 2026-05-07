@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { UserButton, useAuth } from '@clerk/nextjs'
+import { ClerkProvider, UserButton, useAuth } from '@clerk/nextjs'
 
 const NAV_SECTIONS: Array<[string, string]> = [
   ['About', 'about'],
@@ -13,6 +13,24 @@ const NAV_SECTIONS: Array<[string, string]> = [
 ]
 
 export default function HomePage() {
+  return (
+    <ClerkProvider
+      afterSignOutUrl="/"
+      appearance={{
+        variables: {
+          colorPrimary: '#1e2128',
+          colorText: '#1e2128',
+          colorTextSecondary: '#4a5068',
+          borderRadius: '0.375rem',
+        },
+      }}
+    >
+      <HomePageContent />
+    </ClerkProvider>
+  )
+}
+
+function HomePageContent() {
   const { isSignedIn, isLoaded } = useAuth()
   const [scrolled, setScrolled] = useState(false)
 

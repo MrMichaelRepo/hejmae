@@ -15,7 +15,13 @@ const nextConfig = {
     'pdfjs-dist',
     '@napi-rs/canvas',
     'sharp',
+    '@react-pdf/renderer',
   ],
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: '*.supabase.co', pathname: '/storage/**' },
+    ],
+  },
   async headers() {
     return [
       {

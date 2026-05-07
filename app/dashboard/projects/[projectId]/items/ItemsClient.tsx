@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import Image from 'next/image'
 import { useSearchParams } from 'next/navigation'
 import { api } from '@/lib/api'
 import { formatCents, titleCase } from '@/lib/format'
-import { PageSpinner } from '@/components/ui/Spinner'
 import EmptyState from '@/components/ui/EmptyState'
 import { StatusBadge } from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
@@ -24,11 +24,17 @@ const STATUSES: ItemStatus[] = [
   'installed',
 ]
 
-export default function ItemsClient({ projectId }: { projectId: string }) {
+interface Props {
+  projectId: string
+  initialItems: Item[]
+  initialRooms: Room[]
+}
+
+export default function ItemsClient({ projectId, initialItems, initialRooms }: Props) {
   const searchParams = useSearchParams()
   const initialStatus = searchParams.get('status') ?? undefined
-  const [items, setItems] = useState<Item[] | null>(null)
-  const [rooms, setRooms] = useState<Room[]>([])
+  const [items, setItems] = useState<Item[]>(initialItems)
+  const [rooms, setRooms] = useState<Room[]>(initialRooms)
   const [filter, setFilter] = useState<{ room?: string; status?: string }>(
     initialStatus ? { status: initialStatus } : {},
   )
@@ -44,13 +50,8 @@ export default function ItemsClient({ projectId }: { projectId: string }) {
     setRooms((r.data as Room[]) ?? [])
   }
 
-  useEffect(() => {
-    load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId])
-
   const filtered = useMemo(() => {
-    return (items ?? []).filter((it) => {
+    return items.filter((it) => {
       if (filter.status && it.status !== filter.status) return false
       if (filter.room && it.room_id !== filter.room) return false
       return true
@@ -60,7 +61,7 @@ export default function ItemsClient({ projectId }: { projectId: string }) {
   const updateStatus = async (id: string, status: ItemStatus) => {
     try {
       await api.patch(`/api/projects/${projectId}/items/${id}`, { status })
-      setItems((s) => (s ? s.map((it) => (it.id === id ? { ...it, status } : it)) : s))
+      setItems((s) => s.map((it) => (it.id === id ? { ...it, status } : it)))
     } catch (e) {
       toast.error((e as Error).message)
     }
@@ -107,9 +108,7 @@ export default function ItemsClient({ projectId }: { projectId: string }) {
         </div>
       </div>
 
-      {items === null ? (
-        <PageSpinner />
-      ) : filtered.length === 0 ? (
+      {filtered.length === 0 ? (
         <EmptyState
           title={items.length === 0 ? 'No items yet' : 'No matches'}
           body={
@@ -149,13 +148,15 @@ export default function ItemsClient({ projectId }: { projectId: string }) {
                 }}
                 className="grid grid-cols-[64px_1fr_auto] md:grid-cols-[64px_2fr_1fr_120px_120px_140px_120px] gap-4 items-center px-4 py-3 border-t border-hm-text/10 hover:bg-hm-text/[0.02] transition-colors cursor-pointer"
               >
-                <div className="w-12 h-12 bg-hm-text/[0.05] rounded-sm overflow-hidden shrink-0">
+                <div className="w-12 h-12 bg-hm-text/[0.05] rounded-sm overflow-hidden shrink-0 relative">
                   {it.image_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={it.image_url}
                       alt=""
-                      className="w-full h-full object-cover"
+                      fill
+                      sizes="48px"
+                      className="object-cover"
+                      unoptimized
                     />
                   ) : null}
                 </div>
@@ -353,13 +354,15 @@ function CatalogSearch({
           ← Back to search
         </button>
         <div className="flex gap-4 items-start mb-5 pb-5 border-b border-hm-text/10">
-          <div className="w-20 h-20 bg-hm-text/[0.05] shrink-0">
+          <div className="w-20 h-20 bg-hm-text/[0.05] shrink-0 relative overflow-hidden">
             {picking.image_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <Image
                 src={picking.image_url}
                 alt=""
-                className="w-full h-full object-cover"
+                fill
+                sizes="80px"
+                className="object-cover"
+                unoptimized
               />
             ) : null}
           </div>
@@ -427,10 +430,16 @@ function CatalogSearch({
               onClick={() => setPicking(r)}
               className="w-full text-left border border-hm-text/10 px-3 py-3 flex gap-3 items-center hover:bg-hm-text/[0.03] transition-colors"
             >
-              <div className="w-12 h-12 bg-hm-text/[0.05] shrink-0">
+              <div className="w-12 h-12 bg-hm-text/[0.05] shrink-0 relative overflow-hidden">
                 {r.image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={r.image_url} alt="" className="w-full h-full object-cover" />
+                  <Image
+                    src={r.image_url}
+                    alt=""
+                    fill
+                    sizes="48px"
+                    className="object-cover"
+                    unoptimized
+                  />
                 ) : null}
               </div>
               <div className="min-w-0 flex-1">

@@ -3,6 +3,7 @@
 // Combined image input — file upload OR pasted URL.
 // onChange fires with the final URL once it's resolved (uploaded or typed).
 import { useRef, useState } from 'react'
+import Image from 'next/image'
 import Button from './Button'
 import { toast } from './Toast'
 
@@ -66,9 +67,15 @@ export default function ImageUploader({
 
       {value ? (
         <div className="border border-hm-text/10 p-3 mb-3 flex gap-3 items-start">
-          <div className="w-20 h-20 bg-hm-text/[0.05] shrink-0 overflow-hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={value} alt="" className="w-full h-full object-cover" />
+          <div className="w-20 h-20 bg-hm-text/[0.05] shrink-0 overflow-hidden relative">
+            <Image
+              src={value}
+              alt=""
+              fill
+              sizes="80px"
+              className="object-cover"
+              unoptimized
+            />
           </div>
           <div className="flex-1 min-w-0">
             <div className="font-garamond text-[0.85rem] text-hm-nav truncate">

@@ -5,6 +5,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Image from 'next/image'
 import { useParams, useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { api, ApiError } from '@/lib/api'
@@ -105,11 +106,13 @@ export default function InviteLandingPage() {
   return (
     <Centered brandColor={invite.studio.brand_color}>
       {invite.studio.logo_url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           src={invite.studio.logo_url}
           alt={invite.studio.name}
-          className="h-10 mx-auto mb-6 object-contain"
+          width={200}
+          height={40}
+          className="h-10 w-auto mx-auto mb-6 object-contain"
+          unoptimized
         />
       ) : null}
       <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-3">

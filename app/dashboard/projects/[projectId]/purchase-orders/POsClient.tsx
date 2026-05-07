@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { api } from '@/lib/api'
 import { formatCents, formatDate } from '@/lib/format'
-import { PageSpinner } from '@/components/ui/Spinner'
 import EmptyState from '@/components/ui/EmptyState'
 import { StatusBadge } from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
@@ -18,13 +17,19 @@ import type {
   PoStatus,
 } from '@/lib/types-ui'
 
-interface POWith extends PurchaseOrder {
+export interface POWith extends PurchaseOrder {
   purchase_order_line_items?: PurchaseOrderLine[]
 }
 
-export default function POsClient({ projectId }: { projectId: string }) {
-  const [pos, setPos] = useState<POWith[] | null>(null)
-  const [items, setItems] = useState<Item[]>([])
+interface Props {
+  projectId: string
+  initialPOs: POWith[]
+  initialItems: Item[]
+}
+
+export default function POsClient({ projectId, initialPOs, initialItems }: Props) {
+  const [pos, setPos] = useState<POWith[]>(initialPOs)
+  const [items, setItems] = useState<Item[]>(initialItems)
   const [openCreate, setOpenCreate] = useState(false)
   const [editing, setEditing] = useState<POWith | null>(null)
 
@@ -36,10 +41,6 @@ export default function POsClient({ projectId }: { projectId: string }) {
     setPos((p.data as POWith[]) ?? [])
     setItems((i.data as Item[]) ?? [])
   }
-  useEffect(() => {
-    load()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId])
 
   const advance = async (
     id: string,
@@ -55,8 +56,6 @@ export default function POsClient({ projectId }: { projectId: string }) {
       toast.error((e as Error).message)
     }
   }
-
-  if (pos === null) return <PageSpinner />
 
   return (
     <div>
@@ -115,6 +114,14 @@ export default function POsClient({ projectId }: { projectId: string }) {
                         Print
                       </Button>
                     </Link>
+                    <a
+                      href={`/api/projects/${projectId}/purchase-orders/${po.id}/pdf`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav hover:text-hm-text"
+                    >
+                      PDF
+                    </a>
                     <NextAction status={po.status} onAdvance={(a) => advance(po.id, a)} />
                   </div>
                 </div>
