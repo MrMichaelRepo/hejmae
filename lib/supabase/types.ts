@@ -300,6 +300,100 @@ export interface VendorRow {
   updated_at: string
 }
 
+// ---------------------------------------------------------------------------
+// Bookkeeping
+// ---------------------------------------------------------------------------
+
+export type AccountType = 'asset' | 'liability' | 'equity' | 'income' | 'expense'
+
+export type JournalSourceType = 'manual' | 'expense' | 'mileage' | 'payment'
+
+export interface AccountRow {
+  id: string
+  designer_id: string
+  code: string
+  name: string
+  type: AccountType
+  // Stable handle the auto-posting code uses to find well-known accounts.
+  // Null for user-created categories.
+  system_key: string | null
+  is_system: boolean
+  is_active: boolean
+  description: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface JournalEntryRow {
+  id: string
+  designer_id: string
+  entry_date: string
+  memo: string | null
+  source_type: JournalSourceType
+  source_id: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface JournalLineRow {
+  id: string
+  designer_id: string
+  entry_id: string
+  account_id: string
+  project_id: string | null
+  // Signed: positive = debit, negative = credit.
+  amount_cents: number
+  memo: string | null
+  position: number
+  created_at: string
+}
+
+export interface ExpenseRow {
+  id: string
+  designer_id: string
+  project_id: string | null
+  category_account_id: string
+  payment_account_id: string
+  expense_date: string
+  amount_cents: number
+  vendor_name: string | null
+  description: string | null
+  receipt_path: string | null
+  receipt_url: string | null
+  receipt_content_type: string | null
+  billable_to_client: boolean
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface MileageRateRow {
+  id: string
+  designer_id: string
+  year: number
+  rate_cents_per_mile: number
+  created_at: string
+  updated_at: string
+}
+
+export interface MileageLogRow {
+  id: string
+  designer_id: string
+  project_id: string | null
+  trip_date: string
+  // numeric(8,2) — Supabase returns numeric as a string by default; the
+  // API layer normalizes to number on read.
+  miles: number
+  rate_cents_per_mile: number
+  amount_cents: number
+  purpose: string | null
+  from_location: string | null
+  to_location: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface ActivityLogRow {
   id: string
   designer_id: string

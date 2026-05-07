@@ -35,20 +35,24 @@ const ALLOWED_DOC_TYPES = new Set([
 
 const MAX_BYTES = 25 * 1024 * 1024 // 25 MB
 
-export type UploadKind = 'floor-plan' | 'item-image' | 'doc'
+export type UploadKind = 'floor-plan' | 'item-image' | 'doc' | 'receipt'
 
 const ALLOWED_BY_KIND: Record<UploadKind, Set<string>> = {
   'floor-plan': ALLOWED_DOC_TYPES,
   'item-image': ALLOWED_IMAGE_TYPES,
   doc: ALLOWED_DOC_TYPES,
+  receipt: ALLOWED_DOC_TYPES,
 }
 
 export interface UploadInput {
   kind: UploadKind
   designerId: string
-  projectId: string
+  // Project is optional for studio-level uploads (e.g. receipts not tied
+  // to a specific project). Path slot becomes "_" so the layout stays
+  // predictable: kind/designerId/projectId/ownerId/uuid.ext
+  projectId?: string
   file: File
-  // Optional sub-key (e.g. itemId) for nested grouping.
+  // Optional sub-key (e.g. itemId or expenseId) for nested grouping.
   ownerId?: string
 }
 
@@ -84,7 +88,7 @@ export async function uploadAsset(input: UploadInput): Promise<UploadResult> {
   const segments: string[] = [
     input.kind,
     input.designerId,
-    input.projectId,
+    input.projectId ?? '_',
     ...(input.ownerId ? [input.ownerId] : []),
     `${randomUUID()}.${processed.ext}`,
   ]
@@ -122,8 +126,10 @@ async function processForKind(
   contentType: string,
   kind: UploadKind,
 ): Promise<ProcessedFile> {
-  if (kind === 'doc') {
-    // Documents pass through. PDF stays PDF, images stay as uploaded.
+  if (kind === 'doc' || kind === 'receipt') {
+    // Receipts and generic docs pass through. We don't recompress photos
+    // because tax/audit best practice is to keep the original artifact —
+    // and Supabase already enforces the bucket-level size cap.
     return {
       buffer: source,
       contentType,

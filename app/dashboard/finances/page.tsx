@@ -47,7 +47,7 @@ export default function FinancesPage() {
   if (!summary || projects === null) return <PageSpinner />
 
   return (
-    <div className="max-w-6xl">
+    <div>
       <PageHeader
         eyebrow="Finances"
         title="Studio rollup"

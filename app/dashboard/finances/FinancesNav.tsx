@@ -1,0 +1,42 @@
+'use client'
+
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+
+const TABS: Array<[string, string]> = [
+  ['Overview', '/dashboard/finances'],
+  ['Expenses', '/dashboard/finances/expenses'],
+  ['Mileage', '/dashboard/finances/mileage'],
+  ['Ledger', '/dashboard/finances/ledger'],
+  ['Accounts', '/dashboard/finances/accounts'],
+]
+
+export default function FinancesNav() {
+  const pathname = usePathname()
+  return (
+    <div className="border-b border-hm-text/10 mb-8 -mt-2">
+      <div className="flex gap-1 overflow-x-auto">
+        {TABS.map(([label, href]) => {
+          const active =
+            href === '/dashboard/finances'
+              ? pathname === '/dashboard/finances'
+              : pathname.startsWith(href)
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={[
+                'font-sans text-[10px] uppercase tracking-[0.22em] px-4 py-3 -mb-px border-b-2 transition-colors whitespace-nowrap',
+                active
+                  ? 'text-hm-text border-hm-text'
+                  : 'text-hm-nav border-transparent hover:text-hm-text',
+              ].join(' ')}
+            >
+              {label}
+            </Link>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
