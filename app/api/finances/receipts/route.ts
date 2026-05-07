@@ -8,8 +8,9 @@
 
 import { NextResponse, type NextRequest } from 'next/server'
 import { requireDesigner } from '@/lib/auth/designer'
-import { withErrorHandling, badRequest } from '@/lib/errors'
+import { withErrorHandling, badRequest, tooManyRequests } from '@/lib/errors'
 import { uploadAsset } from '@/lib/storage'
+import { checkRateLimit } from '@/lib/ratelimit'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -17,6 +18,8 @@ export const maxDuration = 30
 export async function POST(req: NextRequest) {
   return withErrorHandling(async () => {
     const { designerId } = await requireDesigner()
+    const rl = await checkRateLimit('upload', `designer:${designerId}`)
+    if (!rl.ok) throw tooManyRequests()
     const form = await req.formData()
     const file = form.get('file')
     const expenseId = form.get('expense_id')

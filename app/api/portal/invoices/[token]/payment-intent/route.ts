@@ -7,16 +7,19 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { loadInvoiceByToken } from '@/lib/portal/auth'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import { withErrorHandling, badRequest } from '@/lib/errors'
+import { withErrorHandling, badRequest, tooManyRequests } from '@/lib/errors'
 import { ensureInvoicePaymentIntent } from '@/lib/stripe/connect'
+import { checkRateLimit, callerIp } from '@/lib/ratelimit'
 
 interface Ctx {
   params: Promise<{ token: string }>
 }
 
-export async function POST(_req: NextRequest, { params }: Ctx) {
+export async function POST(req: NextRequest, { params }: Ctx) {
   return withErrorHandling(async () => {
     const { token } = await params
+    const rl = await checkRateLimit('portalPay', callerIp(req))
+    if (!rl.ok) throw tooManyRequests()
     const { invoice } = await loadInvoiceByToken(token)
     if (invoice.status === 'paid') throw badRequest('Invoice already paid')
 

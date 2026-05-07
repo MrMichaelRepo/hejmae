@@ -183,6 +183,7 @@ export interface ProposalRow {
   status: ProposalStatus
   magic_link_token: string | null
   magic_link_revoked_at: string | null
+  magic_link_expires_at: string | null
   sent_at: string | null
   client_notes: string | null
   created_at: string
@@ -212,6 +213,7 @@ export interface InvoiceRow {
   stripe_account_id: string | null
   magic_link_token: string | null
   magic_link_revoked_at: string | null
+  magic_link_expires_at: string | null
   sent_at: string | null
   paid_at: string | null
   notes: string | null

@@ -23,6 +23,31 @@ const nextConfig = {
     ],
   },
   async headers() {
+    // CSP is shipped in report-only mode initially. After a week of
+    // collecting reports we should flip to enforcing (rename header to
+    // 'Content-Security-Policy'). Notes per directive:
+    //   - 'unsafe-inline' on script-src is required by Next.js's hydration
+    //     payload until we adopt nonce-based scripts.
+    //   - 'unsafe-eval' is required by Stripe.js.
+    //   - 'unsafe-inline' on style-src is required by Tailwind/Next inline
+    //     style attributes; nonce-style isn't worth the complexity here.
+    //   - frame-src allows Stripe Elements + Clerk's hosted screens.
+    //   - img-src 'data:' covers icon-as-data-URL patterns.
+    const csp = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      "img-src 'self' data: blob: https://*.supabase.co https://img.clerk.com https://*.clerk.com https://*.stripe.com",
+      "connect-src 'self' https://*.supabase.co https://*.clerk.accounts.dev https://*.clerk.com https://api.stripe.com https://*.ingest.sentry.io",
+      "frame-src https://js.stripe.com https://hooks.stripe.com https://*.stripe.com https://*.clerk.accounts.dev https://challenges.cloudflare.com",
+      "worker-src 'self' blob:",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self' https://*.clerk.accounts.dev",
+      "frame-ancestors 'none'",
+    ].join('; ')
+
     return [
       {
         source: '/(.*)',
@@ -31,6 +56,8 @@ const nextConfig = {
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+          { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
+          { key: 'Content-Security-Policy-Report-Only', value: csp },
         ],
       },
     ]

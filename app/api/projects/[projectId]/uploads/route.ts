@@ -14,8 +14,9 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { requireDesigner } from '@/lib/auth/designer'
 import { loadOwnedProject } from '@/lib/auth/ownership'
-import { withErrorHandling, badRequest } from '@/lib/errors'
+import { withErrorHandling, badRequest, tooManyRequests } from '@/lib/errors'
 import { uploadAsset, type UploadKind } from '@/lib/storage'
+import { checkRateLimit } from '@/lib/ratelimit'
 
 export const runtime = 'nodejs'
 // Floor-plan uploads run a multi-stage pipeline (PDF rasterize, sharp
@@ -33,6 +34,8 @@ export async function POST(req: NextRequest, { params }: Ctx) {
   return withErrorHandling(async () => {
     const { projectId } = await params
     const { designerId } = await requireDesigner()
+    const rl = await checkRateLimit('upload', `designer:${designerId}`)
+    if (!rl.ok) throw tooManyRequests()
     await loadOwnedProject(designerId, projectId)
 
     const form = await req.formData()

@@ -6,7 +6,7 @@ import { requireDesigner } from '@/lib/auth/designer'
 import { loadOwnedProject } from '@/lib/auth/ownership'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, notFound } from '@/lib/errors'
-import { generateMagicToken } from '@/lib/tokens'
+import { generateMagicToken, magicLinkExpiresAt } from '@/lib/tokens'
 import { env } from '@/lib/env'
 import { logActivity } from '@/lib/activity'
 import { sendEmail } from '@/lib/email/send'
@@ -40,6 +40,7 @@ export async function POST(_req: NextRequest, { params }: Ctx) {
         status: 'sent',
         magic_link_token: token,
         magic_link_revoked_at: null,
+        magic_link_expires_at: magicLinkExpiresAt(),
         sent_at: new Date().toISOString(),
       })
       .eq('id', proposalId)

@@ -2,16 +2,19 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { loadInvoiceByToken } from '@/lib/portal/auth'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import { withErrorHandling } from '@/lib/errors'
+import { withErrorHandling, tooManyRequests } from '@/lib/errors'
 import { stripTrade } from '@/lib/portal/sanitize'
+import { checkRateLimit, callerIp } from '@/lib/ratelimit'
 
 interface Ctx {
   params: Promise<{ token: string }>
 }
 
-export async function GET(_req: NextRequest, { params }: Ctx) {
+export async function GET(req: NextRequest, { params }: Ctx) {
   return withErrorHandling(async () => {
     const { token } = await params
+    const rl = await checkRateLimit('portal', callerIp(req))
+    if (!rl.ok) throw tooManyRequests()
     const { invoice, lines } = await loadInvoiceByToken(token)
 
     const sb = supabaseAdmin()

@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { requireDesigner } from '@/lib/auth/designer'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling } from '@/lib/errors'
+import { sanitizePostgrestSearch } from '@/lib/postgrest'
 
 export async function GET(req: NextRequest) {
   return withErrorHandling(async () => {
@@ -22,7 +23,8 @@ export async function GET(req: NextRequest) {
     if (q) {
       // Simple ILIKE search across name + vendor. TODO: switch to full-text
       // (tsvector) when the catalog grows.
-      query = query.or(`name.ilike.%${q}%,vendor.ilike.%${q}%`)
+      const safe = sanitizePostgrestSearch(q)
+      if (safe) query = query.or(`name.ilike.%${safe}%,vendor.ilike.%${safe}%`)
     }
     if (vendor) query = query.ilike('vendor', vendor)
     if (category) query = query.ilike('category', category)

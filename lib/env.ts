@@ -58,4 +58,9 @@ export const env = {
   // Platform config
   appUrl: () => required('NEXT_PUBLIC_APP_URL'),
   platformFeeBps: () => Number(optional('PLATFORM_FEE_BPS') ?? '10'), // 0.1% = 10 bps
+
+  // Upstash Redis for rate limiting. Optional — limiter no-ops without
+  // these set, which is fine for local dev. Required in production.
+  upstashRedisUrl: () => optional('UPSTASH_REDIS_REST_URL'),
+  upstashRedisToken: () => optional('UPSTASH_REDIS_REST_TOKEN'),
 }

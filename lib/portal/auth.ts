@@ -36,6 +36,12 @@ export async function loadProposalByToken(token: string): Promise<{
   if (error) throw error
   if (!data) throw notFound('Proposal not found')
   if (data.magic_link_revoked_at) throw unauthorized('Link revoked')
+  if (
+    data.magic_link_expires_at &&
+    new Date(data.magic_link_expires_at).getTime() < Date.now()
+  ) {
+    throw unauthorized('Link expired')
+  }
   if (data.status === 'draft') throw badRequest('Proposal not yet sent')
   const rooms = (data.proposal_rooms ?? []) as ProposalRoomRow[]
   // Don't return the raw join shape — flatten so callers don't accidentally
@@ -60,6 +66,12 @@ export async function loadInvoiceByToken(token: string): Promise<{
   if (error) throw error
   if (!data) throw notFound('Invoice not found')
   if (data.magic_link_revoked_at) throw unauthorized('Link revoked')
+  if (
+    data.magic_link_expires_at &&
+    new Date(data.magic_link_expires_at).getTime() < Date.now()
+  ) {
+    throw unauthorized('Link expired')
+  }
   if (data.status === 'draft') throw badRequest('Invoice not yet sent')
   const lines = (data.invoice_line_items ?? []) as InvoiceLineItemRow[]
   const { invoice_line_items: _omit, ...invoice } = data as InvoiceRow & {

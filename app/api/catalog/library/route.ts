@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { requireDesigner } from '@/lib/auth/designer'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling } from '@/lib/errors'
+import { sanitizePostgrestSearch } from '@/lib/postgrest'
 
 export async function GET(req: NextRequest) {
   return withErrorHandling(async () => {
@@ -32,7 +33,10 @@ export async function GET(req: NextRequest) {
       .in('id', ids)
       .order('updated_at', { ascending: false })
 
-    if (q) query = query.or(`name.ilike.%${q}%,vendor.ilike.%${q}%`)
+    if (q) {
+      const safe = sanitizePostgrestSearch(q)
+      if (safe) query = query.or(`name.ilike.%${safe}%,vendor.ilike.%${safe}%`)
+    }
 
     const { data, error: e2 } = await query
     if (e2) throw e2

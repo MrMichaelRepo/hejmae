@@ -4,7 +4,7 @@ import { requirePermission } from '@/lib/auth/permissions'
 import { loadOwnedProject } from '@/lib/auth/ownership'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, notFound, badRequest } from '@/lib/errors'
-import { generateMagicToken } from '@/lib/tokens'
+import { generateMagicToken, magicLinkExpiresAt } from '@/lib/tokens'
 import { logActivity } from '@/lib/activity'
 import { env } from '@/lib/env'
 import { sendEmail } from '@/lib/email/send'
@@ -69,6 +69,11 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       if (!existing.magic_link_token) {
         updates.magic_link_token = generateMagicToken()
       }
+      // (Re-)set expiry on every send so re-sending after a long pause
+      // refreshes the window. Revocation stays the kill-switch for
+      // earlier-than-expiry takedowns.
+      updates.magic_link_expires_at = magicLinkExpiresAt()
+      updates.magic_link_revoked_at = null
     } else if (body.action === 'mark_paid') {
       if (existing.status === 'paid') {
         throw badRequest('Invoice is already paid')
