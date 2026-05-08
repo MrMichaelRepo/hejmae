@@ -2,9 +2,11 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { loadProposalByToken } from '@/lib/portal/auth'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import { withErrorHandling, notFound } from '@/lib/errors'
+import { withErrorHandling, notFound, tooManyRequests } from '@/lib/errors'
 import { portalApproveRoom } from '@/lib/validations/proposal'
 import { logActivity } from '@/lib/activity'
+import { checkRateLimit, callerIp } from '@/lib/ratelimit'
+import { hashToken } from '@/lib/tokens'
 
 interface Ctx {
   params: Promise<{ token: string; roomId: string }>
@@ -13,6 +15,11 @@ interface Ctx {
 export async function POST(req: NextRequest, { params }: Ctx) {
   return withErrorHandling(async () => {
     const { token, roomId } = await params
+    const [rlIp, rlTok] = await Promise.all([
+      checkRateLimit('portal', callerIp(req)),
+      checkRateLimit('portalToken', hashToken(token)),
+    ])
+    if (!rlIp.ok || !rlTok.ok) throw tooManyRequests()
     const { proposal, rooms } = await loadProposalByToken(token)
 
     const target = rooms.find((r) => r.room_id === roomId)

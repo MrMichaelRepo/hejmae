@@ -10,6 +10,7 @@
 
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { notFound, badRequest, unauthorized } from '@/lib/errors'
+import { hashToken } from '@/lib/tokens'
 import type {
   ProposalRow,
   ProposalRoomRow,
@@ -31,7 +32,7 @@ export async function loadProposalByToken(token: string): Promise<{
   const { data, error } = await sb
     .from('proposals')
     .select('*, proposal_rooms(*)')
-    .eq('magic_link_token', token)
+    .eq('magic_link_token', hashToken(token))
     .maybeSingle()
   if (error) throw error
   if (!data) throw notFound('Proposal not found')
@@ -61,7 +62,7 @@ export async function loadInvoiceByToken(token: string): Promise<{
   const { data, error } = await sb
     .from('invoices')
     .select('*, invoice_line_items(*)')
-    .eq('magic_link_token', token)
+    .eq('magic_link_token', hashToken(token))
     .maybeSingle()
   if (error) throw error
   if (!data) throw notFound('Invoice not found')

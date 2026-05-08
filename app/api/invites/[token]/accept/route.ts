@@ -5,10 +5,12 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import { withErrorHandling, unauthorized, notFound, badRequest } from '@/lib/errors'
+import { withErrorHandling, unauthorized, notFound, badRequest, tooManyRequests } from '@/lib/errors'
+import { hashToken } from '@/lib/tokens'
+import { checkRateLimit, callerIp } from '@/lib/ratelimit'
 
 export async function POST(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ token: string }> },
 ) {
   return withErrorHandling(async () => {
@@ -16,6 +18,11 @@ export async function POST(
     if (!clerkUserId) throw unauthorized('Sign in to accept this invite')
 
     const { token } = await params
+    const [rlIp, rlTok] = await Promise.all([
+      checkRateLimit('portal', callerIp(req)),
+      checkRateLimit('portalToken', hashToken(token)),
+    ])
+    if (!rlIp.ok || !rlTok.ok) throw tooManyRequests()
     const sb = supabaseAdmin()
 
     // Resolve the caller's users.id (lazily provision a row if missing —
@@ -25,13 +32,16 @@ export async function POST(
 
     const { data: invite, error: iErr } = await sb
       .from('studio_invites')
-      .select('id, studio_id, role, permissions, accepted_at, revoked_at')
-      .eq('token', token)
+      .select('id, studio_id, role, permissions, accepted_at, revoked_at, expires_at')
+      .eq('token', hashToken(token))
       .maybeSingle()
     if (iErr) throw iErr
     if (!invite) throw notFound('Invite not found')
     if (invite.revoked_at) throw badRequest('This invite was revoked')
     if (invite.accepted_at) throw badRequest('This invite was already accepted')
+    if (invite.expires_at && new Date(invite.expires_at).getTime() < Date.now()) {
+      throw badRequest('This invite has expired — ask for a new one')
+    }
 
     // Idempotent and race-safe: upsert on (studio_id, user_id) so two accept
     // requests can't fail with a unique violation.

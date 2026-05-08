@@ -6,7 +6,7 @@ import { requireDesigner } from '@/lib/auth/designer'
 import { loadOwnedProject } from '@/lib/auth/ownership'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, notFound } from '@/lib/errors'
-import { generateMagicToken, magicLinkExpiresAt } from '@/lib/tokens'
+import { generateMagicToken, hashToken, magicLinkExpiresAt } from '@/lib/tokens'
 import { env } from '@/lib/env'
 import { logActivity } from '@/lib/activity'
 import { sendEmail } from '@/lib/email/send'
@@ -24,7 +24,7 @@ export async function POST(_req: NextRequest, { params }: Ctx) {
 
     const { data: existing, error: e1 } = await supabaseAdmin()
       .from('proposals')
-      .select('id, magic_link_token, client_notes')
+      .select('id, client_notes')
       .eq('id', proposalId)
       .eq('project_id', projectId)
       .eq('designer_id', designerId)
@@ -32,13 +32,15 @@ export async function POST(_req: NextRequest, { params }: Ctx) {
     if (e1) throw e1
     if (!existing) throw notFound('Proposal not found')
 
-    const token = existing.magic_link_token ?? generateMagicToken()
+    // Always rotate on send: cheap, prevents an attacker who saw an earlier
+    // (un-hashed) leaked token from replaying after the designer re-shares.
+    const token = generateMagicToken()
 
     const { data, error } = await supabaseAdmin()
       .from('proposals')
       .update({
         status: 'sent',
-        magic_link_token: token,
+        magic_link_token: hashToken(token),
         magic_link_revoked_at: null,
         magic_link_expires_at: magicLinkExpiresAt(),
         sent_at: new Date().toISOString(),
@@ -92,6 +94,9 @@ export async function POST(_req: NextRequest, { params }: Ctx) {
       metadata: { proposal_id: proposalId, email: emailResult },
     })
 
-    return NextResponse.json({ data, magic_link_url: url, email: emailResult })
+    // Scrub the hashed token from the row before responding — clients have
+    // no use for it and exposing the hash narrows the offline-crack target.
+    const { magic_link_token: _scrub, ...safeData } = data
+    return NextResponse.json({ data: safeData, magic_link_url: url, email: emailResult })
   })
 }

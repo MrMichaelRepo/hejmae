@@ -40,11 +40,11 @@ export async function POST(req: NextRequest) {
   if (prior?.processed_at) {
     return NextResponse.json({ received: true, duplicate: true })
   }
+  // See note in /api/webhooks/stripe — payloads are intentionally not stored.
   await sb.from('stripe_events').upsert({
     id: event.id,
     type: event.type,
     account_id: event.account ?? null,
-    payload: event as unknown as Record<string, unknown>,
   })
 
   try {

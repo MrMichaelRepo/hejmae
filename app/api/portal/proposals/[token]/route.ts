@@ -9,6 +9,7 @@ import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, tooManyRequests } from '@/lib/errors'
 import { stripTrade } from '@/lib/portal/sanitize'
 import { checkRateLimit, callerIp } from '@/lib/ratelimit'
+import { hashToken } from '@/lib/tokens'
 
 interface Ctx {
   params: Promise<{ token: string }>
@@ -17,8 +18,11 @@ interface Ctx {
 export async function GET(req: NextRequest, { params }: Ctx) {
   return withErrorHandling(async () => {
     const { token } = await params
-    const rl = await checkRateLimit('portal', callerIp(req))
-    if (!rl.ok) throw tooManyRequests()
+    const [rlIp, rlTok] = await Promise.all([
+      checkRateLimit('portal', callerIp(req)),
+      checkRateLimit('portalToken', hashToken(token)),
+    ])
+    if (!rlIp.ok || !rlTok.ok) throw tooManyRequests()
     const { proposal, rooms } = await loadProposalByToken(token)
 
     const sb = supabaseAdmin()

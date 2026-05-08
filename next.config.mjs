@@ -23,9 +23,7 @@ const nextConfig = {
     ],
   },
   async headers() {
-    // CSP is shipped in report-only mode initially. After a week of
-    // collecting reports we should flip to enforcing (rename header to
-    // 'Content-Security-Policy'). Notes per directive:
+    // Notes per directive:
     //   - 'unsafe-inline' on script-src is required by Next.js's hydration
     //     payload until we adopt nonce-based scripts.
     //   - 'unsafe-eval' is required by Stripe.js.
@@ -57,7 +55,7 @@ const nextConfig = {
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
           { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
-          { key: 'Content-Security-Policy-Report-Only', value: csp },
+          { key: 'Content-Security-Policy', value: csp },
         ],
       },
     ]

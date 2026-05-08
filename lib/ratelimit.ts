@@ -40,6 +40,9 @@ function redis(): Redis | null {
 
 const limiters = {
   portal: () => buildLimiter('portal', 30, '1 m'),
+  // Per-token bucket: caps total hits against a single magic link regardless
+  // of source IP, blunting credential-spraying attempts that rotate IPs.
+  portalToken: () => buildLimiter('portal_token', 60, '1 m'),
   portalPay: () => buildLimiter('portal_pay', 5, '1 m'),
   upload: () => buildLimiter('upload', 60, '1 h'),
   write: () => buildLimiter('write', 120, '1 m'),
@@ -90,10 +93,19 @@ export async function checkRateLimit(
   }
 }
 
-// Pull the caller's IP from common reverse-proxy headers. Falls back to a
-// constant so we still rate-limit something (per-bucket) when headers are
-// stripped, rather than disabling protection entirely.
+// Pull the caller's IP from reverse-proxy headers, in preference order.
+//
+// `x-vercel-forwarded-for` is set by Vercel's edge from the actual TCP peer
+// and stripped from inbound requests, so it can't be spoofed by the client.
+// `x-forwarded-for` is *also* set by clients on direct hits, so attacker
+// supplied values can defeat per-IP limiting unless we explicitly prefer
+// the platform header. We fall back to it (and to `x-real-ip`) only when
+// the trusted header isn't present — e.g. local dev behind a different
+// proxy. Last-resort 'unknown' keeps rate limiting active (per-bucket
+// aggregated) rather than failing open.
 export function callerIp(req: Request): string {
+  const vercel = req.headers.get('x-vercel-forwarded-for')
+  if (vercel) return vercel.split(',')[0]!.trim()
   const xff = req.headers.get('x-forwarded-for')
   if (xff) return xff.split(',')[0]!.trim()
   const real = req.headers.get('x-real-ip')

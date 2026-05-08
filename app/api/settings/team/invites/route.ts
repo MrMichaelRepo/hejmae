@@ -6,7 +6,7 @@ import { requirePermission } from '@/lib/auth/permissions'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, conflict } from '@/lib/errors'
 import { createInvite } from '@/lib/validations/team'
-import { generateMagicToken } from '@/lib/tokens'
+import { generateMagicToken, hashToken } from '@/lib/tokens'
 import { sendEmail } from '@/lib/email/send'
 import { renderStudioInviteEmail } from '@/lib/email/templates'
 import { env } from '@/lib/env'
@@ -55,17 +55,23 @@ export async function POST(req: NextRequest) {
       .is('revoked_at', null)
       .maybeSingle()
 
+    // Raw token goes in the email + return payload only. The DB stores
+    // SHA-256(token) so a read-only DB leak can't be replayed on /invite.
     const token = generateMagicToken()
+    const tokenHash = hashToken(token)
     let inviteId = existing?.id
     if (existing) {
+      const now = new Date()
       const { error } = await sb
         .from('studio_invites')
         .update({
           role: body.role,
           permissions: body.permissions,
-          token,
+          token: tokenHash,
           invited_by: ctx.userId,
-          invited_at: new Date().toISOString(),
+          invited_at: now.toISOString(),
+          // Refresh the expiry window when an invite is re-sent.
+          expires_at: new Date(now.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString(),
         })
         .eq('id', existing.id)
       if (error) throw error
@@ -77,7 +83,7 @@ export async function POST(req: NextRequest) {
           email: body.email,
           role: body.role,
           permissions: body.permissions,
-          token,
+          token: tokenHash,
           invited_by: ctx.userId,
         })
         .select('id')

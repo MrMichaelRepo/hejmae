@@ -55,6 +55,22 @@ export default function InvoicesClient({ projectId, initialInvoices }: Props) {
     }
   }
 
+  const copyPayLink = async (id: string) => {
+    try {
+      const res = await api.patch<Invoice>(
+        `/api/projects/${projectId}/invoices/${id}`,
+        { action: 'rotate_link' },
+      )
+      const url = (res as { magic_link_url?: string }).magic_link_url
+      if (!url) throw new Error('No link returned')
+      navigator.clipboard.writeText(url)
+      toast.success('New pay link copied — previous link is now invalid')
+      load()
+    } catch (e) {
+      toast.error((e as Error).message)
+    }
+  }
+
   const markPaid = async (id: string) => {
     try {
       await api.patch(`/api/projects/${projectId}/invoices/${id}`, {
@@ -133,15 +149,11 @@ export default function InvoicesClient({ projectId, initialInvoices }: Props) {
                       </Button>
                     ) : (
                       <>
-                        {inv.magic_link_token ? (
+                        {inv.status !== 'paid' ? (
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => {
-                              const url = `${window.location.origin}/portal/invoices/${inv.magic_link_token}`
-                              navigator.clipboard.writeText(url)
-                              toast.success('Pay link copied')
-                            }}
+                            onClick={() => copyPayLink(inv.id)}
                           >
                             Copy pay link
                           </Button>

@@ -4,7 +4,7 @@ import { requirePermission } from '@/lib/auth/permissions'
 import { loadOwnedProject } from '@/lib/auth/ownership'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, notFound, badRequest } from '@/lib/errors'
-import { generateMagicToken, magicLinkExpiresAt } from '@/lib/tokens'
+import { generateMagicToken, hashToken, magicLinkExpiresAt } from '@/lib/tokens'
 import { logActivity } from '@/lib/activity'
 import { env } from '@/lib/env'
 import { sendEmail } from '@/lib/email/send'
@@ -53,27 +53,32 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     const existing = await loadInvoice(designerId, projectId, invoiceId)
 
     const body = (await req.json()) as {
-      action?: 'send' | 'mark_paid'
+      action?: 'send' | 'mark_paid' | 'rotate_link'
       notes?: string | null
     }
 
     const updates: Record<string, unknown> = {}
     if (body.notes !== undefined) updates.notes = body.notes
 
-    if (body.action === 'send') {
+    // Raw token is held in this closure (for URL construction in the
+    // response). Only the hash goes to the DB.
+    let rawToken: string | null = null
+
+    if (body.action === 'send' || body.action === 'rotate_link') {
       if (existing.status === 'paid') {
         throw badRequest('Invoice is already paid')
       }
-      updates.status = 'sent'
-      updates.sent_at = new Date().toISOString()
-      if (!existing.magic_link_token) {
-        updates.magic_link_token = generateMagicToken()
-      }
-      // (Re-)set expiry on every send so re-sending after a long pause
-      // refreshes the window. Revocation stays the kill-switch for
-      // earlier-than-expiry takedowns.
+      // Always rotate. For 'send', this also flips status; for 'rotate_link'
+      // we just reissue the URL (e.g. designer wants to copy a fresh link
+      // without re-emailing). Either way the previous link stops working.
+      rawToken = generateMagicToken()
+      updates.magic_link_token = hashToken(rawToken)
       updates.magic_link_expires_at = magicLinkExpiresAt()
       updates.magic_link_revoked_at = null
+      if (body.action === 'send') {
+        updates.status = 'sent'
+        updates.sent_at = new Date().toISOString()
+      }
     } else if (body.action === 'mark_paid') {
       if (existing.status === 'paid') {
         throw badRequest('Invoice is already paid')
@@ -116,8 +121,8 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     }
 
     let emailResult: { ok: boolean; reason?: string } | null = null
-    if (body.action === 'send' && data.magic_link_token) {
-      const url = `${env.appUrl()}/portal/invoices/${data.magic_link_token}`
+    if (body.action === 'send' && rawToken) {
+      const url = `${env.appUrl()}/portal/invoices/${rawToken}`
 
       if (project.client_id) {
         const { data: client } = await supabaseAdmin()
@@ -161,9 +166,11 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       })
     }
 
-    const out: Record<string, unknown> = { data, email: emailResult }
-    if (data.magic_link_token) {
-      out.magic_link_url = `${env.appUrl()}/portal/invoices/${data.magic_link_token}`
+    // Strip the hashed token from the response — clients shouldn't see it.
+    const { magic_link_token: _scrub, ...safeData } = data
+    const out: Record<string, unknown> = { data: safeData, email: emailResult }
+    if (rawToken) {
+      out.magic_link_url = `${env.appUrl()}/portal/invoices/${rawToken}`
     }
     return NextResponse.json(out)
   })

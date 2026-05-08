@@ -38,11 +38,13 @@ export async function POST(req: NextRequest) {
   if (prior?.processed_at) {
     return NextResponse.json({ received: true, duplicate: true })
   }
+  // Intentionally do NOT persist event payloads — they contain customer PII
+  // (email, last4, billing details) and the only thing we use this row for
+  // is idempotency, which needs `id` + `processed_at`.
   await sb.from('stripe_events').upsert({
     id: event.id,
     type: event.type,
     account_id: null,
-    payload: event as unknown as Record<string, unknown>,
   })
 
   // TODO: handle platform-account events (e.g. subscription billing).

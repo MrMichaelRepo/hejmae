@@ -60,11 +60,28 @@ export async function POST(req: NextRequest) {
       )
       break
     }
-    case 'user.deleted':
-      // Hard-delete cascades to all owned rows. TODO: revisit — we may
-      // want soft-delete to preserve invoice history.
-      await sb.from('users').delete().eq('clerk_user_id', evt.data.id)
+    case 'user.deleted': {
+      // Soft-delete: keep the row + cascade history intact, mark deleted_at,
+      // and anonymize the unique columns so the same email/clerk_user_id
+      // can be reused if the person signs up again.
+      const { data: existing } = await sb
+        .from('users')
+        .select('id, email, clerk_user_id, deleted_at')
+        .eq('clerk_user_id', evt.data.id)
+        .maybeSingle()
+      if (existing && !existing.deleted_at) {
+        const stamp = `deleted_${existing.id}_`
+        await sb
+          .from('users')
+          .update({
+            deleted_at: new Date().toISOString(),
+            email: stamp + existing.email,
+            clerk_user_id: stamp + existing.clerk_user_id,
+          })
+          .eq('id', existing.id)
+      }
       break
+    }
     default:
       break
   }

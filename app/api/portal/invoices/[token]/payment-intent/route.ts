@@ -10,6 +10,7 @@ import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, badRequest, tooManyRequests } from '@/lib/errors'
 import { ensureInvoicePaymentIntent } from '@/lib/stripe/connect'
 import { checkRateLimit, callerIp } from '@/lib/ratelimit'
+import { hashToken } from '@/lib/tokens'
 
 interface Ctx {
   params: Promise<{ token: string }>
@@ -18,8 +19,11 @@ interface Ctx {
 export async function POST(req: NextRequest, { params }: Ctx) {
   return withErrorHandling(async () => {
     const { token } = await params
-    const rl = await checkRateLimit('portalPay', callerIp(req))
-    if (!rl.ok) throw tooManyRequests()
+    const [rlIp, rlTok] = await Promise.all([
+      checkRateLimit('portalPay', callerIp(req)),
+      checkRateLimit('portalToken', hashToken(token)),
+    ])
+    if (!rlIp.ok || !rlTok.ok) throw tooManyRequests()
     const { invoice } = await loadInvoiceByToken(token)
     if (invoice.status === 'paid') throw badRequest('Invoice already paid')
 
