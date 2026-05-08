@@ -23,6 +23,7 @@ import {
   tradePriceFromDiscount,
 } from '@/lib/vendors'
 import { logActivity } from '@/lib/activity'
+import { withSignedUrls, withSignedUrlsList } from '@/lib/storage'
 
 interface Ctx {
   params: Promise<{ projectId: string }>
@@ -49,7 +50,9 @@ export async function GET(req: NextRequest, { params }: Ctx) {
 
     const { data, error } = await q
     if (error) throw error
-    return NextResponse.json({ data })
+    return NextResponse.json({
+      data: await withSignedUrlsList(data ?? [], 'image_url'),
+    })
   })
 }
 
@@ -168,6 +171,9 @@ export async function POST(req: NextRequest, { params }: Ctx) {
       metadata: { item_id: data.id },
     })
 
-    return NextResponse.json({ data }, { status: 201 })
+    return NextResponse.json(
+      { data: await withSignedUrls(data, ['image_url'] as const) },
+      { status: 201 },
+    )
   })
 }

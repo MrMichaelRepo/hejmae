@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { uuid, moneyCents } from './common'
+import { uuid, moneyCents, storedAsset } from './common'
 
 export const itemStatus = z.enum([
   'sourcing',
@@ -14,7 +14,7 @@ export const createItem = z.object({
   catalog_product_id: uuid.nullish(),
   name: z.string().min(1).max(300),
   vendor: z.string().max(200).nullish(),
-  image_url: z.string().url().nullish(),
+  image_url: storedAsset.nullish(),
   source_url: z.string().url().nullish(),
   trade_price_cents: moneyCents.default(0),
   retail_price_cents: moneyCents.nullish(),

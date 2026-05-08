@@ -267,11 +267,12 @@ function ExpenseModal({
           console.warn('[expense] receipt upload failed', await res.text())
         } else {
           const { data } = (await res.json()) as {
-            data: { path: string; publicUrl: string; contentType: string }
+            data: { path: string; signedUrl: string; contentType: string }
           }
+          // receipt_url is no longer persisted — the API re-signs from
+          // receipt_path on every read. Only the path is canonical.
           await api.patch(`/api/finances/expenses/${expenseId}`, {
             receipt_path: data.path,
-            receipt_url: data.publicUrl,
             receipt_content_type: data.contentType,
           })
         }

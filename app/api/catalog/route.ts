@@ -4,6 +4,7 @@ import { requireDesigner } from '@/lib/auth/designer'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling } from '@/lib/errors'
 import { sanitizePostgrestSearch } from '@/lib/postgrest'
+import { withSignedUrlsList } from '@/lib/storage'
 
 export async function GET(req: NextRequest) {
   return withErrorHandling(async () => {
@@ -31,6 +32,8 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await query
     if (error) throw error
-    return NextResponse.json({ data })
+    return NextResponse.json({
+      data: await withSignedUrlsList(data ?? [], 'image_url'),
+    })
   })
 }

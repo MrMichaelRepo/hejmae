@@ -19,6 +19,7 @@ import { loadOwnedProject } from '@/lib/auth/ownership'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, badRequest, HttpError } from '@/lib/errors'
 import { extractFloorPlan } from '@/lib/image/extract'
+import { resolveAssetUrl } from '@/lib/storage'
 
 export const runtime = 'nodejs'
 // Vision call + sharp resize. 60s leaves headroom on Vercel Pro.
@@ -38,9 +39,13 @@ export async function POST(_req: NextRequest, { params }: Ctx) {
       throw badRequest('Project has no floor plan to vectorize')
     }
 
-    // Fetch the current floor plan. Bucket is public so a plain fetch
-    // works; falls back through the same network path the browser uses.
-    const imgRes = await fetch(project.floor_plan_url, { cache: 'no-store' })
+    // Bucket is private — sign before fetching. Short TTL since we use
+    // the URL once, in this handler.
+    const signed = await resolveAssetUrl(project.floor_plan_url, 60 * 5)
+    if (!signed) {
+      throw badRequest('Could not resolve floor plan asset')
+    }
+    const imgRes = await fetch(signed, { cache: 'no-store' })
     if (!imgRes.ok) {
       throw new HttpError(
         502,

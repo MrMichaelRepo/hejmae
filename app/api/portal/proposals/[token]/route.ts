@@ -10,6 +10,7 @@ import { withErrorHandling, tooManyRequests } from '@/lib/errors'
 import { stripTrade } from '@/lib/portal/sanitize'
 import { checkRateLimit, callerIp } from '@/lib/ratelimit'
 import { hashToken } from '@/lib/tokens'
+import { resolveAssetUrl, resolveAssetUrls } from '@/lib/storage'
 
 interface Ctx {
   params: Promise<{ token: string }>
@@ -56,6 +57,23 @@ export async function GET(req: NextRequest, { params }: Ctx) {
           .maybeSingle(),
       ])
 
+    // Resolve every storage path to a fresh signed URL. Batch the items
+    // signs so we don't fan out N HTTP requests.
+    const itemsWithImages = items ?? []
+    const [floorPlanUrl, logoUrl, signedItemImages] = await Promise.all([
+      resolveAssetUrl(project?.floor_plan_url ?? null),
+      resolveAssetUrl(designer?.logo_url ?? null),
+      resolveAssetUrls(itemsWithImages.map((it) => it.image_url ?? null)),
+    ])
+    const projectOut = project
+      ? { ...project, floor_plan_url: floorPlanUrl }
+      : null
+    const designerOut = designer ? { ...designer, logo_url: logoUrl } : null
+    const itemsOut = itemsWithImages.map((it, i) => ({
+      ...it,
+      image_url: signedItemImages[i] ?? null,
+    }))
+
     const payload = stripTrade({
       proposal: {
         id: proposal.id,
@@ -63,8 +81,8 @@ export async function GET(req: NextRequest, { params }: Ctx) {
         sent_at: proposal.sent_at,
         client_notes: proposal.client_notes,
       },
-      project,
-      designer,
+      project: projectOut,
+      designer: designerOut,
       rooms: rooms.map((pr) => ({
         proposal_room_id: pr.id,
         room_id: pr.room_id,
@@ -72,7 +90,7 @@ export async function GET(req: NextRequest, { params }: Ctx) {
         approved_at: pr.approved_at,
         client_comment: pr.client_comment,
         room: roomDetails?.find((r) => r.id === pr.room_id) ?? null,
-        items: items?.filter((it) => it.room_id === pr.room_id) ?? [],
+        items: itemsOut.filter((it) => it.room_id === pr.room_id),
       })),
     })
 

@@ -7,6 +7,9 @@ import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, conflict } from '@/lib/errors'
 import { createInvite } from '@/lib/validations/team'
 import { generateMagicToken, hashToken } from '@/lib/tokens'
+import { resolveAssetUrl } from '@/lib/storage'
+
+const EMAIL_ASSET_TTL_SEC = 60 * 60 * 24 * 30
 import { sendEmail } from '@/lib/email/send'
 import { renderStudioInviteEmail } from '@/lib/email/templates'
 import { env } from '@/lib/env'
@@ -104,7 +107,10 @@ export async function POST(req: NextRequest) {
       brand: {
         studio_name: ownerRow?.studio_name ?? null,
         name: ownerRow?.name ?? null,
-        logo_url: ownerRow?.logo_url ?? null,
+        logo_url: await resolveAssetUrl(
+          ownerRow?.logo_url ?? null,
+          EMAIL_ASSET_TTL_SEC,
+        ),
         brand_color: ownerRow?.brand_color ?? null,
       },
       inviterName,

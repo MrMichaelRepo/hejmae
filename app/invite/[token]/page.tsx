@@ -17,7 +17,7 @@ interface InvitePreview {
   id: string
   email: string
   role: string
-  status: 'pending' | 'accepted' | 'revoked'
+  status: 'pending' | 'accepted' | 'revoked' | 'expired'
   studio: {
     id: string
     name: string
@@ -78,12 +78,14 @@ export default function InviteLandingPage() {
     )
   }
 
-  if (invite.status === 'revoked') {
+  if (invite.status === 'revoked' || invite.status === 'expired') {
     return (
       <Centered>
-        <h1 className="font-garamond text-3xl text-hm-text mb-4">Invite revoked</h1>
+        <h1 className="font-garamond text-3xl text-hm-text mb-4">
+          {invite.status === 'expired' ? 'Invite expired' : 'Invite revoked'}
+        </h1>
         <p className="font-garamond text-[1rem] text-hm-nav">
-          This invite was revoked. Ask the studio owner to send a new one.
+          Ask the studio owner to send a new one.
         </p>
       </Centered>
     )

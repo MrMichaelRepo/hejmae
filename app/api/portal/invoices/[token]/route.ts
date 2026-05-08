@@ -6,6 +6,7 @@ import { withErrorHandling, tooManyRequests } from '@/lib/errors'
 import { stripTrade } from '@/lib/portal/sanitize'
 import { checkRateLimit, callerIp } from '@/lib/ratelimit'
 import { hashToken } from '@/lib/tokens'
+import { resolveAssetUrl } from '@/lib/storage'
 
 interface Ctx {
   params: Promise<{ token: string }>
@@ -35,6 +36,10 @@ export async function GET(req: NextRequest, { params }: Ctx) {
         .maybeSingle(),
     ])
 
+    const designerOut = designer
+      ? { ...designer, logo_url: await resolveAssetUrl(designer.logo_url) }
+      : null
+
     const payload = stripTrade({
       invoice: {
         id: invoice.id,
@@ -46,7 +51,7 @@ export async function GET(req: NextRequest, { params }: Ctx) {
         notes: invoice.notes,
       },
       project,
-      designer,
+      designer: designerOut,
       lines: lines.map((l) => ({
         id: l.id,
         description: l.description,

@@ -9,6 +9,11 @@ import { logActivity } from '@/lib/activity'
 import { env } from '@/lib/env'
 import { sendEmail } from '@/lib/email/send'
 import { renderInvoiceEmail } from '@/lib/email/templates'
+import { resolveAssetUrl } from '@/lib/storage'
+
+// Logos embedded in emails need to outlive normal browsing TTLs — recipients
+// may open the email days later. 30 days balances freshness vs. expiry.
+const EMAIL_ASSET_TTL_SEC = 60 * 60 * 24 * 30
 
 interface Ctx {
   params: Promise<{ projectId: string; invoiceId: string }>
@@ -135,7 +140,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
             brand: {
               studio_name: user.studio_name,
               name: user.name,
-              logo_url: user.logo_url,
+              logo_url: await resolveAssetUrl(user.logo_url, EMAIL_ASSET_TTL_SEC),
               brand_color: user.brand_color,
             },
             clientName: client.name,

@@ -1,5 +1,6 @@
 import { requireDesigner } from '@/lib/auth/designer'
 import { supabaseAdmin } from '@/lib/supabase/server'
+import { withSignedUrlsList } from '@/lib/storage'
 import ItemsClient from './ItemsClient'
 import type { Item, Room } from '@/lib/types-ui'
 
@@ -27,10 +28,15 @@ export default async function ItemsPage({
       .order('position', { ascending: true }),
   ])
 
+  const items = await withSignedUrlsList(
+    (itemsRes.data ?? []) as Item[],
+    'image_url',
+  )
+
   return (
     <ItemsClient
       projectId={projectId}
-      initialItems={(itemsRes.data ?? []) as Item[]}
+      initialItems={items}
       initialRooms={(roomsRes.data ?? []) as Room[]}
     />
   )

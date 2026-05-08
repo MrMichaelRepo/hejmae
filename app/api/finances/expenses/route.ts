@@ -8,6 +8,7 @@ import { requireDesigner } from '@/lib/auth/designer'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling } from '@/lib/errors'
 import { createExpense } from '@/lib/validations/expense'
+import { resolveAssetUrl, resolveAssetUrls } from '@/lib/storage'
 
 export async function GET(req: NextRequest) {
   return withErrorHandling(async () => {
@@ -30,7 +31,15 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await q
     if (error) throw error
-    return NextResponse.json({ data })
+    // Replace any stored receipt_url with a fresh signed URL derived from
+    // receipt_path. Old rows that have only receipt_url (legacy public URL)
+    // pass through resolveAssetUrls which handles both shapes.
+    const rows = data ?? []
+    const signed = await resolveAssetUrls(
+      rows.map((r) => r.receipt_path ?? r.receipt_url ?? null),
+    )
+    const out = rows.map((r, i) => ({ ...r, receipt_url: signed[i] }))
+    return NextResponse.json({ data: out })
   })
 }
 
@@ -38,12 +47,23 @@ export async function POST(req: NextRequest) {
   return withErrorHandling(async () => {
     const { designerId } = await requireDesigner()
     const body = createExpense.parse(await req.json())
+    // Don't persist a stale signed/public URL into receipt_url; we always
+    // re-sign from receipt_path on read.
+    const { receipt_url: _ignore, ...persistable } = body
     const { data, error } = await supabaseAdmin()
       .from('expenses')
-      .insert({ designer_id: designerId, ...body })
+      .insert({ designer_id: designerId, ...persistable })
       .select()
       .single()
     if (error) throw error
-    return NextResponse.json({ data }, { status: 201 })
+    return NextResponse.json(
+      {
+        data: {
+          ...data,
+          receipt_url: await resolveAssetUrl(data.receipt_path ?? null),
+        },
+      },
+      { status: 201 },
+    )
   })
 }

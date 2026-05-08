@@ -4,6 +4,9 @@ import { requireDesigner } from '@/lib/auth/designer'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, badRequest } from '@/lib/errors'
 import { createProject } from '@/lib/validations/project'
+import { withSignedUrls, withSignedUrlsList } from '@/lib/storage'
+
+const PROJECT_URL_FIELDS = ['floor_plan_url'] as const
 
 export async function GET(req: NextRequest) {
   return withErrorHandling(async () => {
@@ -23,7 +26,9 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await q
     if (error) throw error
-    return NextResponse.json({ data })
+    return NextResponse.json({
+      data: await withSignedUrlsList(data ?? [], 'floor_plan_url'),
+    })
   })
 }
 
@@ -61,6 +66,9 @@ export async function POST(req: NextRequest) {
       .select()
       .single()
     if (error) throw error
-    return NextResponse.json({ data }, { status: 201 })
+    return NextResponse.json(
+      { data: await withSignedUrls(data, PROJECT_URL_FIELDS) },
+      { status: 201 },
+    )
   })
 }

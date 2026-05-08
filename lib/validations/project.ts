@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { uuid, moneyCents, percent } from './common'
+import { uuid, moneyCents, percent, storedAsset } from './common'
 
 export const projectStatus = z.enum(['active', 'completed', 'archived'])
 export const pricingMode = z.enum(['retail', 'cost_plus'])
@@ -11,7 +11,7 @@ export const createProject = z.object({
   budget_cents: moneyCents.nullish(),
   location: z.string().max(500).nullish(),
   notes: z.string().max(10_000).nullish(),
-  floor_plan_url: z.string().url().nullish(),
+  floor_plan_url: storedAsset.nullish(),
   pricing_mode: pricingMode.optional(),
   markup_percent: percent.optional(),
 })

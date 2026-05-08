@@ -6,6 +6,7 @@ import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, notFound, tooManyRequests } from '@/lib/errors'
 import { hashToken } from '@/lib/tokens'
 import { checkRateLimit, callerIp } from '@/lib/ratelimit'
+import { resolveAssetUrl } from '@/lib/storage'
 
 export async function GET(
   req: Request,
@@ -67,7 +68,7 @@ export async function GET(
         studio: {
           id: row.studio.id,
           name: row.studio.owner?.studio_name || row.studio.name,
-          logo_url: row.studio.owner?.logo_url ?? null,
+          logo_url: await resolveAssetUrl(row.studio.owner?.logo_url ?? null),
           brand_color: row.studio.owner?.brand_color ?? null,
           owner_name: row.studio.owner?.name ?? null,
         },

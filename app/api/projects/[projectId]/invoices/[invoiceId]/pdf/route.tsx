@@ -9,6 +9,7 @@ import { renderToBuffer } from '@react-pdf/renderer'
 import { requireDesigner } from '@/lib/auth/designer'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, notFound } from '@/lib/errors'
+import { resolveAssetUrl } from '@/lib/storage'
 import InvoicePDF, { type InvoicePDFData } from '@/lib/pdf/InvoicePDF'
 import type { InvoiceRow, InvoiceLineItemRow, PaymentRow } from '@/lib/supabase/types'
 
@@ -91,7 +92,8 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
       designer: {
         studio_name: user.studio_name,
         name: user.name,
-        logo_url: user.logo_url,
+        // PDF generation embeds the logo by URL; sign it server-side.
+        logo_url: await resolveAssetUrl(user.logo_url),
         brand_color: user.brand_color,
       },
     }

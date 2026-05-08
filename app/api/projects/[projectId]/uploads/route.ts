@@ -5,11 +5,12 @@
 //   kind (string, required)      — 'floor-plan' | 'item-image' | 'doc'
 //   owner_id (uuid, optional)    — e.g. an item id to scope under
 //
-// Returns: { path, publicUrl, contentType, size }
+// Returns: { path, signedUrl, contentType, size }
 //
 // Why server-side: we authenticate via Clerk, enforce project ownership in
-// code, and use the Supabase secret key to write. No need to set up
-// per-row Storage RLS this way.
+// code, and use the Supabase secret key to write. The bucket is private —
+// the response includes a short-lived signedUrl for immediate display, but
+// the caller MUST persist `path` (not signedUrl) to any DB column.
 
 import { NextResponse, type NextRequest } from 'next/server'
 import { requireDesigner } from '@/lib/auth/designer'

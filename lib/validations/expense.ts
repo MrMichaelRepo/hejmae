@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { uuid, moneyCents } from './common'
+import { uuid, moneyCents, storedAsset } from './common'
 
 // Date string in YYYY-MM-DD form. We accept both that and full ISO; the DB
 // column is `date` and Postgres will narrow either to a calendar day.
@@ -21,7 +21,9 @@ export const createExpense = z.object({
   vendor_name: z.string().max(200).nullish(),
   description: z.string().max(500).nullish(),
   receipt_path: z.string().max(1000).nullish(),
-  receipt_url: z.string().url().max(2000).nullish(),
+  // Accepted for back-compat; the API ignores it on writes and re-derives
+  // a fresh signed URL from `receipt_path` on every read.
+  receipt_url: storedAsset.nullish(),
   receipt_content_type: z.string().max(200).nullish(),
   billable_to_client: z.boolean().default(false),
   notes: z.string().max(10_000).nullish(),

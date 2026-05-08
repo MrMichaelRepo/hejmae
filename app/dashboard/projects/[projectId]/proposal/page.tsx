@@ -1,5 +1,6 @@
 import { requireDesigner } from '@/lib/auth/designer'
 import { supabaseAdmin } from '@/lib/supabase/server'
+import { withSignedUrlsList } from '@/lib/storage'
 import ProposalClient, { type ProposalWithRooms } from './ProposalClient'
 import type { Room, Item } from '@/lib/types-ui'
 
@@ -38,7 +39,10 @@ export default async function ProposalPage({
       projectId={projectId}
       initialProposals={(pRes.data ?? []) as ProposalWithRooms[]}
       initialRooms={(rRes.data ?? []) as Room[]}
-      initialItems={(iRes.data ?? []) as Item[]}
+      initialItems={await withSignedUrlsList(
+        (iRes.data ?? []) as Item[],
+        'image_url',
+      )}
     />
   )
 }

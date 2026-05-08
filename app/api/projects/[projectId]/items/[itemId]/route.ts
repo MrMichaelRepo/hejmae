@@ -6,7 +6,10 @@ import { withErrorHandling, notFound } from '@/lib/errors'
 import { updateItem } from '@/lib/validations/item'
 import { calculateClientPriceCents } from '@/lib/pricing'
 import { logActivity } from '@/lib/activity'
+import { withSignedUrls } from '@/lib/storage'
 import type { ItemRow } from '@/lib/supabase/types'
+
+const ITEM_URL_FIELDS = ['image_url'] as const
 
 interface Ctx {
   params: Promise<{ projectId: string; itemId: string }>
@@ -31,7 +34,9 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
     const { designerId } = await requireDesigner()
     await loadOwnedProject(designerId, projectId)
     const item = await loadItem(designerId, projectId, itemId)
-    return NextResponse.json({ data: item })
+    return NextResponse.json({
+      data: await withSignedUrls(item, ITEM_URL_FIELDS),
+    })
   })
 }
 
@@ -91,7 +96,9 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       })
     }
 
-    return NextResponse.json({ data })
+    return NextResponse.json({
+      data: await withSignedUrls(data, ITEM_URL_FIELDS),
+    })
   })
 }
 

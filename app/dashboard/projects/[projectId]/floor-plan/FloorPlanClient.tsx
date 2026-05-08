@@ -860,10 +860,11 @@ function UploadFloorPlanModal({
       })
       const body = await res.json()
       if (!res.ok) throw new Error(body?.error?.message ?? `Upload failed (${res.status})`)
-      const url = body?.data?.publicUrl as string | undefined
-      if (!url) throw new Error('Upload succeeded but no URL was returned')
+      const path = body?.data?.path as string | undefined
+      if (!path) throw new Error('Upload succeeded but no path was returned')
       const straightened = body?.data?.straightened === true
-      await api.patch(`/api/projects/${projectId}`, { floor_plan_url: url })
+      // Persist the storage path; PATCH response signs it for display.
+      await api.patch(`/api/projects/${projectId}`, { floor_plan_url: path })
       onUploaded()
       toast.success(
         straightened

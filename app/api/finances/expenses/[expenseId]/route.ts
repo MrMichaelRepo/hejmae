@@ -9,6 +9,16 @@ import { requireDesigner } from '@/lib/auth/designer'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, notFound } from '@/lib/errors'
 import { updateExpense } from '@/lib/validations/expense'
+import { resolveAssetUrl } from '@/lib/storage'
+
+async function withSignedReceipt<T extends { receipt_path: string | null; receipt_url: string | null }>(
+  row: T,
+): Promise<T> {
+  return {
+    ...row,
+    receipt_url: await resolveAssetUrl(row.receipt_path ?? row.receipt_url),
+  }
+}
 
 interface Ctx {
   params: Promise<{ expenseId: string }>
@@ -31,7 +41,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
     const { expenseId } = await params
     const { designerId } = await requireDesigner()
     const expense = await loadExpense(designerId, expenseId)
-    return NextResponse.json({ data: expense })
+    return NextResponse.json({ data: await withSignedReceipt(expense) })
   })
 }
 
@@ -41,15 +51,17 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     const { designerId } = await requireDesigner()
     await loadExpense(designerId, expenseId)
     const body = updateExpense.parse(await req.json())
+    // Drop receipt_url from writes — we always re-derive it from receipt_path.
+    const { receipt_url: _ignore, ...persistable } = body
     const { data, error } = await supabaseAdmin()
       .from('expenses')
-      .update(body)
+      .update(persistable)
       .eq('id', expenseId)
       .eq('designer_id', designerId)
       .select()
       .single()
     if (error) throw error
-    return NextResponse.json({ data })
+    return NextResponse.json({ data: await withSignedReceipt(data) })
   })
 }
 

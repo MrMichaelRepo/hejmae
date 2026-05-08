@@ -1,6 +1,7 @@
 import { requireDesigner } from '@/lib/auth/designer'
 import { requirePermission } from '@/lib/auth/permissions'
 import { supabaseAdmin } from '@/lib/supabase/server'
+import { resolveAssetUrls } from '@/lib/storage'
 import ExpensesClient from './ExpensesClient'
 import type {
   AccountRow,
@@ -32,9 +33,18 @@ export default async function ExpensesPage() {
       .order('created_at', { ascending: false }),
   ])
 
+  const expenses = (eRes.data ?? []) as ExpenseRow[]
+  const signed = await resolveAssetUrls(
+    expenses.map((e) => e.receipt_path ?? e.receipt_url ?? null),
+  )
+  const initialExpenses = expenses.map((e, i) => ({
+    ...e,
+    receipt_url: signed[i],
+  }))
+
   return (
     <ExpensesClient
-      initialExpenses={(eRes.data ?? []) as ExpenseRow[]}
+      initialExpenses={initialExpenses}
       initialAccounts={(aRes.data ?? []) as AccountRow[]}
       initialProjects={(pRes.data ?? []) as ProjectRow[]}
     />

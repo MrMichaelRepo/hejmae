@@ -2,6 +2,11 @@
 // secret key (service role), so we don't need per-object RLS — the API
 // route enforces ownership before calling these.
 //
+// The `hejmae` bucket is PRIVATE: assets are reachable only via signed URLs
+// minted server-side at the moment of use. DB columns store the storage
+// path (e.g. `floor-plan/<designer>/<project>/<uuid>.webp`); pass them
+// through resolveAssetUrl() before sending to a client.
+//
 // Floor plans get a multi-stage processing pipeline before they hit
 // storage:
 //   1. PDFs are rasterized to PNG (page 1).
@@ -58,7 +63,9 @@ export interface UploadInput {
 
 export interface UploadResult {
   path: string
-  publicUrl: string
+  // Short-lived signed URL for immediate display after upload. Don't
+  // persist this — it expires. Persist `path` and resolve at read time.
+  signedUrl: string
   contentType: string
   size: number
   // True when AI auto-straighten ran and produced a usable result. Only
@@ -104,14 +111,173 @@ export async function uploadAsset(input: UploadInput): Promise<UploadResult> {
     })
   if (error) throw new Error(`Storage upload failed: ${error.message}`)
 
-  const { data: pub } = sb.storage.from(STORAGE_BUCKET).getPublicUrl(path)
+  const signedUrl = await signedAssetUrl(path)
   return {
     path,
-    publicUrl: pub.publicUrl,
+    signedUrl,
     contentType: processed.contentType,
     size: processed.buffer.length,
     straightened: processed.straightened,
   }
+}
+
+// Default TTL for signed URLs: 1 hour. Long enough for a designer to
+// browse the dashboard or open a PDF without re-fetching; short enough
+// that a leaked URL stops working before tomorrow morning.
+const DEFAULT_SIGNED_TTL_SEC = 60 * 60
+
+// Mint a signed URL for a storage path. Throws on Supabase errors.
+export async function signedAssetUrl(
+  path: string,
+  ttlSec: number = DEFAULT_SIGNED_TTL_SEC,
+): Promise<string> {
+  const sb = supabaseAdmin()
+  const { data, error } = await sb.storage
+    .from(STORAGE_BUCKET)
+    .createSignedUrl(path, ttlSec)
+  if (error || !data?.signedUrl) {
+    throw new Error(
+      `Failed to sign storage path "${path}": ${error?.message ?? 'no signedUrl returned'}`,
+    )
+  }
+  return data.signedUrl
+}
+
+// Resolve a stored value (storage path OR external https URL OR null) to
+// something a browser can fetch. Handles three cases:
+//   * null/empty            → null
+//   * starts with http(s)://
+//       - looks like a legacy public URL into our bucket → extract the
+//         path and sign it (transparent migration for any rows the SQL
+//         migration didn't catch)
+//       - otherwise (truly external — paste-a-URL, vendor catalog, etc.)
+//         → return as-is
+//   * anything else → treat as a path and sign it
+export async function resolveAssetUrl(
+  stored: string | null | undefined,
+  ttlSec: number = DEFAULT_SIGNED_TTL_SEC,
+): Promise<string | null> {
+  if (!stored) return null
+  const path = extractBucketPath(stored)
+  if (path !== null) return signedAssetUrl(path, ttlSec)
+  return stored
+}
+
+// Batched version. Issues a single signRequests call for everything that
+// needs signing, leaves external URLs untouched, returns a parallel array.
+// Use this on list-shaped responses (catalog, items list, etc.) so we
+// don't fan out N HTTP signs.
+export async function resolveAssetUrls(
+  stored: Array<string | null | undefined>,
+  ttlSec: number = DEFAULT_SIGNED_TTL_SEC,
+): Promise<Array<string | null>> {
+  const out: Array<string | null> = new Array(stored.length).fill(null)
+  const toSign: Array<{ index: number; path: string }> = []
+  for (let i = 0; i < stored.length; i++) {
+    const v = stored[i]
+    if (!v) {
+      out[i] = null
+      continue
+    }
+    const path = extractBucketPath(v)
+    if (path !== null) toSign.push({ index: i, path })
+    else out[i] = v
+  }
+  if (toSign.length === 0) return out
+
+  const sb = supabaseAdmin()
+  const { data, error } = await sb.storage
+    .from(STORAGE_BUCKET)
+    .createSignedUrls(
+      toSign.map((t) => t.path),
+      ttlSec,
+    )
+  if (error) {
+    // Soft-fail per-item: leave any that signed successfully, null the rest.
+    // This mirrors how the storage SDK can return partial results.
+    console.error('[storage] batch sign failed', error)
+  }
+  const results = data ?? []
+  for (let i = 0; i < toSign.length; i++) {
+    const r = results[i]
+    out[toSign[i]!.index] = r?.signedUrl ?? null
+  }
+  return out
+}
+
+// Normalize an inbound URL value (from a client request body) to what
+// should be stored in the DB:
+//   * null/empty       → null
+//   * Supabase URL into our bucket (public OR signed) → extract path
+//   * external https URL → unchanged (paste-a-URL flow)
+//   * bare path → unchanged
+//
+// Use this in PATCH/POST handlers so a client that round-trips a signed
+// URL doesn't overwrite the stored path with a soon-to-expire URL.
+export function normalizeStoredAsset(
+  value: string | null | undefined,
+): string | null {
+  if (!value) return null
+  const path = extractBucketPath(value)
+  if (path !== null && /^https?:\/\//i.test(value)) return path
+  // Bare path or truly external URL — leave as-is.
+  return value
+}
+
+// Augments a single row by signing the named URL fields. Returns a new
+// object; the input is not mutated. `null` rows pass through unchanged.
+export async function withSignedUrls<T extends object>(
+  row: T | null | undefined,
+  fields: ReadonlyArray<keyof T>,
+  ttlSec?: number,
+): Promise<T | null> {
+  if (!row) return null
+  const r = row as Record<string, unknown>
+  const stored = fields.map(
+    (f) => (r[f as string] as string | null | undefined) ?? null,
+  )
+  const signed = await resolveAssetUrls(stored, ttlSec)
+  const out: Record<string, unknown> = { ...r }
+  fields.forEach((f, i) => {
+    out[f as string] = signed[i]
+  })
+  return out as T
+}
+
+// List version: signs a single field across many rows in one batched call.
+export async function withSignedUrlsList<T extends object>(
+  rows: T[] | null | undefined,
+  field: keyof T,
+  ttlSec?: number,
+): Promise<T[]> {
+  if (!rows || rows.length === 0) return []
+  const stored = rows.map((r) => {
+    const rec = r as Record<string, unknown>
+    return (rec[field as string] as string | null | undefined) ?? null
+  })
+  const signed = await resolveAssetUrls(stored, ttlSec)
+  return rows.map((r, i) => {
+    const out: Record<string, unknown> = { ...(r as Record<string, unknown>) }
+    out[field as string] = signed[i]
+    return out as T
+  })
+}
+
+// Returns the storage path within the hejmae bucket if `stored` is either
+// a bare path or a legacy public URL pointing into our bucket. Returns
+// null for external URLs (so the caller can pass them through).
+function extractBucketPath(stored: string): string | null {
+  if (!stored) return null
+  if (/^https?:\/\//i.test(stored)) {
+    // Legacy public URL: https://<host>/storage/v1/object/public/hejmae/<path>
+    // Or signed:        https://<host>/storage/v1/object/sign/hejmae/<path>?token=...
+    const m = stored.match(
+      /\/storage\/v1\/object\/(?:public|sign)\/hejmae\/([^?]+)/,
+    )
+    return m ? decodeURIComponent(m[1]!) : null
+  }
+  // Bare path — assume it's relative to the hejmae bucket.
+  return stored
 }
 
 interface ProcessedFile {

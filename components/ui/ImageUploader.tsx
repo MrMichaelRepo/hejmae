@@ -1,15 +1,30 @@
 'use client'
 
 // Combined image input — file upload OR pasted URL.
-// onChange fires with the final URL once it's resolved (uploaded or typed).
+//
+// Storage model: the bucket is private, so we persist a storage *path* in
+// the DB and resolve it to a signed URL at read time. This component:
+//   * receives `value` = the stored value (path OR external https URL)
+//   * receives `displayUrl` = a pre-resolved signed URL for paths (parent
+//     gets this from the API/server component when loading existing data)
+//   * fires `onChange(storageValue)` with what should be persisted —
+//     after upload, that's the path; after paste-a-URL, that's the URL
+//
+// After a fresh upload we also have the just-minted signedUrl in hand, so
+// we keep it in local state to render immediately without round-tripping.
 import { useRef, useState } from 'react'
 import Image from 'next/image'
 import Button from './Button'
 import { toast } from './Toast'
 
 interface Props {
+  // Storage value (path within hejmae bucket, OR external https URL).
   value: string | null
-  onChange: (url: string | null) => void
+  // Pre-resolved signed URL for `value` when it's a path. Optional — if
+  // unset and `value` is a path, the component renders a placeholder
+  // (the parent should provide displayUrl from server-side resolution).
+  displayUrl?: string | null
+  onChange: (storageValue: string | null) => void
   projectId: string
   // Sub-folder for storage path (e.g. itemId or 'new').
   ownerId?: string
@@ -20,6 +35,7 @@ interface Props {
 
 export default function ImageUploader({
   value,
+  displayUrl,
   onChange,
   projectId,
   ownerId,
@@ -28,10 +44,23 @@ export default function ImageUploader({
   hint,
 }: Props) {
   const [showUrl, setShowUrl] = useState(false)
-  const [urlDraft, setUrlDraft] = useState(value ?? '')
+  const [urlDraft, setUrlDraft] = useState(
+    isExternalUrl(value) ? value! : '',
+  )
   const [uploading, setUploading] = useState(false)
   const [dragging, setDragging] = useState(false)
+  // Locally cached signedUrl for the most recent upload, so the preview
+  // renders without waiting for the parent to refresh `displayUrl`.
+  const [localDisplay, setLocalDisplay] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+
+  // Compute what to render: external URL goes as-is; path needs the
+  // pre-resolved signedUrl (or our local cache after a fresh upload).
+  const renderSrc = isExternalUrl(value)
+    ? value
+    : value
+      ? localDisplay ?? displayUrl ?? null
+      : null
 
   const upload = async (file: File) => {
     setUploading(true)
@@ -46,9 +75,11 @@ export default function ImageUploader({
       })
       const body = await res.json()
       if (!res.ok) throw new Error(body?.error?.message ?? `Upload failed (${res.status})`)
-      const url = body?.data?.publicUrl as string | undefined
-      if (!url) throw new Error('Upload succeeded but no URL returned')
-      onChange(url)
+      const path = body?.data?.path as string | undefined
+      const signed = body?.data?.signedUrl as string | undefined
+      if (!path) throw new Error('Upload succeeded but no path returned')
+      setLocalDisplay(signed ?? null)
+      onChange(path)
       toast.success('Image uploaded')
     } catch (e) {
       toast.error((e as Error).message)
@@ -68,18 +99,20 @@ export default function ImageUploader({
       {value ? (
         <div className="border border-hm-text/10 p-3 mb-3 flex gap-3 items-start">
           <div className="w-20 h-20 bg-hm-text/[0.05] shrink-0 overflow-hidden relative">
-            <Image
-              src={value}
-              alt=""
-              fill
-              sizes="80px"
-              className="object-cover"
-              unoptimized
-            />
+            {renderSrc ? (
+              <Image
+                src={renderSrc}
+                alt=""
+                fill
+                sizes="80px"
+                className="object-cover"
+                unoptimized
+              />
+            ) : null}
           </div>
           <div className="flex-1 min-w-0">
             <div className="font-garamond text-[0.85rem] text-hm-nav truncate">
-              {value}
+              {isExternalUrl(value) ? value : 'Uploaded asset'}
             </div>
             <div className="flex gap-2 mt-2">
               <button
@@ -90,7 +123,10 @@ export default function ImageUploader({
                 Replace
               </button>
               <button
-                onClick={() => onChange(null)}
+                onClick={() => {
+                  setLocalDisplay(null)
+                  onChange(null)
+                }}
                 className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav hover:text-red-700"
                 type="button"
               >
@@ -181,4 +217,8 @@ export default function ImageUploader({
       ) : null}
     </div>
   )
+}
+
+function isExternalUrl(v: string | null | undefined): boolean {
+  return !!v && /^https?:\/\//i.test(v)
 }

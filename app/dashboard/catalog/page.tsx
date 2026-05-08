@@ -1,5 +1,6 @@
 import { requireDesigner } from '@/lib/auth/designer'
 import { supabaseAdmin } from '@/lib/supabase/server'
+import { withSignedUrlsList } from '@/lib/storage'
 import CatalogClient from './CatalogClient'
 import type { CatalogProduct } from '@/lib/types-ui'
 
@@ -22,7 +23,7 @@ async function loadInitialLibrary(designerId: string): Promise<CatalogProduct[]>
     .in('id', ids)
     .order('updated_at', { ascending: false })
 
-  return (data ?? []) as CatalogProduct[]
+  return withSignedUrlsList((data ?? []) as CatalogProduct[], 'image_url')
 }
 
 export default async function CatalogPage() {

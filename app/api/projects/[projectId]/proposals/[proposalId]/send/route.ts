@@ -11,6 +11,9 @@ import { env } from '@/lib/env'
 import { logActivity } from '@/lib/activity'
 import { sendEmail } from '@/lib/email/send'
 import { renderProposalEmail } from '@/lib/email/templates'
+import { resolveAssetUrl } from '@/lib/storage'
+
+const EMAIL_ASSET_TTL_SEC = 60 * 60 * 24 * 30
 
 interface Ctx {
   params: Promise<{ projectId: string; proposalId: string }>
@@ -66,7 +69,7 @@ export async function POST(_req: NextRequest, { params }: Ctx) {
           brand: {
             studio_name: user.studio_name,
             name: user.name,
-            logo_url: user.logo_url,
+            logo_url: await resolveAssetUrl(user.logo_url, EMAIL_ASSET_TTL_SEC),
             brand_color: user.brand_color,
           },
           clientName: client.name,

@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { requireDesigner } from '@/lib/auth/designer'
 import { supabaseAdmin } from '@/lib/supabase/server'
+import { withSignedUrls, withSignedUrlsList } from '@/lib/storage'
 import FloorPlanClient from './FloorPlanClient'
 import type { Project, Item, Room } from '@/lib/types-ui'
 
@@ -36,11 +37,16 @@ export default async function FloorPlanPage({
 
   if (!pRes.data) notFound()
 
+  const [project, items] = await Promise.all([
+    withSignedUrls(pRes.data as Project, ['floor_plan_url'] as const),
+    withSignedUrlsList((iRes.data ?? []) as Item[], 'image_url'),
+  ])
+
   return (
     <FloorPlanClient
       projectId={projectId}
-      initialProject={pRes.data as Project}
-      initialItems={(iRes.data ?? []) as Item[]}
+      initialProject={project as Project}
+      initialItems={items}
       initialRooms={(rRes.data ?? []) as Room[]}
     />
   )

@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import { requireDesigner } from '@/lib/auth/designer'
 import { supabaseAdmin } from '@/lib/supabase/server'
+import { resolveAssetUrl } from '@/lib/storage'
 import { formatCents, formatDate } from '@/lib/format'
 import PrintBar from './PrintBar'
 import type {
@@ -61,6 +62,7 @@ export default async function InvoicePrintPage({
   const paid = (invoice.payments ?? []).reduce((a, p) => a + p.amount_cents, 0)
   const balance = Math.max(0, invoice.total_cents - paid)
   const brand = user.brand_color ?? '#1e2128'
+  const logoSignedUrl = await resolveAssetUrl(user.logo_url)
 
   return (
     <div className="bg-white text-hm-text">
@@ -72,9 +74,9 @@ export default async function InvoicePrintPage({
           style={{ borderColor: `${brand}30` }}
         >
           <div>
-            {user.logo_url ? (
+            {logoSignedUrl ? (
               <Image
-                src={user.logo_url}
+                src={logoSignedUrl}
                 alt=""
                 width={200}
                 height={48}

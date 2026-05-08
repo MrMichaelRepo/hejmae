@@ -5,6 +5,9 @@ import { loadOwnedProject } from '@/lib/auth/ownership'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, badRequest } from '@/lib/errors'
 import { updateProject } from '@/lib/validations/project'
+import { withSignedUrls } from '@/lib/storage'
+
+const PROJECT_URL_FIELDS = ['floor_plan_url'] as const
 
 interface Ctx {
   params: Promise<{ projectId: string }>
@@ -15,7 +18,9 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
     const { projectId } = await params
     const { designerId } = await requireDesigner()
     const project = await loadOwnedProject(designerId, projectId)
-    return NextResponse.json({ data: project })
+    return NextResponse.json({
+      data: await withSignedUrls(project, PROJECT_URL_FIELDS),
+    })
   })
 }
 
@@ -45,7 +50,9 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       .select()
       .single()
     if (error) throw error
-    return NextResponse.json({ data })
+    return NextResponse.json({
+      data: await withSignedUrls(data, PROJECT_URL_FIELDS),
+    })
   })
 }
 
