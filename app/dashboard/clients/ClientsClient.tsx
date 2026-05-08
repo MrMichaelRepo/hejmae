@@ -24,8 +24,8 @@ export default function ClientsClient({ initialClients, initialProjects }: Props
 
   const reload = async () => {
     const [c, p] = await Promise.all([
-      api.get<Client[]>('/api/clients'),
-      api.get<Project[]>('/api/projects'),
+      api.get<Client[]>('/api/clients', { cache: 'no-store' }),
+      api.get<Project[]>('/api/projects', { cache: 'no-store' }),
     ])
     setClients((c.data as Client[]) ?? [])
     setProjects((p.data as Project[]) ?? [])
