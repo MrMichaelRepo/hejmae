@@ -23,6 +23,8 @@ import { normalizeImage } from '@/lib/image/normalize'
 import { rasterizePdfFirstPage } from '@/lib/image/pdf'
 import { straightenFloorPlan } from '@/lib/image/straighten'
 import { postprocessFloorPlan } from '@/lib/image/postprocess'
+import { extractBucketPath } from '@/lib/storage-utils'
+export { normalizeStoredAsset } from '@/lib/storage-utils'
 
 export const STORAGE_BUCKET = 'hejmae'
 
@@ -112,6 +114,7 @@ export async function uploadAsset(input: UploadInput): Promise<UploadResult> {
   if (error) throw new Error(`Storage upload failed: ${error.message}`)
 
   const signedUrl = await signedAssetUrl(path)
+  if (!signedUrl) throw new Error(`Storage upload succeeded but signing path failed: ${path}`)
   return {
     path,
     signedUrl,
@@ -126,19 +129,20 @@ export async function uploadAsset(input: UploadInput): Promise<UploadResult> {
 // that a leaked URL stops working before tomorrow morning.
 const DEFAULT_SIGNED_TTL_SEC = 60 * 60
 
-// Mint a signed URL for a storage path. Throws on Supabase errors.
+// Mint a signed URL for a storage path. Returns null on failure (soft-fail)
+// so callers don't crash SSR pages when a path is stale or the bucket is
+// temporarily unreachable.
 export async function signedAssetUrl(
   path: string,
   ttlSec: number = DEFAULT_SIGNED_TTL_SEC,
-): Promise<string> {
+): Promise<string | null> {
   const sb = supabaseAdmin()
   const { data, error } = await sb.storage
     .from(STORAGE_BUCKET)
     .createSignedUrl(path, ttlSec)
   if (error || !data?.signedUrl) {
-    throw new Error(
-      `Failed to sign storage path "${path}": ${error?.message ?? 'no signedUrl returned'}`,
-    )
+    console.error('[storage] sign failed for path', path, error?.message ?? 'no signedUrl returned')
+    return null
   }
   return data.signedUrl
 }
@@ -205,24 +209,7 @@ export async function resolveAssetUrls(
   return out
 }
 
-// Normalize an inbound URL value (from a client request body) to what
-// should be stored in the DB:
-//   * null/empty       → null
-//   * Supabase URL into our bucket (public OR signed) → extract path
-//   * external https URL → unchanged (paste-a-URL flow)
-//   * bare path → unchanged
-//
-// Use this in PATCH/POST handlers so a client that round-trips a signed
-// URL doesn't overwrite the stored path with a soon-to-expire URL.
-export function normalizeStoredAsset(
-  value: string | null | undefined,
-): string | null {
-  if (!value) return null
-  const path = extractBucketPath(value)
-  if (path !== null && /^https?:\/\//i.test(value)) return path
-  // Bare path or truly external URL — leave as-is.
-  return value
-}
+
 
 // Augments a single row by signing the named URL fields. Returns a new
 // object; the input is not mutated. `null` rows pass through unchanged.
@@ -263,22 +250,6 @@ export async function withSignedUrlsList<T extends object>(
   })
 }
 
-// Returns the storage path within the hejmae bucket if `stored` is either
-// a bare path or a legacy public URL pointing into our bucket. Returns
-// null for external URLs (so the caller can pass them through).
-function extractBucketPath(stored: string): string | null {
-  if (!stored) return null
-  if (/^https?:\/\//i.test(stored)) {
-    // Legacy public URL: https://<host>/storage/v1/object/public/hejmae/<path>
-    // Or signed:        https://<host>/storage/v1/object/sign/hejmae/<path>?token=...
-    const m = stored.match(
-      /\/storage\/v1\/object\/(?:public|sign)\/hejmae\/([^?]+)/,
-    )
-    return m ? decodeURIComponent(m[1]!) : null
-  }
-  // Bare path — assume it's relative to the hejmae bucket.
-  return stored
-}
 
 interface ProcessedFile {
   buffer: Buffer

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { normalizeStoredAsset } from '@/lib/storage'
+import { normalizeStoredAsset } from '@/lib/storage-utils'
 
 export const uuid = z.string().uuid()
 export const moneyCents = z
