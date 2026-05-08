@@ -19,12 +19,14 @@
 
 import { randomUUID } from 'crypto'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import { normalizeImage } from '@/lib/image/normalize'
-import { rasterizePdfFirstPage } from '@/lib/image/pdf'
-import { straightenFloorPlan } from '@/lib/image/straighten'
-import { postprocessFloorPlan } from '@/lib/image/postprocess'
 import { extractBucketPath } from '@/lib/storage-utils'
 export { normalizeStoredAsset } from '@/lib/storage-utils'
+
+// Image-processing imports are intentionally lazy (inside processForKind)
+// so that importing lib/storage for URL signing doesn't pull in pdfjs-dist,
+// sharp, or @anthropic-ai/sdk at module init time. Those packages use
+// browser globals (DOMMatrix) or native binaries that must not be evaluated
+// during SSR of pages that only need the signing helpers.
 
 export const STORAGE_BUCKET = 'hejmae'
 
@@ -264,15 +266,14 @@ async function processForKind(
   kind: UploadKind,
 ): Promise<ProcessedFile> {
   if (kind === 'doc' || kind === 'receipt') {
-    // Receipts and generic docs pass through. We don't recompress photos
-    // because tax/audit best practice is to keep the original artifact —
-    // and Supabase already enforces the bucket-level size cap.
     return {
       buffer: source,
       contentType,
       ext: extFromContentType(contentType),
     }
   }
+
+  const { normalizeImage } = await import('@/lib/image/normalize')
 
   if (kind === 'item-image') {
     const norm = await normalizeImage(source, contentType, 'item-image')
@@ -283,27 +284,21 @@ async function processForKind(
   let imageBuf = source
   let imageType = contentType
   if (contentType === 'application/pdf') {
+    const { rasterizePdfFirstPage } = await import('@/lib/image/pdf')
     imageBuf = await rasterizePdfFirstPage(source)
     imageType = 'image/png'
   }
 
   const norm = await normalizeImage(imageBuf, imageType, 'floor-plan')
 
-  // SVG passes through normalize untouched and we skip AI — it's already
-  // crisp at any zoom.
   if (norm.contentType === 'image/svg+xml') {
     return { buffer: norm.buffer, contentType: norm.contentType, ext: norm.ext }
   }
 
-  // Tier-3: AI deskew + crop. Soft-fails to the normalized buffer.
-  const straightened = await straightenFloorPlan(
-    norm.buffer,
-    norm.width,
-    norm.height,
-  )
+  const { straightenFloorPlan } = await import('@/lib/image/straighten')
+  const straightened = await straightenFloorPlan(norm.buffer, norm.width, norm.height)
 
-  // Final pass: force-landscape + whiten-background. Always runs, whether
-  // or not the AI step found corners.
+  const { postprocessFloorPlan } = await import('@/lib/image/postprocess')
   const finalImg = await postprocessFloorPlan(
     straightened.buffer,
     straightened.width,
