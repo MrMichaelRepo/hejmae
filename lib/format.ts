@@ -1,13 +1,15 @@
 // Display formatters. All money is in cents.
 
+const usdFormatter = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 0,
+  maximumFractionDigits: 2,
+})
+
 export function formatCents(cents: number | null | undefined, fallback = '—'): string {
   if (cents == null) return fallback
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(cents / 100)
+  return usdFormatter.format(cents / 100)
 }
 
 export function formatPercent(pct: number | null | undefined, fallback = '—'): string {

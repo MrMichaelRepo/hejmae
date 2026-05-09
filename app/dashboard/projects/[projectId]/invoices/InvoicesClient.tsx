@@ -131,17 +131,18 @@ export default function InvoicesClient({ projectId, initialInvoices }: Props) {
                       href={`/dashboard/projects/${projectId}/invoices/${inv.id}/print`}
                       target="_blank"
                       rel="noreferrer"
-                      className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav hover:text-hm-text"
                     >
-                      Print
+                      <Button size="sm" variant="ghost">Print</Button>
                     </a>
                     <a
                       href={`/api/projects/${projectId}/invoices/${inv.id}/pdf`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav hover:text-hm-text"
+                      download
+                      title="Download PDF"
                     >
-                      PDF
+                      <Button size="sm" variant="ghost">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                        PDF
+                      </Button>
                     </a>
                     {inv.status === 'draft' ? (
                       <Button size="sm" variant="primary" onClick={() => sendInvoice(inv.id)}>

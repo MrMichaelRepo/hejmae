@@ -84,7 +84,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
       status: 200,
       headers: {
         'Content-Type': 'application/pdf',
-        'Content-Disposition': `inline; filename="${filename}"`,
+        'Content-Disposition': `attachment; filename="${filename}"`,
         'Cache-Control': 'private, max-age=0, must-revalidate',
       },
     })
