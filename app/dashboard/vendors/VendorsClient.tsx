@@ -95,12 +95,29 @@ export default function VendorsClient({ initialVendors }: { initialVendors: Vend
               ].join(' ')}
             >
               <div>
-                <div className="font-serif text-[1.1rem] leading-tight truncate">
-                  {v.name}
+                <div className="font-serif text-[1.1rem] leading-tight truncate flex items-center gap-2">
+                  <span>{v.name}</span>
+                  {v.is_1099_eligible ? (
+                    <span
+                      className="font-sans text-[9px] uppercase tracking-[0.2em] text-emerald-800 border border-emerald-700/30 rounded-full px-2 py-0.5"
+                      title={
+                        v.tax_id_last4
+                          ? `1099-NEC · TIN ending ${v.tax_id_last4}`
+                          : '1099-NEC · TIN missing'
+                      }
+                    >
+                      1099
+                    </span>
+                  ) : null}
                 </div>
                 {v.account_number ? (
                   <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav/80 mt-0.5">
                     Acct {v.account_number}
+                  </div>
+                ) : null}
+                {v.is_1099_eligible && !v.tax_id_last4 ? (
+                  <div className="font-sans text-[9px] uppercase tracking-[0.2em] text-amber-800 mt-0.5">
+                    Missing W-9 / TIN
                   </div>
                 ) : null}
               </div>

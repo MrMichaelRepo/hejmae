@@ -17,19 +17,29 @@ export type Permission =
   | 'finances:view'
   | 'finances:record_payments'
   | 'finances:manage_invoices'
+  | 'finances:manage_settings'
   | 'po:manage'
   | 'team:manage'
+  // Time tracking. `time:log` is granted by default to every team member
+  // (so a member can log their own time without an explicit grant).
+  // `time:view_all` is owner+admin only — required to see other members'
+  // entries on the team rollup.
+  | 'time:log'
+  | 'time:view_all'
 
-// Roles that bypass permission checks. Owner always; admin can manage team.
 const ROLE_BYPASS: Partial<Record<StudioRole, Permission[]>> = {
   owner: [
     'finances:view',
     'finances:record_payments',
     'finances:manage_invoices',
+    'finances:manage_settings',
     'po:manage',
     'team:manage',
+    'time:log',
+    'time:view_all',
   ],
-  admin: ['team:manage'],
+  admin: ['team:manage', 'time:log', 'time:view_all'],
+  member: ['time:log'],
 }
 
 export function hasPermission(

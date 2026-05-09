@@ -9,6 +9,8 @@ const TABS: Array<[string, string]> = [
   ['Mileage', '/dashboard/finances/mileage'],
   ['Ledger', '/dashboard/finances/ledger'],
   ['Accounts', '/dashboard/finances/accounts'],
+  ['Reports', '/dashboard/finances/reports'],
+  ['Taxes', '/dashboard/finances/taxes'],
 ]
 
 export default function FinancesNav() {

@@ -37,9 +37,27 @@ export interface UserRow {
   pricing_mode: PricingMode
   default_markup_percent: number
   timezone: string | null
+  default_hourly_rate_cents: number
+  weekly_capacity_minutes: number
   created_at: string
   updated_at: string
   deleted_at: string | null
+}
+
+export type AccountingBasis = 'cash' | 'accrual'
+
+export interface StudioRow {
+  id: string
+  name: string
+  owner_user_id: string
+  accounting_basis: AccountingBasis
+  fiscal_year_start_month: number
+  estimated_federal_tax_pct: number
+  estimated_state_tax_pct: number
+  estimated_self_employment_tax_pct: number
+  tax_state_code: string | null
+  created_at: string
+  updated_at: string
 }
 
 export interface ClientRow {
@@ -299,6 +317,18 @@ export interface VendorRow {
   payment_terms: string | null
   shipping_notes: string | null
   notes: string | null
+  // 1099-NEC tracking. tax_id_full is never returned by the API to a user
+  // without finances:view; the client sees only tax_id_last4.
+  is_1099_eligible: boolean
+  legal_name: string | null
+  tax_id_last4: string | null
+  tax_id_full: string | null
+  address_line1: string | null
+  address_line2: string | null
+  address_city: string | null
+  address_state: string | null
+  address_postal_code: string | null
+  address_country: string | null
   created_at: string
   updated_at: string
 }
@@ -311,6 +341,37 @@ export type AccountType = 'asset' | 'liability' | 'equity' | 'income' | 'expense
 
 export type JournalSourceType = 'manual' | 'expense' | 'mileage' | 'payment'
 
+// Schedule C (Form 1040) line groupings. NULL means "uncategorized — won't
+// roll up into the Schedule C summary." Free-text rather than enum so we
+// can extend without schema churn.
+export type ScheduleCLine =
+  | 'gross_receipts'      // Line 1
+  | 'returns_allowances'  // Line 2
+  | 'cogs'                // Line 4 / Part III
+  | 'advertising'         // Line 8
+  | 'car_truck'           // Line 9
+  | 'commissions_fees'    // Line 10
+  | 'contract_labor'      // Line 11
+  | 'depletion'           // Line 12
+  | 'depreciation'        // Line 13
+  | 'employee_benefits'   // Line 14
+  | 'insurance'           // Line 15
+  | 'interest_mortgage'   // Line 16a
+  | 'interest_other'      // Line 16b
+  | 'legal_professional'  // Line 17
+  | 'office'              // Line 18
+  | 'pension_profit'      // Line 19
+  | 'rent_lease_vehicle'  // Line 20a
+  | 'rent_lease_other'    // Line 20b
+  | 'repairs_maintenance' // Line 21
+  | 'supplies'            // Line 22
+  | 'taxes_licenses'      // Line 23
+  | 'travel'              // Line 24a
+  | 'meals'               // Line 24b
+  | 'utilities'           // Line 25
+  | 'wages'               // Line 26
+  | 'other'               // Line 48 (Part V)
+
 export interface AccountRow {
   id: string
   designer_id: string
@@ -322,7 +383,13 @@ export interface AccountRow {
   system_key: string | null
   is_system: boolean
   is_active: boolean
+  schedule_c_line: ScheduleCLine | null
   description: string | null
+  // Reconciliation: user marks an account as reconciled-through a date
+  // when they tie it to a bank/CC statement.
+  last_reconciled_through_date: string | null
+  last_reconciled_at: string | null
+  last_reconciled_by_user_id: string | null
   created_at: string
   updated_at: string
 }
@@ -357,6 +424,9 @@ export interface ExpenseRow {
   project_id: string | null
   category_account_id: string
   payment_account_id: string
+  // Optional FK to vendors. Used for 1099 totals; vendor_name is kept for
+  // free-text rows that don't belong to a vendor in the directory.
+  vendor_id: string | null
   expense_date: string
   amount_cents: number
   vendor_name: string | null
@@ -365,6 +435,41 @@ export interface ExpenseRow {
   receipt_url: string | null
   receipt_content_type: string | null
   billable_to_client: boolean
+  reconciled_at: string | null
+  reconciled_by_user_id: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type EstimatedTaxJurisdiction = 'federal' | 'state'
+
+export interface EstimatedTaxPaymentRow {
+  id: string
+  designer_id: string
+  jurisdiction: EstimatedTaxJurisdiction
+  tax_year: number
+  quarter: number
+  amount_cents: number
+  paid_at: string | null
+  reference: string | null
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface TimeEntryRow {
+  id: string
+  designer_id: string
+  project_id: string
+  user_id: string | null
+  description: string
+  started_at: string
+  ended_at: string | null
+  duration_minutes: number | null
+  hourly_rate_cents: number
+  billable: boolean
+  invoice_line_item_id: string | null
   notes: string | null
   created_at: string
   updated_at: string

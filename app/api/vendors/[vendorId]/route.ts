@@ -5,6 +5,8 @@ import { requireDesigner } from '@/lib/auth/designer'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, notFound, conflict } from '@/lib/errors'
 import { updateVendor } from '@/lib/validations/vendor'
+import { redactVendor, withDerivedTaxIdLast4 } from '@/lib/finances/vendor_redact'
+import type { VendorRow } from '@/lib/supabase/types'
 
 interface Ctx {
   params: Promise<{ vendorId: string }>
@@ -27,7 +29,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
     const { vendorId } = await params
     const { designerId } = await requireDesigner()
     const vendor = await loadVendor(designerId, vendorId)
-    return NextResponse.json({ data: vendor })
+    return NextResponse.json({ data: redactVendor(vendor as VendorRow) })
   })
 }
 
@@ -37,9 +39,10 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     const { designerId } = await requireDesigner()
     await loadVendor(designerId, vendorId)
     const body = updateVendor.parse(await req.json())
+    const persistable = withDerivedTaxIdLast4(body)
     const { data, error } = await supabaseAdmin()
       .from('vendors')
-      .update(body)
+      .update(persistable)
       .eq('id', vendorId)
       .eq('designer_id', designerId)
       .select()
@@ -50,7 +53,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       }
       throw error
     }
-    return NextResponse.json({ data })
+    return NextResponse.json({ data: redactVendor(data as VendorRow) })
   })
 }
 

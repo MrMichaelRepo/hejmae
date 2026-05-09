@@ -5,19 +5,21 @@ import { api, ApiError } from '@/lib/api'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import { Input, Label, Select, Textarea } from '@/components/ui/Input'
-import type { AccountRow, ProjectRow } from '@/lib/supabase/types'
+import type { AccountRow, ProjectRow, VendorRow } from '@/lib/supabase/types'
 
 interface Props {
   open: boolean
   onClose: () => void
   accounts: AccountRow[]
   projects: ProjectRow[]
+  vendors: VendorRow[]
   onSaved: () => void
 }
 
-export default function ExpenseModal({ open, onClose, accounts, projects, onSaved }: Props) {
+export default function ExpenseModal({ open, onClose, accounts, projects, vendors, onSaved }: Props) {
   const today = new Date().toISOString().slice(0, 10)
   const [date, setDate] = useState(today)
+  const [vendorId, setVendorId] = useState('')
   const [vendor, setVendor] = useState('')
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
@@ -43,6 +45,7 @@ export default function ExpenseModal({ open, onClose, accounts, projects, onSave
   useEffect(() => {
     if (open) {
       setDate(today)
+      setVendorId('')
       setVendor('')
       setDescription('')
       setAmount('')
@@ -76,9 +79,14 @@ export default function ExpenseModal({ open, onClose, accounts, projects, onSave
 
     setSubmitting(true)
     try {
+      const selectedVendor = vendorId ? vendors.find((v) => v.id === vendorId) : null
       const create = await api.post<{ id: string }>('/api/finances/expenses', {
         expense_date: date,
-        vendor_name: vendor || null,
+        vendor_id: vendorId || null,
+        // If a vendor was picked, use its name as a backstop on vendor_name
+        // (lets free-text search keep working even if the vendor is later
+        // unlinked).
+        vendor_name: selectedVendor?.name ?? (vendor || null),
         description: description || null,
         amount_cents,
         category_account_id: categoryId,
@@ -144,14 +152,36 @@ export default function ExpenseModal({ open, onClose, accounts, projects, onSave
         </div>
 
         <div>
-          <Label htmlFor="exp-vendor">Vendor</Label>
-          <Input
-            id="exp-vendor"
-            value={vendor}
-            onChange={(e) => setVendor(e.target.value)}
-            placeholder="e.g. Visual Comfort"
-          />
+          <Label htmlFor="exp-vendor-id">Vendor</Label>
+          <Select
+            id="exp-vendor-id"
+            value={vendorId}
+            onChange={(e) => setVendorId(e.target.value)}
+          >
+            <option value="">— Free text below —</option>
+            {vendors.map((v) => (
+              <option key={v.id} value={v.id}>
+                {v.name}
+                {v.is_1099_eligible ? ' · 1099' : ''}
+              </option>
+            ))}
+          </Select>
         </div>
+
+        {!vendorId ? (
+          <div>
+            <Label htmlFor="exp-vendor">Vendor name (free text)</Label>
+            <Input
+              id="exp-vendor"
+              value={vendor}
+              onChange={(e) => setVendor(e.target.value)}
+              placeholder="e.g. Visual Comfort"
+            />
+            <div className="mt-1.5 font-garamond text-[0.85rem] text-hm-nav/70">
+              Pick a vendor above to count toward 1099 totals.
+            </div>
+          </div>
+        ) : null}
 
         <div className="grid grid-cols-2 gap-4">
           <div>

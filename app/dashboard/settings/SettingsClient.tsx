@@ -147,6 +147,19 @@ export default function SettingsClient({ initialUser }: { initialUser: DesignerU
         </Link>
       </Section>
 
+      <Section title="Finance & taxes">
+        <p className="font-garamond text-[0.95rem] text-hm-nav mb-4">
+          Accounting basis, fiscal year start, and estimated tax rates used
+          across every report and the quarterly estimated taxes tracker.
+        </p>
+        <Link
+          href="/dashboard/settings/finance"
+          className="inline-flex items-center gap-2 font-sans text-[10px] uppercase tracking-[0.2em] text-hm-text border border-hm-text/25 hover:bg-hm-text hover:text-bg rounded-full px-6 py-2.5 transition-colors"
+        >
+          Finance settings →
+        </Link>
+      </Section>
+
       <Section title="Payments — Stripe Connect">
         <p className="font-garamond text-[0.95rem] text-hm-nav mb-4">
           hejmae uses Stripe Connect — payments go directly to your own

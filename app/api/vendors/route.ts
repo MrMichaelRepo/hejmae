@@ -9,6 +9,8 @@ import { requireDesigner } from '@/lib/auth/designer'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, conflict } from '@/lib/errors'
 import { createVendor } from '@/lib/validations/vendor'
+import { redactVendor, withDerivedTaxIdLast4 } from '@/lib/finances/vendor_redact'
+import type { VendorRow } from '@/lib/supabase/types'
 
 export async function GET() {
   return withErrorHandling(async () => {
@@ -19,7 +21,9 @@ export async function GET() {
       .eq('designer_id', designerId)
       .order('name', { ascending: true })
     if (error) throw error
-    return NextResponse.json({ data })
+    return NextResponse.json({
+      data: (data ?? []).map((v) => redactVendor(v as VendorRow)),
+    })
   })
 }
 
@@ -27,9 +31,10 @@ export async function POST(req: NextRequest) {
   return withErrorHandling(async () => {
     const { designerId } = await requireDesigner()
     const body = createVendor.parse(await req.json())
+    const persistable = withDerivedTaxIdLast4(body)
     const { data, error } = await supabaseAdmin()
       .from('vendors')
-      .insert({ designer_id: designerId, ...body })
+      .insert({ designer_id: designerId, ...persistable })
       .select()
       .single()
     if (error) {
@@ -38,6 +43,6 @@ export async function POST(req: NextRequest) {
       }
       throw error
     }
-    return NextResponse.json({ data }, { status: 201 })
+    return NextResponse.json({ data: redactVendor(data as VendorRow) }, { status: 201 })
   })
 }

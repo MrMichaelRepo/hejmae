@@ -16,6 +16,16 @@ const tradeDiscountInput = z.preprocess((v) => {
   return v
 }, tradeDiscount.nullish())
 
+// Full TIN: 9 digits with optional dashes, EIN (XX-XXXXXXX) or SSN
+// (XXX-XX-XXXX). We strip dashes and normalize to digits at write time.
+const taxIdFull = z
+  .string()
+  .max(20)
+  .transform((s) => s.replace(/[\s-]/g, ''))
+  .refine((s) => /^\d{9}$/.test(s), {
+    message: 'Tax ID must be 9 digits (EIN or SSN)',
+  })
+
 export const createVendor = z.object({
   name: z.string().min(1).max(200),
   account_number: z.string().max(200).nullish(),
@@ -29,6 +39,17 @@ export const createVendor = z.object({
   payment_terms: z.string().max(200).nullish(),
   shipping_notes: z.string().max(2000).nullish(),
   notes: z.string().max(10_000).nullish(),
+  // 1099-NEC fields. tax_id_full stays out of API responses unless the
+  // caller has finances:view; the route layer handles the redaction.
+  is_1099_eligible: z.boolean().optional(),
+  legal_name: z.string().max(200).nullish(),
+  tax_id_full: taxIdFull.nullish(),
+  address_line1: z.string().max(200).nullish(),
+  address_line2: z.string().max(200).nullish(),
+  address_city: z.string().max(100).nullish(),
+  address_state: z.string().max(100).nullish(),
+  address_postal_code: z.string().max(20).nullish(),
+  address_country: z.string().max(100).nullish(),
 })
 
 export const updateVendor = createVendor.partial()

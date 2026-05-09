@@ -11,6 +11,7 @@ const dateString = z
 
 export const createExpense = z.object({
   project_id: uuid.nullish(),
+  vendor_id: uuid.nullish(),
   category_account_id: uuid,
   payment_account_id: uuid,
   expense_date: dateString,
@@ -30,3 +31,14 @@ export const createExpense = z.object({
 })
 
 export const updateExpense = createExpense.partial()
+
+// Reconciliation toggle. Setting `reconciled` to false clears the
+// timestamp; true stamps with now() and the caller's user id (server-set).
+export const reconcileExpense = z.object({
+  reconciled: z.boolean(),
+})
+
+// Per-account "I tied this account to the bank statement through X" mark.
+export const reconcileAccount = z.object({
+  through_date: dateString.nullable(),
+})

@@ -6,8 +6,11 @@ const permission = z.enum([
   'finances:view',
   'finances:record_payments',
   'finances:manage_invoices',
+  'finances:manage_settings',
   'po:manage',
   'team:manage',
+  'time:log',
+  'time:view_all',
 ])
 
 export const createInvite = z.object({

@@ -9,6 +9,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import { Input, Label, Select, Textarea } from '@/components/ui/Input'
+import { StatGrid, StatTile } from '@/components/finances/SummaryTile'
 import type {
   MileageLogRow,
   MileageRateRow,
@@ -31,6 +32,8 @@ export default function MileageClient({
   const [projects, setProjects] = useState<ProjectRow[]>(initialProjects)
   const [creating, setCreating] = useState(false)
   const [editingRate, setEditingRate] = useState(false)
+  const currentYear = new Date().getFullYear()
+  const [year, setYear] = useState(currentYear)
 
   async function refresh() {
     const [tRes, rRes, pRes] = await Promise.all([
@@ -48,21 +51,47 @@ export default function MileageClient({
     [projects],
   )
 
-  const ytdMiles = useMemo(() => {
-    const yr = new Date().getFullYear()
-    return trips
-      .filter((t) => new Date(t.trip_date).getFullYear() === yr)
-      .reduce((a, t) => a + Number(t.miles), 0)
-  }, [trips])
-  const ytdAmount = useMemo(() => {
-    const yr = new Date().getFullYear()
-    return trips
-      .filter((t) => new Date(t.trip_date).getFullYear() === yr)
-      .reduce((a, t) => a + t.amount_cents, 0)
-  }, [trips])
+  // Years that have data, plus the current year and last year (so the
+  // selector always offers them even before the first trip is logged).
+  const yearOptions = useMemo(() => {
+    const set = new Set<number>([currentYear, currentYear - 1])
+    for (const t of trips) set.add(new Date(t.trip_date).getFullYear())
+    for (const r of rates) set.add(r.year)
+    return Array.from(set).sort((a, b) => b - a)
+  }, [trips, rates, currentYear])
+
+  const tripsForYear = useMemo(
+    () => trips.filter((t) => new Date(t.trip_date).getFullYear() === year),
+    [trips, year],
+  )
+  const milesForYear = tripsForYear.reduce((a, t) => a + Number(t.miles), 0)
+  const amountForYear = tripsForYear.reduce((a, t) => a + t.amount_cents, 0)
+  const tripCountForYear = tripsForYear.length
+
+  // Top projects by miles for the year.
+  const byProject = useMemo(() => {
+    const m = new Map<string | '__studio__', number>()
+    for (const t of tripsForYear) {
+      const key = t.project_id ?? '__studio__'
+      m.set(key, (m.get(key) ?? 0) + Number(t.miles))
+    }
+    return Array.from(m.entries())
+      .map(([k, miles]) => ({
+        key: k,
+        name:
+          k === '__studio__'
+            ? 'Studio overhead'
+            : projIx.get(k as string)?.name ?? '—',
+        miles,
+      }))
+      .sort((a, b) => b.miles - a.miles)
+      .slice(0, 5)
+  }, [tripsForYear, projIx])
 
   const currentRate =
-    rates.find((r) => r.year === new Date().getFullYear()) ?? rates[0]
+    rates.find((r) => r.year === year) ?? rates[0]
+
+  const exportHref = `/api/finances/reports/mileage.csv?year=${year}`
 
   return (
     <div>
@@ -71,35 +100,99 @@ export default function MileageClient({
         title="Mileage"
         subtitle="Log business trips at the IRS standard rate. Each trip posts to Vehicle Expense as a non-cash deduction."
         actions={
-          <Button onClick={() => setCreating(true)}>Log trip</Button>
+          <div className="flex gap-3">
+            <a href={exportHref} download>
+              <Button variant="ghost">Export CSV</Button>
+            </a>
+            <Button onClick={() => setCreating(true)}>Log trip</Button>
+          </div>
         }
       />
 
-      <div
-        className="grid grid-cols-3 gap-px mb-10"
-        style={{ background: 'rgba(30,33,40,0.1)' }}
-      >
-        <Stat label={`${new Date().getFullYear()} miles`} value={ytdMiles.toFixed(1)} />
-        <Stat label={`${new Date().getFullYear()} deduction`} value={formatCents(ytdAmount)} />
+      <div className="flex items-center gap-3 mb-6 pb-6 border-b border-hm-text/10">
+        <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav">
+          Year
+        </span>
+        <div className="inline-flex border border-hm-text/15 rounded-sm overflow-hidden">
+          {yearOptions.map((y) => (
+            <button
+              key={y}
+              type="button"
+              onClick={() => setYear(y)}
+              className={[
+                'px-4 py-2 font-sans text-[10px] uppercase tracking-[0.2em] transition-colors',
+                y === year
+                  ? 'bg-hm-text text-bg'
+                  : 'text-hm-nav hover:text-hm-text',
+              ].join(' ')}
+            >
+              {y}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <StatGrid cols={4}>
+        <StatTile
+          label={`${year} miles`}
+          value={milesForYear.toFixed(1)}
+          sub={`${tripCountForYear} trip${tripCountForYear === 1 ? '' : 's'}`}
+        />
+        <StatTile
+          label={`${year} deduction`}
+          value={formatCents(amountForYear)}
+          sub="Posts to Vehicle Expense"
+        />
         <button
           type="button"
           onClick={() => setEditingRate(true)}
           className="bg-bg p-6 text-left hover:bg-hm-text/[0.02] transition-colors"
         >
           <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
-            Rate ({currentRate?.year ?? new Date().getFullYear()})
+            Rate ({currentRate?.year ?? year})
           </div>
           <div className="font-serif text-[1.6rem] leading-none">
-            {currentRate
-              ? `${currentRate.rate_cents_per_mile}¢/mi`
-              : 'not set'}
+            {currentRate ? `${currentRate.rate_cents_per_mile}¢/mi` : 'not set'}
+          </div>
+          <div className="mt-2 font-garamond text-[0.85rem] text-hm-nav/80">
+            Click to edit
           </div>
         </button>
-      </div>
+        <StatTile
+          label="Avg trip"
+          value={
+            tripCountForYear > 0
+              ? `${(milesForYear / tripCountForYear).toFixed(1)} mi`
+              : '—'
+          }
+        />
+      </StatGrid>
 
-      {trips.length === 0 ? (
+      {byProject.length > 0 ? (
+        <div className="mb-10">
+          <h2 className="font-serif text-[1.2rem] leading-tight mb-3">
+            Top projects by miles ({year})
+          </h2>
+          <div className="border border-hm-text/10">
+            <table className="w-full font-garamond text-[0.95rem]">
+              <tbody>
+                {byProject.map((r) => (
+                  <tr key={r.key} className="border-t border-hm-text/10 first:border-t-0">
+                    <td className="px-4 py-2">{r.name}</td>
+                    <td className="text-right px-4 py-2">
+                      {r.miles.toFixed(1)} mi
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : null}
+
+      {tripsForYear.length === 0 ? (
         <EmptyState
-          title="No trips logged"
+          title={`No trips logged for ${year}`}
           body="Drive to a client meeting, vendor showroom, or jobsite and log the mileage here. We'll multiply by the IRS rate and post it to your books."
           action={<Button onClick={() => setCreating(true)}>Log trip</Button>}
         />
@@ -118,7 +211,7 @@ export default function MileageClient({
               </tr>
             </thead>
             <tbody>
-              {trips.map((t) => (
+              {tripsForYear.map((t) => (
                 <tr
                   key={t.id}
                   className="border-t border-hm-text/10 hover:bg-hm-text/[0.02]"
@@ -162,6 +255,8 @@ export default function MileageClient({
         </div>
       )}
 
+      <RateHistory rates={rates} onEdit={() => setEditingRate(true)} />
+
       <MileageModal
         open={creating}
         onClose={() => setCreating(false)}
@@ -175,6 +270,7 @@ export default function MileageClient({
         open={editingRate}
         onClose={() => setEditingRate(false)}
         rates={rates}
+        defaultYear={year}
         onSaved={async () => {
           setEditingRate(false)
           await refresh()
@@ -184,13 +280,49 @@ export default function MileageClient({
   )
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function RateHistory({
+  rates,
+  onEdit,
+}: {
+  rates: MileageRateRow[]
+  onEdit: () => void
+}) {
+  if (rates.length <= 1) return null
+  const sorted = [...rates].sort((a, b) => b.year - a.year)
   return (
-    <div className="bg-bg p-6">
-      <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
-        {label}
+    <div className="mt-12">
+      <div className="flex items-baseline justify-between mb-3">
+        <h2 className="font-serif text-[1.2rem] leading-tight">
+          Rate history
+        </h2>
+        <button
+          type="button"
+          onClick={onEdit}
+          className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-hm-text"
+        >
+          Edit
+        </button>
       </div>
-      <div className="font-serif text-[1.6rem] leading-none">{value}</div>
+      <div className="border border-hm-text/10 overflow-x-auto">
+        <table className="w-full font-garamond text-[0.95rem]">
+          <thead>
+            <tr className="bg-hm-text/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+              <th className="text-left px-4 py-3">Year</th>
+              <th className="text-right px-4 py-3">Rate (cents/mile)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((r) => (
+              <tr key={r.id} className="border-t border-hm-text/10">
+                <td className="px-4 py-3">{r.year}</td>
+                <td className="text-right px-4 py-3">
+                  {r.rate_cents_per_mile}¢
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   )
 }
@@ -209,6 +341,7 @@ function MileageModal({
   const today = new Date().toISOString().slice(0, 10)
   const [date, setDate] = useState(today)
   const [miles, setMiles] = useState('')
+  const [roundTrip, setRoundTrip] = useState(false)
   const [purpose, setPurpose] = useState('')
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
@@ -221,6 +354,7 @@ function MileageModal({
     if (open) {
       setDate(today)
       setMiles('')
+      setRoundTrip(false)
       setPurpose('')
       setFrom('')
       setTo('')
@@ -239,11 +373,12 @@ function MileageModal({
       setErr('Enter miles greater than zero.')
       return
     }
+    const totalMiles = roundTrip ? m * 2 : m
     setSubmitting(true)
     try {
       await api.post('/api/finances/mileage', {
         trip_date: date,
-        miles: Math.round(m * 100) / 100,
+        miles: Math.round(totalMiles * 100) / 100,
         purpose: purpose || null,
         from_location: from || null,
         to_location: to || null,
@@ -273,7 +408,7 @@ function MileageModal({
             />
           </div>
           <div>
-            <Label htmlFor="m-miles">Miles</Label>
+            <Label htmlFor="m-miles">Miles (one-way)</Label>
             <Input
               id="m-miles"
               type="number"
@@ -284,6 +419,16 @@ function MileageModal({
               onChange={(e) => setMiles(e.target.value)}
               required
             />
+            <label className="mt-2 inline-flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={roundTrip}
+                onChange={(e) => setRoundTrip(e.target.checked)}
+              />
+              <span className="font-garamond text-[0.9rem]">
+                Round trip (×2)
+              </span>
+            </label>
           </div>
         </div>
 
@@ -370,27 +515,28 @@ function RateModal({
   open,
   onClose,
   rates,
+  defaultYear,
   onSaved,
 }: {
   open: boolean
   onClose: () => void
   rates: MileageRateRow[]
+  defaultYear: number
   onSaved: () => void
 }) {
-  const [year, setYear] = useState(new Date().getFullYear())
+  const [year, setYear] = useState(defaultYear)
   const [rate, setRate] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [err, setErr] = useState<string | null>(null)
 
   useEffect(() => {
     if (open) {
-      const yr = new Date().getFullYear()
-      setYear(yr)
-      const r = rates.find((x) => x.year === yr)
+      setYear(defaultYear)
+      const r = rates.find((x) => x.year === defaultYear)
       setRate(r ? String(r.rate_cents_per_mile) : '')
       setErr(null)
     }
-  }, [open, rates])
+  }, [open, rates, defaultYear])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()

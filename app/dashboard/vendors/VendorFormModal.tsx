@@ -40,6 +40,15 @@ export function VendorFormModal({
   const [paymentTerms, setPaymentTerms] = useState('')
   const [shippingNotes, setShippingNotes] = useState('')
   const [notes, setNotes] = useState('')
+  // 1099-NEC fields.
+  const [is1099, setIs1099] = useState(false)
+  const [legalName, setLegalName] = useState('')
+  const [taxIdFull, setTaxIdFull] = useState('')
+  const [addr1, setAddr1] = useState('')
+  const [addr2, setAddr2] = useState('')
+  const [city, setCity] = useState('')
+  const [stateAbbr, setStateAbbr] = useState('')
+  const [postal, setPostal] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -64,6 +73,15 @@ export function VendorFormModal({
       setPaymentTerms(initial?.payment_terms ?? '')
       setShippingNotes(initial?.shipping_notes ?? '')
       setNotes(initial?.notes ?? '')
+      setIs1099(initial?.is_1099_eligible ?? false)
+      setLegalName(initial?.legal_name ?? '')
+      // tax_id_full is never returned by the API; we only show last 4 if present.
+      setTaxIdFull('')
+      setAddr1(initial?.address_line1 ?? '')
+      setAddr2(initial?.address_line2 ?? '')
+      setCity(initial?.address_city ?? '')
+      setStateAbbr(initial?.address_state ?? '')
+      setPostal(initial?.address_postal_code ?? '')
     }
   }, [open, initial])
 
@@ -71,7 +89,7 @@ export function VendorFormModal({
     e.preventDefault()
     setSubmitting(true)
     try {
-      const body = {
+      const body: Record<string, unknown> = {
         name: name.trim(),
         account_number: accountNumber.trim() || null,
         account_email: accountEmail.trim() || null,
@@ -84,6 +102,18 @@ export function VendorFormModal({
         payment_terms: paymentTerms.trim() || null,
         shipping_notes: shippingNotes.trim() || null,
         notes: notes.trim() || null,
+        is_1099_eligible: is1099,
+        legal_name: legalName.trim() || null,
+        address_line1: addr1.trim() || null,
+        address_line2: addr2.trim() || null,
+        address_city: city.trim() || null,
+        address_state: stateAbbr.trim() || null,
+        address_postal_code: postal.trim() || null,
+      }
+      // Only send tax_id_full if user typed something — otherwise we'd
+      // erase the stored value on every edit.
+      if (taxIdFull.trim()) {
+        body.tax_id_full = taxIdFull.trim()
       }
       if (initial) {
         await api.patch(`/api/vendors/${initial.id}`, body)
@@ -208,6 +238,79 @@ export function VendorFormModal({
             placeholder="Receiver, freight forwarder, ship-to address…"
           />
         </Field>
+
+        <SectionLabel>1099-NEC</SectionLabel>
+        <label className="flex items-center gap-3 cursor-pointer mb-4">
+          <input
+            type="checkbox"
+            checked={is1099}
+            onChange={(e) => setIs1099(e.target.checked)}
+          />
+          <span className="font-garamond text-[0.95rem]">
+            This vendor is 1099-NEC eligible (independent contractor / sole prop)
+          </span>
+        </label>
+        {is1099 ? (
+          <>
+            <Field
+              label="Legal name (W-9)"
+              hint="Use the legal name on the W-9 if it differs from the display name."
+            >
+              <Input
+                value={legalName}
+                onChange={(e) => setLegalName(e.target.value)}
+                placeholder="Legal entity / individual name"
+              />
+            </Field>
+            <Field
+              label="Tax ID (EIN or SSN)"
+              hint={
+                initial?.tax_id_last4
+                  ? `On file: ending in ${initial.tax_id_last4}. Type a new value to overwrite.`
+                  : '9 digits — stored encrypted; only last 4 are shown after save.'
+              }
+            >
+              <Input
+                value={taxIdFull}
+                onChange={(e) => setTaxIdFull(e.target.value)}
+                placeholder="XX-XXXXXXX or XXX-XX-XXXX"
+                autoComplete="off"
+              />
+            </Field>
+            <Field label="Address line 1">
+              <Input
+                value={addr1}
+                onChange={(e) => setAddr1(e.target.value)}
+              />
+            </Field>
+            <Field label="Address line 2">
+              <Input
+                value={addr2}
+                onChange={(e) => setAddr2(e.target.value)}
+              />
+            </Field>
+            <div className="grid grid-cols-3 gap-4">
+              <Field label="City">
+                <Input value={city} onChange={(e) => setCity(e.target.value)} />
+              </Field>
+              <Field label="State">
+                <Input
+                  value={stateAbbr}
+                  onChange={(e) =>
+                    setStateAbbr(e.target.value.toUpperCase().slice(0, 2))
+                  }
+                  maxLength={2}
+                />
+              </Field>
+              <Field label="ZIP">
+                <Input
+                  value={postal}
+                  onChange={(e) => setPostal(e.target.value)}
+                />
+              </Field>
+            </div>
+          </>
+        ) : null}
 
         <Field label="Internal notes">
           <Textarea

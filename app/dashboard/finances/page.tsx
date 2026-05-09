@@ -1,75 +1,142 @@
 import Link from 'next/link'
 import { requireDesigner } from '@/lib/auth/designer'
 import { requirePermission } from '@/lib/auth/permissions'
+import { getStudioFinanceSettings } from '@/lib/finances/studio_settings'
+import { resolveBasis, resolvePeriod } from '@/lib/finances/period'
 import { getStudioSummary, getProjectPL } from '@/lib/finances/rollup'
 import { formatCents, formatPercent } from '@/lib/format'
 import { PageHeader } from '@/components/ui/EmptyState'
 import EmptyState from '@/components/ui/EmptyState'
 import Button from '@/components/ui/Button'
+import { PeriodFilterBar } from '@/components/finances/PeriodFilter'
+import { StatGrid, StatTile } from '@/components/finances/SummaryTile'
 
-export default async function FinancesPage() {
-  const { designerId, role, permissions } = await requireDesigner()
-  requirePermission({ role, permissions }, 'finances:view')
+interface Props {
+  searchParams: Promise<Record<string, string | string[] | undefined>>
+}
+
+export default async function FinancesPage({ searchParams }: Props) {
+  const ctx = await requireDesigner()
+  requirePermission(ctx, 'finances:view')
+  const settings = await getStudioFinanceSettings(ctx.studioId)
+
+  const sp = await searchParams
+  const period = resolvePeriod({
+    searchParams: sp,
+    fiscal_year_start_month: settings.fiscal_year_start_month,
+  })
+  const basis = resolveBasis(sp, settings.accounting_basis)
 
   const [summary, projects] = await Promise.all([
-    getStudioSummary(designerId),
-    getProjectPL(designerId),
+    getStudioSummary(ctx.designerId, {
+      from: period.from,
+      to: period.to,
+      basis,
+    }),
+    getProjectPL(ctx.designerId, {
+      from: period.from,
+      to: period.to,
+      basis,
+    }),
   ])
+
+  const a = summary.aging
+  const exportHref = `/api/finances/export?from=${period.from ?? ''}&to=${period.to}&basis=${basis}`
 
   return (
     <div>
       <PageHeader
-        eyebrow="Finances"
-        title="Studio rollup"
-        subtitle="A simple, designer-native view of money in and money out across every project."
+        eyebrow="Bookkeeping"
+        title="Overview"
+        subtitle={`Studio rollup on ${basis} basis. ${period.label}.`}
         actions={
-          <a href="/api/finances/export" download>
+          <a href={exportHref} download>
             <Button variant="secondary">Export CSV</Button>
           </a>
         }
       />
 
-      <div
-        className="grid grid-cols-2 md:grid-cols-4 gap-px mb-12"
-        style={{ background: 'rgba(30,33,40,0.1)' }}
-      >
-        {[
-          ['Invoiced', formatCents(summary.total_invoiced_cents)],
-          ['Received', formatCents(summary.total_received_cents)],
-          ['Outstanding', formatCents(summary.total_outstanding_cents)],
-          ['COGS', formatCents(summary.total_cogs_cents)],
-        ].map(([label, value]) => (
-          <div key={label as string} className="bg-bg p-6">
-            <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
-              {label as string}
-            </div>
-            <div className="font-serif text-[1.6rem] leading-none">
-              {value as string}
-            </div>
-          </div>
-        ))}
-      </div>
+      <PeriodFilterBar
+        periodKey={period.key}
+        basis={basis}
+        studioBasis={settings.accounting_basis}
+        rangeLabel={period.label}
+        studioFiscalYearStartMonth={settings.fiscal_year_start_month}
+      />
 
-      <div
-        className="grid grid-cols-2 gap-px mb-12"
-        style={{ background: 'rgba(30,33,40,0.1)' }}
-      >
-        <div className="bg-bg p-6">
-          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
-            Gross profit
-          </div>
-          <div className="font-serif text-[1.6rem] leading-none">
-            {formatCents(summary.gross_profit_cents)}
-          </div>
-        </div>
-        <div className="bg-bg p-6">
-          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
-            Margin
-          </div>
-          <div className="font-serif text-[1.6rem] leading-none">
-            {formatPercent(summary.gross_margin_pct)}
-          </div>
-        </div>
+      <StatGrid cols={4}>
+        <StatTile
+          label={basis === 'cash' ? 'Revenue (received)' : 'Revenue (invoiced)'}
+          value={formatCents(summary.revenue_cents)}
+        />
+        <StatTile label="COGS" value={formatCents(summary.total_cogs_cents)} />
+        <StatTile
+          label="Total expenses"
+          value={formatCents(summary.total_expenses_cents)}
+        />
+        <StatTile
+          label="Net income"
+          value={formatCents(summary.net_income_cents)}
+          emphasis
+        />
+      </StatGrid>
+
+      <StatGrid cols={2}>
+        <StatTile
+          label="Gross profit"
+          value={formatCents(summary.gross_profit_cents)}
+          sub={`Margin ${formatPercent(summary.gross_margin_pct)}`}
+        />
+        <StatTile
+          label="Outstanding receivables"
+          value={formatCents(summary.aging.total_cents)}
+          sub={`As of ${period.to}`}
+        />
+      </StatGrid>
+
+      <h2 className="font-serif text-[1.3rem] leading-tight mb-4">
+        Aging
+      </h2>
+      <div className="border border-hm-text/10 mb-12">
+        <table className="w-full font-garamond text-[0.95rem]">
+          <thead>
+            <tr className="bg-hm-text/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+              <th className="text-left px-4 py-3">Bucket</th>
+              <th className="text-right px-4 py-3">Outstanding</th>
+              <th className="text-right px-4 py-3">% of total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              ['Current (0–30 days)', a.current_cents],
+              ['31–60 days', a.bucket_31_60_cents],
+              ['61–90 days', a.bucket_61_90_cents],
+              ['Over 90 days', a.bucket_over_90_cents],
+            ].map(([label, val]) => {
+              const v = Number(val)
+              const pct = a.total_cents > 0 ? (v / a.total_cents) * 100 : 0
+              return (
+                <tr
+                  key={label as string}
+                  className="border-t border-hm-text/10"
+                >
+                  <td className="px-4 py-3">{label}</td>
+                  <td className="text-right px-4 py-3">{formatCents(v)}</td>
+                  <td className="text-right px-4 py-3 text-hm-nav">
+                    {a.total_cents > 0 ? `${pct.toFixed(0)}%` : '—'}
+                  </td>
+                </tr>
+              )
+            })}
+            <tr className="border-t border-hm-text/30 font-sans text-[10px] uppercase tracking-[0.18em]">
+              <td className="px-4 py-3">Total</td>
+              <td className="text-right px-4 py-3">
+                {formatCents(a.total_cents)}
+              </td>
+              <td className="px-4 py-3" />
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <h2 className="font-serif text-[1.3rem] leading-tight mb-4">
@@ -87,9 +154,9 @@ export default async function FinancesPage() {
             <thead>
               <tr className="bg-hm-text/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
                 <th className="text-left px-4 py-3">Project</th>
-                <th className="text-right px-4 py-3">Invoiced</th>
-                <th className="text-right px-4 py-3">Received</th>
+                <th className="text-right px-4 py-3">Revenue</th>
                 <th className="text-right px-4 py-3">COGS</th>
+                <th className="text-right px-4 py-3">Expenses</th>
                 <th className="text-right px-4 py-3">Profit</th>
                 <th className="text-right px-4 py-3">Margin</th>
               </tr>
@@ -109,13 +176,13 @@ export default async function FinancesPage() {
                     </Link>
                   </td>
                   <td className="text-right px-4 py-3">
-                    {formatCents(p.invoiced_cents)}
-                  </td>
-                  <td className="text-right px-4 py-3">
-                    {formatCents(p.received_cents)}
+                    {formatCents(p.revenue_cents)}
                   </td>
                   <td className="text-right px-4 py-3">
                     {formatCents(p.cogs_cents)}
+                  </td>
+                  <td className="text-right px-4 py-3">
+                    {formatCents(p.expenses_cents)}
                   </td>
                   <td className="text-right px-4 py-3">
                     {formatCents(p.gross_profit_cents)}
