@@ -46,6 +46,10 @@ const limiters = {
   portalPay: () => buildLimiter('portal_pay', 5, '1 m'),
   upload: () => buildLimiter('upload', 60, '1 h'),
   write: () => buildLimiter('write', 120, '1 m'),
+  // Catalog image-search: every call costs a GPT-4o vision + an
+  // embedding round-trip, so this is the one route where a single
+  // designer can ring up real spend in seconds if they bash it.
+  imageSearch: () => buildLimiter('image_search', 30, '1 m'),
 }
 
 const cache = new Map<string, Ratelimit>()

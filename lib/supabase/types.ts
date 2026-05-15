@@ -24,6 +24,7 @@ export type PoStatus =
   | 'partially_received'
   | 'complete'
 export type ActorType = 'designer' | 'client'
+export type ClippingScrapeStatus = 'pending' | 'complete' | 'failed'
 
 export interface UserRow {
   id: string
@@ -171,6 +172,17 @@ export interface CatalogProductRow {
   created_by: string | null
   created_at: string
   updated_at: string
+  // Populated asynchronously after insert/update by lib/catalog/embed.ts.
+  // Never sent to clients in API responses (large, no UI value).
+  embedding?: number[] | null
+  embedding_updated_at?: string | null
+}
+
+// Catalog row returned by /api/catalog/search/image — same shape as
+// CatalogProductRow but with the cosine similarity attached so the UI
+// can show a confidence badge if we want one later.
+export interface CatalogProductSearchHit extends CatalogProductRow {
+  similarity: number
 }
 
 export interface ItemRow {
@@ -193,6 +205,30 @@ export interface ItemRow {
   notes: string | null
   created_at: string
   updated_at: string
+}
+
+export interface ClippingItemRow {
+  id: string
+  designer_id: string
+  studio_id: string
+  clipper_user_id: string
+  project_id: string | null
+  catalog_product_id: string | null
+  source_url: string
+  name: string | null
+  vendor: string | null
+  image_url: string | null
+  retail_price_cents: number | null
+  // Trade price is intentionally restricted: never returned by GET
+  // /api/clippings; only read server-side during add-to-project.
+  trade_price_cents: number | null
+  description: string | null
+  item_type: string | null
+  scrape_status: ClippingScrapeStatus
+  week_added: string
+  created_at: string
+  updated_at: string
+  deleted_at: string | null
 }
 
 export interface ProposalRow {

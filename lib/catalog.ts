@@ -11,6 +11,7 @@
 
 import { supabaseAdmin } from '@/lib/supabase/server'
 import type { CatalogProductRow } from '@/lib/supabase/types'
+import { generateCatalogEmbedding } from '@/lib/catalog/embed'
 
 export interface CatalogClipInput {
   name: string
@@ -90,5 +91,6 @@ export async function upsertCatalogProduct(
     .select()
     .single()
   if (e3) throw e3
+  void generateCatalogEmbedding((created as CatalogProductRow).id)
   return created as CatalogProductRow
 }

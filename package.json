@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "backfill:embeddings": "tsx scripts/backfill-catalog-embeddings.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.94.0",
@@ -19,7 +20,9 @@
     "@supabase/supabase-js": "^2.105.1",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.38.0",
+    "cheerio": "^1.2.0",
     "next": "^15.5.15",
+    "openai": "^6.37.0",
     "pdf-to-img": "^6.0.0",
     "react": "^18",
     "react-dom": "^18",
@@ -37,6 +40,7 @@
     "eslint-config-next": "^15.5.15",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
+    "tsx": "^4.22.0",
     "typescript": "^5"
   }
 }

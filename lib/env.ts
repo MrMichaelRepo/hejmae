@@ -48,6 +48,13 @@ export const env = {
   // Optional: if missing, uploads still get tier-1 normalization (resize +
   // EXIF auto-orient + WebP) but skip the AI corner-detect/crop step.
   anthropicApiKey: () => optional('ANTHROPIC_API_KEY'),
+
+  // OpenAI — GPT-4o vision describes an uploaded image, and
+  // text-embedding-3-small encodes that description + every catalog
+  // product. Optional: if missing, /api/catalog/search/image returns a
+  // clean 503 and embedding generation is a no-op, so the rest of the
+  // app keeps working.
+  openaiApiKey: () => optional('OPENAI_API_KEY'),
   // Default on; set to '0' / 'false' to disable per-deployment.
   floorPlanAutoStraighten: () => {
     const v = optional('FLOOR_PLAN_AUTO_STRAIGHTEN')
