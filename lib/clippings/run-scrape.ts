@@ -61,6 +61,8 @@ async function runScrapeInner(input: RunScrapeInput): Promise<void> {
     .from('catalog_products')
     .select('id, clipped_count, retail_price_cents')
     .eq('source_url', input.url)
+    .is('merged_into_id', null)
+    .is('deleted_at', null)
     .maybeSingle()
 
   if (existingCatalog) {

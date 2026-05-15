@@ -21,6 +21,8 @@ async function loadInitialLibrary(designerId: string): Promise<CatalogProduct[]>
     .from('catalog_products')
     .select('*')
     .in('id', ids)
+    .is('merged_into_id', null)
+    .is('deleted_at', null)
     .order('updated_at', { ascending: false })
 
   return withSignedUrlsList((data ?? []) as CatalogProduct[], 'image_url')

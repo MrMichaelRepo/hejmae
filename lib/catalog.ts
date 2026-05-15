@@ -32,6 +32,8 @@ export async function upsertCatalogProduct(
       .from('catalog_products')
       .select('*')
       .eq('source_url', input.source_url)
+      .is('merged_into_id', null)
+      .is('deleted_at', null)
       .maybeSingle()
     if (error) throw error
     if (existing) {
@@ -61,6 +63,8 @@ export async function upsertCatalogProduct(
       .select('*')
       .ilike('vendor', input.vendor)
       .ilike('name', input.name)
+      .is('merged_into_id', null)
+      .is('deleted_at', null)
       .maybeSingle()
     if (error) throw error
     if (existingByVendor) {

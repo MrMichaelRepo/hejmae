@@ -70,4 +70,12 @@ export const env = {
   // these set, which is fine for local dev. Required in production.
   upstashRedisUrl: () => optional('UPSTASH_REDIS_REST_URL'),
   upstashRedisToken: () => optional('UPSTASH_REDIS_REST_TOKEN'),
+
+  // Shared secret for scheduled jobs (Supabase pg_cron HTTP call into the
+  // Next.js app). Required for any /api/cron/* route to accept a request.
+  cronSecret: () => optional('CRON_SECRET'),
+
+  // Address that the catalog-duplicate-scan summary email is sent to.
+  // Falls back to the From address if unset.
+  adminAlertEmail: () => optional('ADMIN_ALERT_EMAIL'),
 }

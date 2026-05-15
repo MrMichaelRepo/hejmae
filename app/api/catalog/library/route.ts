@@ -32,6 +32,8 @@ export async function GET(req: NextRequest) {
       .from('catalog_products')
       .select('*')
       .in('id', ids)
+      .is('merged_into_id', null)
+      .is('deleted_at', null)
       .order('updated_at', { ascending: false })
 
     if (q) {

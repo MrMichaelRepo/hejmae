@@ -33,8 +33,10 @@ async function main() {
   while (true) {
     const { data: rows, error } = await sb
       .from('catalog_products')
-      .select('id, name, vendor, category, style_tags')
+      .select('id, name, vendor, category, style_tags, description, item_type')
       .is('embedding', null)
+      .is('merged_into_id', null)
+      .is('deleted_at', null)
       .order('created_at', { ascending: true })
       .limit(BATCH_SIZE)
     if (error) throw error

@@ -18,6 +18,8 @@ export async function GET(req: NextRequest) {
     let query = supabaseAdmin()
       .from('catalog_products')
       .select('*')
+      .is('merged_into_id', null)
+      .is('deleted_at', null)
       .order('clipped_count', { ascending: false })
       .limit(limit)
 

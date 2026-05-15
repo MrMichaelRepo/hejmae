@@ -25,6 +25,11 @@ export type PoStatus =
   | 'complete'
 export type ActorType = 'designer' | 'client'
 export type ClippingScrapeStatus = 'pending' | 'complete' | 'failed'
+export type UserRole = 'designer' | 'admin'
+export type CatalogDuplicateStatus =
+  | 'pending'
+  | 'confirmed_duplicate'
+  | 'dismissed'
 
 export interface UserRow {
   id: string
@@ -40,6 +45,7 @@ export interface UserRow {
   timezone: string | null
   default_hourly_rate_cents: number
   weekly_capacity_minutes: number
+  role: UserRole
   created_at: string
   updated_at: string
   deleted_at: string | null
@@ -170,12 +176,34 @@ export interface CatalogProductRow {
   style_tags: string[]
   clipped_count: number
   created_by: string | null
+  description: string | null
+  item_type: string | null
+  deleted_at: string | null
+  merged_into_id: string | null
+  merged_at: string | null
   created_at: string
   updated_at: string
   // Populated asynchronously after insert/update by lib/catalog/embed.ts.
   // Never sent to clients in API responses (large, no UI value).
   embedding?: number[] | null
   embedding_updated_at?: string | null
+}
+
+export interface CatalogDuplicateFlagRow {
+  id: string
+  product_a_id: string
+  product_b_id: string
+  similarity_score: number | null
+  match_reasons: string[]
+  status: CatalogDuplicateStatus
+  resolved: boolean
+  flagged_at: string
+  last_seen_at: string
+  resolved_at: string | null
+  resolved_by: string | null
+  resolution_notes: string | null
+  created_at: string
+  updated_at: string
 }
 
 // Catalog row returned by /api/catalog/search/image — same shape as

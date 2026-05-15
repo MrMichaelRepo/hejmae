@@ -85,6 +85,8 @@ export async function POST(req: NextRequest) {
       .from('catalog_products')
       .select('id, name, vendor, image_url, retail_price_cents, clipped_count')
       .eq('source_url', body.url)
+      .is('merged_into_id', null)
+      .is('deleted_at', null)
       .maybeSingle()
 
     const weekAdded = isoWeekMonday()
