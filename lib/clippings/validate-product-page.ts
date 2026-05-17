@@ -63,6 +63,12 @@ const EDITORIAL_OG_TYPES = new Set([
 // page through; the scraper handles the case where it can't find one.
 const PRICE_REGEX = /(?:[$£€¥₹]\s?\d|[\d,]+\s?(?:USD|EUR|GBP|CAD|AUD)\b|\bprice\b[^a-z]{0,40}\d)/i
 
+// URL path patterns common across e-commerce. Hit on any of these and
+// we treat the URL itself as a strong-enough signal that this is a
+// product page — JSON-LD / og:type are optional. Anchored to path
+// segments (\/.../\/) so /productsearch or /products-faq don't match.
+const PRODUCT_URL_RE = /\/(?:products?|p|dp|item|sku|pdp|shop)\/[a-z0-9_-]/i
+
 export type ProductPageVerdict =
   | { ok: true; html: string; finalUrl: string }
   | { ok: false; reason: string }
@@ -86,6 +92,8 @@ export async function validateProductPage(
     return { ok: false, reason: 'This page doesn\'t appear to be a product listing.' }
   }
 
+  const urlLooksLikeProduct = PRODUCT_URL_RE.test(parsed.pathname)
+
   // Prefer the extension-provided rendered DOM. JS-rendered SPAs
   // (Pottery Barn, Rejuvenation, anything React-based) don't expose
   // JSON-LD or og:type in the server-side HTML, so a re-fetch from
@@ -103,14 +111,25 @@ export async function validateProductPage(
     }
   }
 
-  const verdict = inspectHtml(html)
+  const verdict = inspectHtml(html, { urlLooksLikeProduct })
   if (!verdict.ok) return verdict
   return { ok: true, html, finalUrl: parsed.toString() }
 }
 
 // Public for unit-testing — inspectHtml does the deterministic part of
 // the verdict given an HTML string. No network.
-export function inspectHtml(html: string): ProductPageVerdict {
+//
+// Positive signal is ANY of:
+//   - URL path matches a product pattern (/products/, /p/, /dp/, …)
+//   - JSON-LD @type=Product / ItemPage
+//   - og:type=product
+// Modern JS-rendered e-commerce (Pottery Barn, Rejuvenation, etc.) often
+// omits both JSON-LD and og:type — they rely on Google Merchant feeds
+// instead. URL pattern is the most reliable positive signal in practice.
+export function inspectHtml(
+  html: string,
+  opts: { urlLooksLikeProduct?: boolean } = {},
+): ProductPageVerdict {
   const $ = load(html)
 
   const ogType = ($('meta[property="og:type"]').attr('content') ?? '').toLowerCase().trim()
@@ -122,16 +141,14 @@ export function inspectHtml(html: string): ProductPageVerdict {
     return { ok: false, reason: 'This page doesn\'t appear to be a product listing.' }
   }
 
-  // JSON-LD Product / ItemPage detection.
   const ldBlocks = $('script[type="application/ld+json"]')
     .map((_, el) => $(el).contents().text())
     .get()
   const hasProductLd = ldBlocks.some((raw) => containsProductLd(raw))
-
-  // og:type explicitly product is a strong yes; pair with price check.
   const ogIsProduct = ogType === 'product' || ogType.startsWith('product.')
 
-  if (!hasProductLd && !ogIsProduct) {
+  const positiveSignal = hasProductLd || ogIsProduct || opts.urlLooksLikeProduct === true
+  if (!positiveSignal) {
     return { ok: false, reason: 'This page doesn\'t appear to be a product listing.' }
   }
 
@@ -244,4 +261,4 @@ async function fetchHtmlBounded(
   }
 }
 
-export const _internalForTests = { DOMAIN_BLOCKLIST, EDITORIAL_OG_TYPES, PRICE_REGEX }
+export const _internalForTests = { DOMAIN_BLOCKLIST, EDITORIAL_OG_TYPES, PRICE_REGEX, PRODUCT_URL_RE }

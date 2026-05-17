@@ -27,9 +27,15 @@ export function scrapeProductHtml(
 ): ScrapedProduct {
   const $ = load(html)
   const ld = collectJsonLdProducts($)
+  // __NEXT_DATA__ from Next.js sites (Pottery Barn / Rejuvenation /
+  // Williams-Sonoma family and most React storefronts). Cheap, no
+  // network, plays the same role as JSON-LD for sites that just don't
+  // emit schema.org markup.
+  const nd = extractFromNextData($)
 
   const name =
     pickStr(ld, 'name') ??
+    nd.name ??
     metaContent($, 'og:title') ??
     cleanTitle($('title').first().text()) ??
     fallbackTitle?.trim() ??
@@ -37,19 +43,22 @@ export function scrapeProductHtml(
 
   const description =
     pickStr(ld, 'description') ??
+    nd.description ??
     metaContent($, 'og:description') ??
     metaName($, 'description') ??
     null
 
   const image =
     firstImageFromLd(ld) ??
+    nd.image_url ??
     metaContent($, 'og:image') ??
     metaContent($, 'og:image:secure_url') ??
     null
 
-  const price = priceFromLd(ld) ?? priceFromMeta($)
+  const price =
+    priceFromLd(ld) ?? nd.retail_price_cents ?? priceFromMeta($)
 
-  const brand = pickStr(ld, 'brand') ?? brandFromLd(ld)
+  const brand = pickStr(ld, 'brand') ?? brandFromLd(ld) ?? nd.vendor
   const vendor = brand ?? metaContent($, 'og:site_name') ?? vendorFromHostname(url)
 
   const itemType = pickStr(ld, 'category') ?? null
@@ -282,4 +291,141 @@ function cleanTitle(s: string): string | null {
 
 function trimMax(s: string, n: number): string {
   return s.length > n ? s.slice(0, n) : s
+}
+
+// ---------------------------------------------------------------------------
+// __NEXT_DATA__ extraction
+// ---------------------------------------------------------------------------
+//
+// Next.js stores SSR/hydration data in <script id="__NEXT_DATA__"> as JSON.
+// Field layouts vary wildly between storefronts (Williams-Sonoma vs Shopify
+// vs custom), so we walk the tree breadth-first looking for the first
+// node that "looks like" a product object — name (string) plus any of
+// price / images / image / sku — and pull standard fields out of that.
+// First match wins; deeper nodes are unreachable behind shallower ones.
+
+function extractFromNextData($: CheerioAPI): Partial<ScrapedProduct> {
+  const raw = $('script#__NEXT_DATA__').first().contents().text()
+  if (!raw) return {}
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw)
+  } catch {
+    return {}
+  }
+  const node = findProductNode(parsed)
+  if (!node) return {}
+  return {
+    name: pickFirstString(node, ['name', 'productName', 'title', 'displayName']),
+    image_url: pickImageUrl(node),
+    retail_price_cents: pickPriceCents(node),
+    description: pickFirstString(node, [
+      'description',
+      'longDescription',
+      'shortDescription',
+      'productDescription',
+    ]),
+    vendor: pickFirstString(node, ['brand', 'brandName', 'vendor', 'manufacturer']),
+  }
+}
+
+function findProductNode(root: unknown): Record<string, unknown> | null {
+  const queue: unknown[] = [root]
+  let safety = 5000 // bounded BFS — huge __NEXT_DATA__ blobs shouldn't lock us up
+  while (queue.length && safety-- > 0) {
+    const cur = queue.shift()
+    if (!cur || typeof cur !== 'object') continue
+    if (Array.isArray(cur)) {
+      for (const v of cur) queue.push(v)
+      continue
+    }
+    const rec = cur as Record<string, unknown>
+    const name = firstStringValue(rec, ['name', 'productName', 'title', 'displayName'])
+    const hasPriceish =
+      hasKey(rec, ['price', 'priceCents', 'salePrice', 'priceAmount', 'minPrice', 'currentPrice'])
+    const hasImageish = hasKey(rec, ['image', 'images', 'imageUrl', 'mainImage', 'thumbnail'])
+    if (name && name.length > 2 && (hasPriceish || hasImageish)) {
+      return rec
+    }
+    for (const v of Object.values(rec)) {
+      if (v && typeof v === 'object') queue.push(v)
+    }
+  }
+  return null
+}
+
+function hasKey(rec: Record<string, unknown>, keys: string[]): boolean {
+  return keys.some((k) => rec[k] != null)
+}
+
+function firstStringValue(rec: Record<string, unknown>, keys: string[]): string | null {
+  for (const k of keys) {
+    const v = rec[k]
+    if (typeof v === 'string' && v.trim()) return v.trim()
+  }
+  return null
+}
+
+function pickFirstString(rec: Record<string, unknown>, keys: string[]): string | null {
+  const v = firstStringValue(rec, keys)
+  return v
+}
+
+function pickImageUrl(rec: Record<string, unknown>): string | null {
+  for (const key of ['image', 'imageUrl', 'mainImage', 'thumbnail']) {
+    const v = rec[key]
+    const url = coerceImageUrl(v)
+    if (url) return url
+  }
+  const imgs = rec['images']
+  if (Array.isArray(imgs)) {
+    for (const item of imgs) {
+      const url = coerceImageUrl(item)
+      if (url) return url
+    }
+  }
+  return null
+}
+
+function coerceImageUrl(v: unknown): string | null {
+  if (typeof v === 'string' && v.trim().startsWith('http')) return v.trim()
+  if (v && typeof v === 'object') {
+    const rec = v as Record<string, unknown>
+    for (const k of ['url', 'src', 'href', 'contentUrl', 'large', 'full']) {
+      const inner = rec[k]
+      if (typeof inner === 'string' && inner.trim().startsWith('http')) return inner.trim()
+    }
+  }
+  return null
+}
+
+function pickPriceCents(rec: Record<string, unknown>): number | null {
+  // Direct cents value (common in normalized catalogs).
+  for (const k of ['priceCents', 'priceInCents', 'salePriceCents']) {
+    const v = rec[k]
+    if (typeof v === 'number' && Number.isFinite(v) && v > 0) return Math.round(v)
+  }
+  // Price-like fields parsed via the shared parser. Prefer sale price.
+  const candidates: unknown[] = [
+    rec['salePrice'],
+    rec['currentPrice'],
+    rec['offerPrice'],
+    rec['price'],
+    rec['priceAmount'],
+    rec['minPrice'],
+    rec['listPrice'],
+  ]
+  // Nested {amount, currency} or {value, currency} shapes.
+  for (const k of ['price', 'salePrice', 'currentPrice']) {
+    const v = rec[k]
+    if (v && typeof v === 'object' && !Array.isArray(v)) {
+      const inner = v as Record<string, unknown>
+      candidates.push(inner.amount, inner.value, inner.raw, inner.formatted)
+    }
+  }
+  for (const c of candidates) {
+    const cents = parsePriceToCents(c)
+    if (cents != null && cents > 0) return cents
+  }
+  return null
 }

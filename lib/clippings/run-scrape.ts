@@ -9,6 +9,7 @@
 
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { scrapeProductHtml, vendorFromHostname } from './scrape'
+import { aiExtractProduct } from './ai-extract'
 import { generateCatalogEmbedding } from '@/lib/catalog/embed'
 
 const USER_AGENT =
@@ -50,7 +51,26 @@ async function runScrapeInner(input: RunScrapeInput): Promise<void> {
     return
   }
 
-  const scraped = scrapeProductHtml(html, input.url, input.fallbackTitle)
+  let scraped = scrapeProductHtml(html, input.url, input.fallbackTitle)
+
+  // AI fallback: when the deterministic scrape couldn't find image OR
+  // price, ask Claude to extract from the rendered HTML. Soft-fails
+  // (returns null) if ANTHROPIC_API_KEY isn't set or the model misfires
+  // — we just keep whatever the deterministic pass found.
+  if (scraped.image_url == null || scraped.retail_price_cents == null) {
+    const ai = await aiExtractProduct(html, input.url)
+    if (ai) {
+      scraped = {
+        name: scraped.name ?? ai.name,
+        vendor: scraped.vendor ?? ai.vendor,
+        image_url: scraped.image_url ?? ai.image_url,
+        retail_price_cents: scraped.retail_price_cents ?? ai.retail_price_cents,
+        description: scraped.description ?? ai.description,
+        item_type: scraped.item_type,
+      }
+    }
+  }
+
   // Ensure we always end with *some* name + vendor so the card isn't blank.
   const name = scraped.name ?? input.fallbackTitle ?? input.url
   const vendor = scraped.vendor ?? vendorFromHostname(input.url)
