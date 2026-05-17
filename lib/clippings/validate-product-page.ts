@@ -69,6 +69,7 @@ export type ProductPageVerdict =
 
 export async function validateProductPage(
   rawUrl: string,
+  providedHtml?: string | null,
 ): Promise<ProductPageVerdict> {
   let parsed: URL
   try {
@@ -85,21 +86,21 @@ export async function validateProductPage(
     return { ok: false, reason: 'This page doesn\'t appear to be a product listing.' }
   }
 
-  // HEAD reachability check. Some product sites refuse HEAD entirely
-  // (405) — treat that as "fine, proceed to GET." Only an outright
-  // network error, DNS failure, or 4xx/5xx other than 405 counts as
-  // unreachable. We cap the time spent here so a hung host can't tie
-  // up the request.
-  const headOk = await reachable(parsed.toString())
-  if (!headOk) {
-    return { ok: false, reason: 'Couldn\'t reach this page.' }
-  }
-
-  // Fetch the HTML. Cap the body to keep parsing fast and bounded; most
-  // product pages have everything we need in the first 256 KB.
-  const html = await fetchHtmlBounded(parsed.toString(), 256 * 1024)
-  if (html == null) {
-    return { ok: false, reason: 'Couldn\'t load this page.' }
+  // Prefer the extension-provided rendered DOM. JS-rendered SPAs
+  // (Pottery Barn, Rejuvenation, anything React-based) don't expose
+  // JSON-LD or og:type in the server-side HTML, so a re-fetch from
+  // Vercel will reject perfectly real product pages. The extension
+  // already has the rendered page in front of the user — trust it.
+  let html: string | null = providedHtml ?? null
+  if (!html) {
+    const headOk = await reachable(parsed.toString())
+    if (!headOk) {
+      return { ok: false, reason: 'Couldn\'t reach this page.' }
+    }
+    html = await fetchHtmlBounded(parsed.toString(), 256 * 1024)
+    if (html == null) {
+      return { ok: false, reason: 'Couldn\'t load this page.' }
+    }
   }
 
   const verdict = inspectHtml(html)

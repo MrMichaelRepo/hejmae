@@ -19,6 +19,9 @@ export interface RunScrapeInput {
   url: string
   designerId: string
   fallbackTitle?: string | null
+  // Rendered DOM captured by the extension. When present, we skip the
+  // server-side re-fetch (which fails on bot-protected or SPA sites).
+  html?: string | null
 }
 
 export async function runScrape(input: RunScrapeInput): Promise<void> {
@@ -38,7 +41,7 @@ export async function runScrape(input: RunScrapeInput): Promise<void> {
 }
 
 async function runScrapeInner(input: RunScrapeInput): Promise<void> {
-  const html = await fetchHtml(input.url)
+  const html = input.html ?? (await fetchHtml(input.url))
   if (!html) {
     await supabaseAdmin()
       .from('clipping_items')

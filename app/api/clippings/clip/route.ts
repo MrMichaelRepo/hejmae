@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Step 2: product page gate. Must run before any DB write.
-    const verdict = await validateProductPage(body.url)
+    const verdict = await validateProductPage(body.url, body.html)
     if (!verdict.ok) {
       return NextResponse.json(
         {
@@ -136,6 +136,11 @@ export async function POST(req: NextRequest) {
         url: body.url,
         designerId: ctx.designerId,
         fallbackTitle: body.page_title ?? null,
+        // Reuse the rendered HTML the extension already captured so
+        // the scrape doesn't have to re-fetch (and possibly fail) the
+        // page server-side. verdict.html falls back to the body html
+        // when validation re-fetched it.
+        html: verdict.html,
       })
     }
 

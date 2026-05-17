@@ -5,6 +5,12 @@ export const clipUrlInput = z.object({
   url: z.string().url().max(2048),
   project_id: uuid.nullish(),
   page_title: z.string().max(500).nullish(),
+  // Pre-rendered DOM from the extension's content-script capture.
+  // Lets us validate + scrape against the actual rendered page instead
+  // of re-fetching server-side (which fails for JS-rendered SPAs and
+  // for sites with bot protection). Capped at ~2 MB; the extension
+  // truncates before sending.
+  html: z.string().max(2_000_000).nullish(),
 })
 
 export const internalScrapeInput = z.object({
