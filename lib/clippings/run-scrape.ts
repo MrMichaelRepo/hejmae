@@ -10,6 +10,7 @@
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { scrapeProductHtml, vendorFromHostname } from './scrape'
 import { aiExtractProduct } from './ai-extract'
+import { persistCatalogImage } from './persist-image'
 import { generateCatalogEmbedding } from '@/lib/catalog/embed'
 
 const USER_AGENT =
@@ -52,15 +53,19 @@ async function runScrapeInner(input: RunScrapeInput): Promise<void> {
   }
 
   let scraped = scrapeProductHtml(html, input.url, input.fallbackTitle)
+  const detBefore = snapshot(scraped)
+  let aiCalled = false
+  let aiFilled: string[] = []
 
   // AI fallback: when the deterministic scrape couldn't find image OR
   // price, ask Claude to extract from the rendered HTML. Soft-fails
   // (returns null) if ANTHROPIC_API_KEY isn't set or the model misfires
   // — we just keep whatever the deterministic pass found.
   if (scraped.image_url == null || scraped.retail_price_cents == null) {
+    aiCalled = true
     const ai = await aiExtractProduct(html, input.url)
     if (ai) {
-      scraped = {
+      const merged = {
         name: scraped.name ?? ai.name,
         vendor: scraped.vendor ?? ai.vendor,
         image_url: scraped.image_url ?? ai.image_url,
@@ -68,8 +73,22 @@ async function runScrapeInner(input: RunScrapeInput): Promise<void> {
         description: scraped.description ?? ai.description,
         item_type: scraped.item_type,
       }
+      aiFilled = (['name', 'vendor', 'image_url', 'retail_price_cents', 'description'] as const)
+        .filter((k) => detBefore[k] == null && merged[k] != null)
+      scraped = merged
     }
   }
+
+  console.log(
+    '[clippings.scrape]',
+    JSON.stringify({
+      clipping_item_id: input.clippingItemId,
+      url: input.url,
+      deterministic: detBefore,
+      ai_called: aiCalled,
+      ai_filled: aiFilled,
+    }),
+  )
 
   // Ensure we always end with *some* name + vendor so the card isn't blank.
   const name = scraped.name ?? input.fallbackTitle ?? input.url
@@ -82,11 +101,16 @@ async function runScrapeInner(input: RunScrapeInput): Promise<void> {
 
   const { data: existingCatalog } = await sb
     .from('catalog_products')
-    .select('id, clipped_count, retail_price_cents')
+    .select('id, clipped_count, retail_price_cents, image_url')
     .eq('source_url', input.url)
     .is('merged_into_id', null)
     .is('deleted_at', null)
     .maybeSingle()
+
+  // Image_url that we'll ultimately persist on the clipping. Defaults
+  // to the scraped URL; gets overwritten with our storage path if we
+  // can pull the bytes successfully.
+  let finalImageUrl: string | null = scraped.image_url
 
   if (existingCatalog) {
     catalogProductId = existingCatalog.id
@@ -101,6 +125,20 @@ async function runScrapeInner(input: RunScrapeInput): Promise<void> {
       update.retail_price_last_seen_at = new Date().toISOString()
     }
     await sb.from('catalog_products').update(update).eq('id', existingCatalog.id)
+
+    // Catalog hit: prefer the already-stored asset over a fresh download.
+    // This is what makes the second+ clip of the same product instant.
+    // Only persist the bytes if the catalog row doesn't have an image
+    // yet (e.g. legacy row from before this pipeline existed).
+    if (existingCatalog.image_url) {
+      finalImageUrl = existingCatalog.image_url
+    } else if (scraped.image_url) {
+      const path = await persistCatalogImage(scraped.image_url, existingCatalog.id)
+      if (path) {
+        await sb.from('catalog_products').update({ image_url: path }).eq('id', existingCatalog.id)
+        finalImageUrl = path
+      }
+    }
   } else {
     const { data: created } = await sb
       .from('catalog_products')
@@ -120,6 +158,18 @@ async function runScrapeInner(input: RunScrapeInput): Promise<void> {
     if (created) {
       catalogProductId = created.id
       void generateCatalogEmbedding(created.id)
+
+      // Download → encode → upload → swap URL for storage path. Soft-
+      // fails: on any error we leave catalog_products.image_url as the
+      // original vendor URL, which resolveAssetUrl returns as-is. The
+      // dashboard keeps working; we just don't own the bytes yet.
+      if (scraped.image_url) {
+        const path = await persistCatalogImage(scraped.image_url, created.id)
+        if (path) {
+          await sb.from('catalog_products').update({ image_url: path }).eq('id', created.id)
+          finalImageUrl = path
+        }
+      }
     }
   }
 
@@ -128,7 +178,7 @@ async function runScrapeInner(input: RunScrapeInput): Promise<void> {
     .update({
       name,
       vendor,
-      image_url: scraped.image_url,
+      image_url: finalImageUrl,
       retail_price_cents: scraped.retail_price_cents,
       description: scraped.description,
       item_type: scraped.item_type,
@@ -136,6 +186,26 @@ async function runScrapeInner(input: RunScrapeInput): Promise<void> {
       scrape_status: 'complete',
     })
     .eq('id', input.clippingItemId)
+}
+
+// Compact boolean snapshot of which fields the deterministic scraper
+// produced. Lives in scrape logs so you can answer "did this clip
+// trigger Claude, and which fields did it backfill?" by grepping
+// Vercel function logs for [clippings.scrape].
+function snapshot(s: {
+  name: string | null
+  vendor: string | null
+  image_url: string | null
+  retail_price_cents: number | null
+  description: string | null
+}): Record<string, boolean> {
+  return {
+    name: s.name != null,
+    vendor: s.vendor != null,
+    image_url: s.image_url != null,
+    retail_price_cents: s.retail_price_cents != null,
+    description: s.description != null,
+  }
 }
 
 async function fetchHtml(url: string): Promise<string | null> {

@@ -29,7 +29,10 @@ export async function aiExtractProduct(
   url: string,
 ): Promise<AiExtractedProduct | null> {
   const apiKey = env.anthropicApiKey()
-  if (!apiKey) return null
+  if (!apiKey) {
+    console.log('[clippings.aiExtract] skipped: ANTHROPIC_API_KEY not set')
+    return null
+  }
 
   const cleaned = stripForAi(html)
   if (!cleaned) return null
@@ -58,18 +61,47 @@ export async function aiExtractProduct(
     .map((c) => c.text)
     .join('\n')
     .trim()
-  if (!text) return null
+  if (!text) {
+    console.log('[clippings.aiExtract] empty response from model')
+    return null
+  }
 
   const json = extractJsonObject(text)
-  if (!json) return null
+  if (!json) {
+    console.log('[clippings.aiExtract] failed to parse JSON from response', { rawSample: text.slice(0, 500) })
+    return null
+  }
 
-  return {
+  const result: AiExtractedProduct = {
     name: pickStr(json, 'name'),
     vendor: pickStr(json, 'vendor'),
-    image_url: pickHttpUrl(json, 'image_url'),
+    image_url: pickAbsoluteUrl(json, 'image_url', url),
     retail_price_cents: pickPriceCents(json),
     description: pickStr(json, 'description'),
   }
+
+  // Log what the model actually returned vs. what we kept, so we can
+  // tell whether a missing field is the model's fault or ours.
+  console.log('[clippings.aiExtract]', JSON.stringify({
+    url,
+    raw: {
+      name: typeof json.name,
+      vendor: typeof json.vendor,
+      image_url: typeof json.image_url === 'string' ? json.image_url.slice(0, 120) : null,
+      price: json.price,
+      description: typeof json.description === 'string',
+    },
+    accepted: {
+      name: result.name != null,
+      vendor: result.vendor != null,
+      image_url: result.image_url != null,
+      retail_price_cents: result.retail_price_cents,
+      description: result.description != null,
+    },
+    usage: res.usage,
+  }))
+
+  return result
 }
 
 function buildPrompt(url: string, cleaned: string): string {
@@ -129,10 +161,25 @@ function pickStr(rec: Record<string, unknown>, key: string): string | null {
   return t ? t : null
 }
 
-function pickHttpUrl(rec: Record<string, unknown>, key: string): string | null {
+// Resolve whatever URL the model returned — relative, protocol-relative,
+// or absolute — against the page URL. Models often hand back "//cdn..."
+// or "/images/..." paths because that's what the HTML actually contains;
+// dropping those was the silent failure mode that kept images blank.
+function pickAbsoluteUrl(
+  rec: Record<string, unknown>,
+  key: string,
+  baseUrl: string,
+): string | null {
   const v = pickStr(rec, key)
   if (!v) return null
-  return v.startsWith('http://') || v.startsWith('https://') ? v : null
+  try {
+    const resolved = new URL(v, baseUrl).toString()
+    return resolved.startsWith('http://') || resolved.startsWith('https://')
+      ? resolved
+      : null
+  } catch {
+    return null
+  }
 }
 
 function pickPriceCents(rec: Record<string, unknown>): number | null {

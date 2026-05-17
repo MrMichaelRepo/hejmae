@@ -330,6 +330,36 @@ function extFromContentType(ct: string): string {
   }
 }
 
+// Persist a vendor product image to our bucket. Used by the clipping
+// scraper so the catalog doesn't depend on the vendor's CDN staying up
+// or letting us hotlink. Reuses the item-image normalization pipeline
+// (auto-orient, max 1400px, WebP @ q78). Returns the storage path —
+// callers persist it in catalog_products.image_url and propagate it to
+// clipping_items.image_url. resolveAssetUrl signs it at read time.
+//
+// Keyed deterministically by catalog_product_id so re-scrapes overwrite
+// in place (upsert: true). No proliferation of orphan objects.
+export async function uploadCatalogImage(
+  source: Buffer,
+  contentType: string,
+  catalogProductId: string,
+): Promise<string> {
+  const { normalizeImage } = await import('@/lib/image/normalize')
+  const norm = await normalizeImage(source, contentType, 'item-image')
+
+  const path = `catalog-image/${catalogProductId}.${norm.ext}`
+  const sb = supabaseAdmin()
+  const { error } = await sb.storage
+    .from(STORAGE_BUCKET)
+    .upload(path, norm.buffer, {
+      contentType: norm.contentType,
+      upsert: true,
+      cacheControl: '3600',
+    })
+  if (error) throw new Error(`Catalog image upload failed: ${error.message}`)
+  return path
+}
+
 export async function deleteAsset(path: string): Promise<void> {
   const sb = supabaseAdmin()
   const { error } = await sb.storage.from(STORAGE_BUCKET).remove([path])
