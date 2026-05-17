@@ -33,16 +33,16 @@ const nextConfig = {
     //   - img-src 'data:' covers icon-as-data-URL patterns.
     const csp = [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com https://*.clerk.accounts.dev https://*.clerk.com https://clerk.hejmae.com https://challenges.cloudflare.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "font-src 'self' data: https://fonts.gstatic.com",
       "img-src 'self' data: blob: https://*.supabase.co https://img.clerk.com https://*.clerk.com https://*.stripe.com",
-      "connect-src 'self' https://*.supabase.co https://*.clerk.accounts.dev https://*.clerk.com https://api.stripe.com https://*.ingest.sentry.io",
-      "frame-src https://js.stripe.com https://hooks.stripe.com https://*.stripe.com https://*.clerk.accounts.dev https://challenges.cloudflare.com",
+      "connect-src 'self' https://*.supabase.co https://*.clerk.accounts.dev https://*.clerk.com https://clerk.hejmae.com https://api.stripe.com https://*.ingest.sentry.io",
+      "frame-src https://js.stripe.com https://hooks.stripe.com https://*.stripe.com https://*.clerk.accounts.dev https://clerk.hejmae.com https://accounts.hejmae.com https://challenges.cloudflare.com",
       "worker-src 'self' blob:",
       "object-src 'none'",
       "base-uri 'self'",
-      "form-action 'self' https://*.clerk.accounts.dev",
+      "form-action 'self' https://*.clerk.accounts.dev https://clerk.hejmae.com https://accounts.hejmae.com",
       "frame-ancestors 'none'",
     ].join('; ')
 
