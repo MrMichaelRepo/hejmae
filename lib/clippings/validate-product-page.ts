@@ -146,8 +146,19 @@ export function inspectHtml(
     .get()
   const hasProductLd = ldBlocks.some((raw) => containsProductLd(raw))
   const ogIsProduct = ogType === 'product' || ogType.startsWith('product.')
+  // Schema.org microdata Product — covers Demandware / Salesforce
+  // Commerce Cloud sites (dwr.com, hermanmiller.com, etc.) that don't
+  // ship JSON-LD or og:type=product but do mark up the PDP with
+  // itemtype attributes.
+  const hasProductMicrodata =
+    $('[itemscope][itemtype*="schema.org/Product"], [itemscope][itemtype*="schema.org/ItemPage"]')
+      .length > 0
 
-  const positiveSignal = hasProductLd || ogIsProduct || opts.urlLooksLikeProduct === true
+  const positiveSignal =
+    hasProductLd ||
+    ogIsProduct ||
+    hasProductMicrodata ||
+    opts.urlLooksLikeProduct === true
   if (!positiveSignal) {
     return { ok: false, reason: 'This page doesn\'t appear to be a product listing.' }
   }

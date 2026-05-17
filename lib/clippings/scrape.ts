@@ -37,6 +37,7 @@ export function scrapeProductHtml(
     pickStr(ld, 'name') ??
     nd.name ??
     metaContent($, 'og:title') ??
+    microdataValue($, 'name') ??
     cleanTitle($('title').first().text()) ??
     fallbackTitle?.trim() ??
     null
@@ -46,6 +47,7 @@ export function scrapeProductHtml(
     nd.description ??
     metaContent($, 'og:description') ??
     metaName($, 'description') ??
+    microdataValue($, 'description') ??
     null
 
   const image =
@@ -53,12 +55,20 @@ export function scrapeProductHtml(
     nd.image_url ??
     metaContent($, 'og:image') ??
     metaContent($, 'og:image:secure_url') ??
+    microdataValue($, 'image') ??
     null
 
   const price =
-    priceFromLd(ld) ?? nd.retail_price_cents ?? priceFromMeta($)
+    priceFromLd(ld) ??
+    nd.retail_price_cents ??
+    priceFromMeta($) ??
+    parsePriceToCents(microdataValue($, 'price'))
 
-  const brand = pickStr(ld, 'brand') ?? brandFromLd(ld) ?? nd.vendor
+  const brand =
+    pickStr(ld, 'brand') ??
+    brandFromLd(ld) ??
+    nd.vendor ??
+    microdataValue($, 'brand')
   const vendor = brand ?? metaContent($, 'og:site_name') ?? vendorFromHostname(url)
 
   const itemType = pickStr(ld, 'category') ?? null
@@ -277,6 +287,32 @@ export function parsePriceToCents(input: unknown): number | null {
 function metaContent($: CheerioAPI, property: string): string | null {
   const v = $(`meta[property="${property}"]`).attr('content')
   return v ? v.trim() || null : null
+}
+
+// Schema.org microdata fallback — for sites that use HTML-attribute
+// markup instead of JSON-LD (Salesforce Commerce Cloud / Demandware
+// storefronts like dwr.com, hermanmiller.com, and a long tail of older
+// big-box e-commerce). When a [itemscope][itemtype*=Product] wrapper
+// exists, we scope our search to its descendants (so we don't pick up
+// itemprops from a related-products carousel rendered elsewhere on
+// the page); we *do* descend into nested itemscopes like Offer so we
+// can find offer.price inside the product. Document order picks the
+// main product's name before brand.name. If no Product scope exists,
+// falls back to a doc-wide search.
+function microdataValue($: CheerioAPI, prop: string): string | null {
+  const product = $('[itemscope][itemtype*="schema.org/Product"]').first()
+  const el = product.length
+    ? product.find(`[itemprop="${prop}"]`).first()
+    : $(`[itemprop="${prop}"]`).first()
+  if (!el.length) return null
+  const tag = ((el[0] as { tagName?: string } | undefined)?.tagName ?? '').toLowerCase()
+  let v: string | undefined
+  if (tag === 'meta') v = el.attr('content')
+  else if (tag === 'link') v = el.attr('href')
+  else if (tag === 'img') v = el.attr('src')
+  else v = el.attr('content') ?? el.text()
+  const trimmed = v?.trim()
+  return trimmed ? trimmed : null
 }
 
 function metaName($: CheerioAPI, name: string): string | null {
