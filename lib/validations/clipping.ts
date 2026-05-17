@@ -11,6 +11,11 @@ export const clipUrlInput = z.object({
   // for sites with bot protection). Capped at ~2 MB; the extension
   // truncates before sending.
   html: z.string().max(2_000_000).nullish(),
+  // <link rel="canonical"> pulled out of the rendered page. Used as the
+  // dedup key against the master catalog so two clicks on the same
+  // product from different ads (different gclid / utm strings) collapse
+  // to a single catalog row and skip a second scrape.
+  canonical_url: z.string().url().max(2048).nullish(),
 })
 
 export const internalScrapeInput = z.object({

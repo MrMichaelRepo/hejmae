@@ -19,6 +19,10 @@ const USER_AGENT =
 export interface RunScrapeInput {
   clippingItemId: string
   url: string
+  // <link rel="canonical"> from the rendered page. When present, it
+  // (not `url`) is the catalog dedup / insert key — so the same product
+  // clipped via different ad URLs collapses to one catalog row.
+  canonicalUrl?: string | null
   designerId: string
   fallbackTitle?: string | null
   // Rendered DOM captured by the extension. When present, we skip the
@@ -96,13 +100,16 @@ async function runScrapeInner(input: RunScrapeInput): Promise<void> {
 
   // Catalog dedup — same shape as upsertCatalogProduct but inlined so we
   // can write the catalog_product_id back onto the clipping in one shot.
+  // Prefer canonicalUrl over the clicked URL so ad/tracking variants
+  // collapse to a single catalog row.
   const sb = supabaseAdmin()
   let catalogProductId: string | null = null
+  const catalogUrl = input.canonicalUrl ?? input.url
 
   const { data: existingCatalog } = await sb
     .from('catalog_products')
     .select('id, clipped_count, retail_price_cents, image_url')
-    .eq('source_url', input.url)
+    .eq('source_url', catalogUrl)
     .is('merged_into_id', null)
     .is('deleted_at', null)
     .maybeSingle()
@@ -140,13 +147,13 @@ async function runScrapeInner(input: RunScrapeInput): Promise<void> {
       }
     }
   } else {
-    const { data: created } = await sb
+    const { data: created, error: insertErr } = await sb
       .from('catalog_products')
       .insert({
         name,
         vendor,
         image_url: scraped.image_url,
-        source_url: input.url,
+        source_url: catalogUrl,
         retail_price_cents: scraped.retail_price_cents,
         retail_price_last_seen_at:
           scraped.retail_price_cents != null ? new Date().toISOString() : null,
@@ -155,7 +162,36 @@ async function runScrapeInner(input: RunScrapeInput): Promise<void> {
       })
       .select('id')
       .single()
-    if (created) {
+
+    if (insertErr) {
+      // Almost certainly a unique(source_url) violation from a
+      // concurrent first-time scrape of the same canonical URL — both
+      // workers saw an empty catalog above, both raced to insert. The
+      // loser absorbs the winner's row: bump its clipped_count, adopt
+      // its image, link our clipping. We don't try to refresh price /
+      // re-upload the image — the winner's pass is responsible for
+      // those.
+      const { data: winner } = await sb
+        .from('catalog_products')
+        .select('id, clipped_count, image_url')
+        .eq('source_url', catalogUrl)
+        .is('merged_into_id', null)
+        .is('deleted_at', null)
+        .maybeSingle()
+      if (winner) {
+        catalogProductId = winner.id
+        await sb
+          .from('catalog_products')
+          .update({ clipped_count: winner.clipped_count + 1 })
+          .eq('id', winner.id)
+        if (winner.image_url) finalImageUrl = winner.image_url
+      } else {
+        console.error(
+          '[clippings.runScrape] catalog insert failed but no existing row found',
+          { catalogUrl, insertErr },
+        )
+      }
+    } else if (created) {
       catalogProductId = created.id
       void generateCatalogEmbedding(created.id)
 

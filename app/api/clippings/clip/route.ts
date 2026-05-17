@@ -58,14 +58,37 @@ export async function POST(req: NextRequest) {
 
     const sb = supabaseAdmin()
 
-    // Step 3: dedup by (clipper_user_id, source_url) on live rows.
-    const { data: existing } = await sb
-      .from('clipping_items')
-      .select('id, scrape_status')
-      .eq('clipper_user_id', ctx.userId)
-      .eq('source_url', body.url)
-      .is('deleted_at', null)
-      .maybeSingle()
+    // Step 3: dedup against this user's own live rows. Match on
+    // canonical_url first when the extension supplied one — catches
+    // the "same product via two different ads" case where source_url
+    // differs (gclid / utm). Fall back to source_url for clips that
+    // don't have a canonical (e.g. captured from chrome:// pages where
+    // the content-script couldn't run).
+    let existing:
+      | { id: string; scrape_status: string }
+      | null = null
+
+    if (body.canonical_url) {
+      const { data } = await sb
+        .from('clipping_items')
+        .select('id, scrape_status')
+        .eq('clipper_user_id', ctx.userId)
+        .eq('canonical_url', body.canonical_url)
+        .is('deleted_at', null)
+        .maybeSingle()
+      existing = data ?? null
+    }
+
+    if (!existing) {
+      const { data } = await sb
+        .from('clipping_items')
+        .select('id, scrape_status')
+        .eq('clipper_user_id', ctx.userId)
+        .eq('source_url', body.url)
+        .is('deleted_at', null)
+        .maybeSingle()
+      existing = data ?? null
+    }
 
     if (existing) {
       return NextResponse.json({
@@ -80,11 +103,14 @@ export async function POST(req: NextRequest) {
 
     // Step 4: catalog dedup by source_url. If we already know this
     // product, copy its fields onto the new clipping_items row instead
-    // of re-scraping it.
+    // of re-scraping it. Prefer the page's <link rel="canonical"> when
+    // present so two clicks on the same product via different ads
+    // (different gclid / utm strings) collapse to one catalog row.
+    const catalogUrl = body.canonical_url ?? body.url
     const { data: catalogMatch } = await sb
       .from('catalog_products')
       .select('id, name, vendor, image_url, retail_price_cents, clipped_count')
-      .eq('source_url', body.url)
+      .eq('source_url', catalogUrl)
       .is('merged_into_id', null)
       .is('deleted_at', null)
       .maybeSingle()
@@ -97,6 +123,7 @@ export async function POST(req: NextRequest) {
       clipper_user_id: ctx.userId,
       project_id: body.project_id ?? null,
       source_url: body.url,
+      canonical_url: body.canonical_url ?? null,
       week_added: weekAdded,
       // Default — overwritten below if we have a catalog match.
       scrape_status: 'pending',
@@ -120,7 +147,51 @@ export async function POST(req: NextRequest) {
       .insert(insertPayload)
       .select('id, scrape_status')
       .single()
-    if (insertErr) throw insertErr
+
+    // 23505 = unique_violation. Happens when the same user fires two
+    // concurrent clips of the same product (e.g. double-clicks Save)
+    // and the dedup SELECT above missed the in-flight peer. Both
+    // partial-unique indexes — (clipper_user_id, source_url) and
+    // (clipper_user_id, canonical_url) — can trigger this. Re-select
+    // the winner and return it as 'already_saved' instead of 500'ing.
+    if (insertErr) {
+      if (insertErr.code === '23505') {
+        let winner:
+          | { id: string; scrape_status: string }
+          | null = null
+        if (body.canonical_url) {
+          const { data } = await sb
+            .from('clipping_items')
+            .select('id, scrape_status')
+            .eq('clipper_user_id', ctx.userId)
+            .eq('canonical_url', body.canonical_url)
+            .is('deleted_at', null)
+            .maybeSingle()
+          winner = data ?? null
+        }
+        if (!winner) {
+          const { data } = await sb
+            .from('clipping_items')
+            .select('id, scrape_status')
+            .eq('clipper_user_id', ctx.userId)
+            .eq('source_url', body.url)
+            .is('deleted_at', null)
+            .maybeSingle()
+          winner = data ?? null
+        }
+        if (winner) {
+          return NextResponse.json({
+            data: {
+              clipping_item_id: winner.id,
+              scrape_status: winner.scrape_status,
+              message: 'already_saved',
+            },
+            error: null,
+          })
+        }
+      }
+      throw insertErr
+    }
 
     if (catalogMatch) {
       await sb
@@ -134,6 +205,7 @@ export async function POST(req: NextRequest) {
       void runScrape({
         clippingItemId: inserted.id,
         url: body.url,
+        canonicalUrl: body.canonical_url ?? null,
         designerId: ctx.designerId,
         fallbackTitle: body.page_title ?? null,
         // Reuse the rendered HTML the extension already captured so
