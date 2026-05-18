@@ -4,12 +4,33 @@
 //   * /api/clippings/scrape — exposed as an HTTP entry-point for spec
 //     compliance and manual retry.
 //
-// All errors are caught and converted to scrape_status = 'failed' on the
-// row. We never let this throw — the caller doesn't await it.
+// Pipeline (per call):
+//   1. Deterministic scrape: JSON-LD / __NEXT_DATA__ / OG meta /
+//      microdata. Produces a baseline ScrapedProduct + harvested image
+//      URL candidates.
+//   2. Catalog picklists: fetch existing brand and vendor spellings so
+//      the AI can reuse them and we don't fork "Rejuvenation" into
+//      three variants.
+//   3. AI verifier (Haiku): given baseline + candidates + picklists,
+//      confirms or corrects every field and tags each with a
+//      confidence flag. Always runs when ANTHROPIC_API_KEY is set.
+//   4. Merge: AI high-confidence wins (even when null — that's an
+//      authoritative "field doesn't apply"); deterministic baseline
+//      wins when AI is uncertain; AI low-confidence fills only when
+//      deterministic was null.
+//   5. Catalog upsert + image persistence, then writeback to clipping_items.
+//
+// All errors are caught and converted to scrape_status = 'failed' on
+// the row. We never let this throw — the caller doesn't await it.
 
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { scrapeProductHtml, vendorFromHostname, type ScrapedProduct } from './scrape'
-import { aiExtractProduct } from './ai-extract'
+import {
+  aiExtractProduct,
+  type AiExtractedProduct,
+  type AiField,
+} from './ai-extract'
+import { getCatalogPicklists } from '@/lib/catalog/picklists'
 import { persistCatalogImage } from './persist-image'
 import { generateCatalogEmbedding } from '@/lib/catalog/embed'
 
@@ -56,66 +77,46 @@ async function runScrapeInner(input: RunScrapeInput): Promise<void> {
     return
   }
 
-  let scraped = scrapeProductHtml(html, input.url, input.fallbackTitle)
-  const detBefore = snapshot(scraped)
-  let aiCalled = false
-  let aiFilled: string[] = []
+  const { product: baseline, candidates } = scrapeProductHtml(
+    html,
+    input.url,
+    input.fallbackTitle,
+  )
 
-  // AI extractor triggers (any one fires the call):
-  //   1. image_url missing — deterministic scrape couldn't find one
-  //   2. retail_price_cents missing — same
-  //   3. scraped name > 30 chars — verbose marketing string we want
-  //      normalized into a clean card label
-  //   4. item_type missing — needed for the dashboard chip; the
-  //      deterministic path only gets it from JSON-LD `category`,
-  //      which most sites don't emit usefully
-  // Soft-fails (returns null) if ANTHROPIC_API_KEY isn't set or the
-  // model misfires — we just keep whatever the deterministic pass
-  // found.
-  const nameTooLong = scraped.name != null && scraped.name.length > 30
-  const needsAi =
-    scraped.image_url == null ||
-    scraped.retail_price_cents == null ||
-    nameTooLong ||
-    scraped.item_type == null
+  // Catalog picklists are an input to the AI call, so they have to
+  // resolve first. Cheap query in practice (bounded fetch +
+  // in-process aggregate) — not worth the complexity of trying to
+  // parallelize against the AI roundtrip.
+  const picklists = await getCatalogPicklists()
+  const aiResult = await aiExtractProduct({
+    url: input.url,
+    html,
+    baseline,
+    candidates,
+    existingBrands: picklists.brands,
+    existingVendors: picklists.vendors,
+  })
 
-  if (needsAi) {
-    aiCalled = true
-    const ai = await aiExtractProduct(html, input.url)
-    if (ai) {
-      const merged: ScrapedProduct = {
-        // When the scraped name is verbose, prefer the AI-normalized
-        // version. Otherwise stick with the deterministic one (it's
-        // what the page literally said).
-        name: nameTooLong && ai.name ? ai.name : (scraped.name ?? ai.name),
-        brand: scraped.brand ?? ai.brand,
-        vendor: scraped.vendor ?? ai.vendor,
-        image_url: scraped.image_url ?? ai.image_url,
-        retail_price_cents: scraped.retail_price_cents ?? ai.retail_price_cents,
-        description: scraped.description ?? ai.description,
-        item_type: scraped.item_type ?? ai.item_type,
-        material: ai.material,
-      }
-      aiFilled = (
-        ['name', 'brand', 'vendor', 'image_url', 'retail_price_cents', 'description', 'item_type', 'material'] as const
-      ).filter((k) => detBefore[k] !== true && merged[k] != null)
-      scraped = merged
-    }
-  }
+  const scraped = mergeWithAi(baseline, aiResult)
 
   console.log(
     '[clippings.scrape]',
     JSON.stringify({
       clipping_item_id: input.clippingItemId,
       url: input.url,
-      deterministic: detBefore,
-      ai_called: aiCalled,
-      ai_filled: aiFilled,
+      baseline: snapshot(baseline),
+      candidates_counts: {
+        image_urls: candidates.image_urls.length,
+        existing_brands: picklists.brands.length,
+        existing_vendors: picklists.vendors.length,
+      },
+      ai_ran: aiResult != null,
+      final: snapshot(scraped),
     }),
   )
 
   // Ensure we always end with *some* name + vendor so cards / POs
-  // aren't blank. brand stays whatever was scraped — null is fine.
+  // aren't blank. brand stays whatever was merged — null is fine.
   const name = scraped.name ?? input.fallbackTitle ?? input.url
   const brand = scraped.brand
   const vendor = scraped.vendor ?? vendorFromHostname(input.url)
@@ -130,7 +131,9 @@ async function runScrapeInner(input: RunScrapeInput): Promise<void> {
 
   const { data: existingCatalog } = await sb
     .from('catalog_products')
-    .select('id, clipped_count, retail_price_cents, image_url, item_type, material, brand, vendor')
+    .select(
+      'id, clipped_count, retail_price_cents, image_url, item_type, material, style_tag, brand, vendor',
+    )
     .eq('source_url', catalogUrl)
     .is('merged_into_id', null)
     .is('deleted_at', null)
@@ -153,14 +156,18 @@ async function runScrapeInner(input: RunScrapeInput): Promise<void> {
       update.retail_price_cents = scraped.retail_price_cents
       update.retail_price_last_seen_at = new Date().toISOString()
     }
-    // Backfill catalog item_type / material / brand / vendor when the
-    // existing row was missing them and this scrape produced values
-    // (e.g. legacy rows from before the brand-vs-vendor split).
+    // Backfill catalog item_type / material / style_tag / brand /
+    // vendor when the existing row was missing them and this scrape
+    // produced values (e.g. legacy rows from before later columns
+    // existed).
     if (existingCatalog.item_type == null && scraped.item_type != null) {
       update.item_type = scraped.item_type
     }
     if (existingCatalog.material == null && scraped.material != null) {
       update.material = scraped.material
+    }
+    if (existingCatalog.style_tag == null && scraped.style_tag != null) {
+      update.style_tag = scraped.style_tag
     }
     if (existingCatalog.brand == null && scraped.brand != null) {
       update.brand = scraped.brand
@@ -172,9 +179,11 @@ async function runScrapeInner(input: RunScrapeInput): Promise<void> {
 
     // Adopt the catalog's normalized labels onto this clipping. The
     // catalog row is the source of truth — repeat clips share its
-    // item_type / material / brand rather than re-running the AI.
+    // item_type / material / style_tag / brand rather than re-running
+    // the AI.
     scraped.item_type = existingCatalog.item_type ?? scraped.item_type
     scraped.material = existingCatalog.material ?? scraped.material
+    scraped.style_tag = existingCatalog.style_tag ?? scraped.style_tag
     scraped.brand = existingCatalog.brand ?? scraped.brand
 
     // Catalog hit: prefer the already-stored asset over a fresh download.
@@ -204,6 +213,7 @@ async function runScrapeInner(input: RunScrapeInput): Promise<void> {
           scraped.retail_price_cents != null ? new Date().toISOString() : null,
         item_type: scraped.item_type,
         material: scraped.material,
+        style_tag: scraped.style_tag,
         created_by: input.designerId,
         clipped_count: 1,
       })
@@ -220,7 +230,7 @@ async function runScrapeInner(input: RunScrapeInput): Promise<void> {
       // those.
       const { data: winner } = await sb
         .from('catalog_products')
-        .select('id, clipped_count, image_url, item_type, material, brand')
+        .select('id, clipped_count, image_url, item_type, material, style_tag, brand')
         .eq('source_url', catalogUrl)
         .is('merged_into_id', null)
         .is('deleted_at', null)
@@ -234,6 +244,7 @@ async function runScrapeInner(input: RunScrapeInput): Promise<void> {
         if (winner.image_url) finalImageUrl = winner.image_url
         scraped.item_type = winner.item_type ?? scraped.item_type
         scraped.material = winner.material ?? scraped.material
+        scraped.style_tag = winner.style_tag ?? scraped.style_tag
         scraped.brand = winner.brand ?? scraped.brand
       } else {
         console.error(
@@ -269,6 +280,7 @@ async function runScrapeInner(input: RunScrapeInput): Promise<void> {
       description: scraped.description,
       item_type: scraped.item_type,
       material: scraped.material,
+      style_tag: scraped.style_tag,
       catalog_product_id: catalogProductId,
       scrape_status: 'complete',
     })
@@ -290,10 +302,42 @@ async function runScrapeInner(input: RunScrapeInput): Promise<void> {
   }
 }
 
-// Compact boolean snapshot of which fields the deterministic scraper
-// produced. Lives in scrape logs so you can answer "did this clip
-// trigger Claude, and which fields did it backfill?" by grepping
-// Vercel function logs for [clippings.scrape].
+// Merge rules per field:
+//   * AI high-confidence wins (even when null — that's an
+//     authoritative "this field doesn't apply" or "the deterministic
+//     baseline was wrong and I don't know the right answer").
+//   * AI low-confidence + deterministic baseline → keep baseline.
+//   * AI low-confidence + no baseline → keep AI's low-confidence guess
+//     as a fallback (better than blank).
+//   * No AI at all → keep baseline.
+function mergeWithAi(
+  baseline: ScrapedProduct,
+  ai: AiExtractedProduct | null,
+): ScrapedProduct {
+  if (!ai) return { ...baseline }
+  return {
+    name: pickField(baseline.name, ai.name),
+    brand: pickField(baseline.brand, ai.brand),
+    vendor: pickField(baseline.vendor, ai.vendor),
+    image_url: pickField(baseline.image_url, ai.image_url),
+    retail_price_cents: pickField(baseline.retail_price_cents, ai.retail_price_cents),
+    description: pickField(baseline.description, ai.description),
+    item_type: pickField(baseline.item_type, ai.item_type),
+    // material and style_tag have no deterministic source — only the
+    // AI can fill them. pickField still works: baseline is always null.
+    material: pickField(baseline.material, ai.material),
+    style_tag: pickField(baseline.style_tag, ai.style_tag),
+  }
+}
+
+function pickField<T>(baseline: T | null, ai: AiField<T>): T | null {
+  if (ai.confidence === 'high') return ai.value
+  return baseline ?? ai.value
+}
+
+// Compact boolean snapshot of which fields are populated. Used in the
+// scrape log so you can answer "which layer filled which field?" by
+// grepping for [clippings.scrape].
 function snapshot(s: ScrapedProduct): Record<string, boolean> {
   return {
     name: s.name != null,
@@ -304,6 +348,7 @@ function snapshot(s: ScrapedProduct): Record<string, boolean> {
     description: s.description != null,
     item_type: s.item_type != null,
     material: s.material != null,
+    style_tag: s.style_tag != null,
   }
 }
 

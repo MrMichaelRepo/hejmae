@@ -54,6 +54,9 @@ export interface ClippingItemFeedRow {
   description: string | null
   item_type: string | null
   material: string | null
+  // Background data — not displayed on the clipping card. Powers
+  // catalog search / filter UX.
+  style_tag: string | null
   scrape_status: import('@/lib/supabase/types').ClippingScrapeStatus
   week_added: string
   created_at: string

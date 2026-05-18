@@ -27,13 +27,32 @@ export interface ScrapedProduct {
   // No deterministic source — only filled by the AI extractor. Kept
   // on this type so run-scrape can carry it through one merge struct.
   material: string | null
+  // Design-style label (e.g. "Mid-century modern", "Scandinavian").
+  // AI-only, like material. Background data for catalog search —
+  // never displayed on the clipping card.
+  style_tag: string | null
+}
+
+// Image URLs harvested from every signal we know how to read. Fed to
+// the AI verifier as a closed picklist — it adjudicates instead of
+// free-form extracting, which eliminates URL hallucination. Brand /
+// vendor normalization is NOT done here — that's a catalog-level
+// concern (pick from existing catalog brand spellings to stay
+// consistent), handled in run-scrape.
+export interface ExtractionCandidates {
+  image_urls: string[]
+}
+
+export interface ScrapeResult {
+  product: ScrapedProduct
+  candidates: ExtractionCandidates
 }
 
 export function scrapeProductHtml(
   html: string,
   url: string,
   fallbackTitle?: string | null,
-): ScrapedProduct {
+): ScrapeResult {
   const $ = load(html)
   const ld = collectJsonLdProducts($)
   // __NEXT_DATA__ from Next.js sites (Pottery Barn / Rejuvenation /
@@ -41,6 +60,7 @@ export function scrapeProductHtml(
   // network, plays the same role as JSON-LD for sites that just don't
   // emit schema.org markup.
   const nd = extractFromNextData($)
+  const ndRoot = parseNextDataRoot($)
 
   const name =
     pickStr(ld, 'name') ??
@@ -88,14 +108,20 @@ export function scrapeProductHtml(
   const itemType = pickStr(ld, 'category') ?? null
 
   return {
-    name: name ? trimMax(name, 300) : null,
-    brand: brand ? trimMax(brand, 200) : null,
-    vendor: vendor ? trimMax(vendor, 200) : null,
-    image_url: image,
-    retail_price_cents: price,
-    description: description ? trimMax(description, 4000) : null,
-    item_type: itemType ? trimMax(itemType, 100) : null,
-    material: null,
+    product: {
+      name: name ? trimMax(name, 300) : null,
+      brand: brand ? trimMax(brand, 200) : null,
+      vendor: vendor ? trimMax(vendor, 200) : null,
+      image_url: image,
+      retail_price_cents: price,
+      description: description ? trimMax(description, 4000) : null,
+      item_type: itemType ? trimMax(itemType, 100) : null,
+      material: null,
+      style_tag: null,
+    },
+    candidates: {
+      image_urls: collectImageCandidates($, ld, nd, ndRoot, url),
+    },
   }
 }
 
@@ -449,6 +475,193 @@ function coerceImageUrl(v: unknown): string | null {
     }
   }
   return null
+}
+
+// Returns the parsed __NEXT_DATA__ root so candidate collectors can
+// walk it for additional image / brand signals beyond the single
+// product node `extractFromNextData` returned.
+function parseNextDataRoot($: CheerioAPI): unknown {
+  const raw = $('script#__NEXT_DATA__').first().contents().text()
+  if (!raw) return null
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return null
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Candidate collectors for the AI verifier
+// ---------------------------------------------------------------------------
+//
+// The AI extractor adjudicates among these instead of free-form
+// extracting from the HTML. Two payoffs:
+//   * Images: AI picks from a list — can't hallucinate a URL that 404s.
+//   * Brands: AI picks from a list — can't invent "rejuvenation.com"
+//     when the right answer is "Rejuvenation".
+
+const MAX_CANDIDATES = 15
+
+function collectImageCandidates(
+  $: CheerioAPI,
+  ld: LdProduct[],
+  nd: Partial<ScrapedProduct>,
+  ndRoot: unknown,
+  baseUrl: string,
+): string[] {
+  const raw: (string | null | undefined)[] = []
+
+  // og:image — the page's self-declared share image. Usually the hero.
+  raw.push(metaContent($, 'og:image'))
+  raw.push(metaContent($, 'og:image:secure_url'))
+  raw.push(metaContent($, 'twitter:image'))
+
+  // JSON-LD images. Walk every product entry; many sites emit a list.
+  for (const p of ld) {
+    const v = p['image']
+    if (typeof v === 'string') raw.push(v)
+    else if (Array.isArray(v)) {
+      for (const item of v) {
+        if (typeof item === 'string') raw.push(item)
+        else if (item && typeof item === 'object') {
+          const rec = item as Record<string, unknown>
+          if (typeof rec.url === 'string') raw.push(rec.url)
+          if (typeof rec.contentUrl === 'string') raw.push(rec.contentUrl)
+        }
+      }
+    } else if (v && typeof v === 'object') {
+      const rec = v as Record<string, unknown>
+      if (typeof rec.url === 'string') raw.push(rec.url)
+      if (typeof rec.contentUrl === 'string') raw.push(rec.contentUrl)
+    }
+  }
+
+  // Microdata.
+  raw.push(microdataValue($, 'image'))
+
+  // The single image __NEXT_DATA__ surfaced for the primary product.
+  if (nd.image_url) raw.push(nd.image_url)
+
+  // Walk __NEXT_DATA__ for image-shaped URLs everywhere — handles
+  // multi-image carousels stored under `images: [{url}]`.
+  walkForImageUrls(ndRoot, raw)
+
+  // <img> tags. Cap how many we scan so giant DOMs (carousels +
+  // recommendations + ad units) don't bloat the candidate list. The
+  // first ~60 imgs almost always include the main product image.
+  let scanned = 0
+  $('img').each((_, el) => {
+    if (scanned++ > 60) return
+    const $el = $(el)
+    const src = $el.attr('src') ?? $el.attr('data-src') ?? $el.attr('data-original')
+    if (src) raw.push(src)
+    // <img srcset="x.jpg 1x, x@2x.jpg 2x"> — take the highest descriptor.
+    const srcset = $el.attr('srcset')
+    if (srcset) raw.push(srcsetBest(srcset))
+  })
+
+  return normalizeUrlCandidates(raw, baseUrl)
+}
+
+function srcsetBest(srcset: string): string | null {
+  // Each entry: "<url> <descriptor>". Pick the entry with the largest
+  // width or density. Cheap parser — splits on commas not inside URLs.
+  const entries = srcset.split(',').map((s) => s.trim()).filter(Boolean)
+  if (!entries.length) return null
+  let bestUrl: string | null = null
+  let bestScore = -1
+  for (const e of entries) {
+    const parts = e.split(/\s+/)
+    const u = parts[0]
+    if (!u) continue
+    const desc = parts[1] ?? ''
+    const m = desc.match(/^(\d+(?:\.\d+)?)([wx])$/)
+    const score = m ? parseFloat(m[1]!) : 0
+    if (score > bestScore) {
+      bestScore = score
+      bestUrl = u
+    }
+  }
+  return bestUrl
+}
+
+function walkForImageUrls(node: unknown, out: (string | null | undefined)[]): void {
+  if (!node) return
+  const queue: unknown[] = [node]
+  let safety = 5000
+  while (queue.length && safety-- > 0) {
+    const cur = queue.shift()
+    if (!cur || typeof cur !== 'object') continue
+    if (Array.isArray(cur)) {
+      for (const v of cur) queue.push(v)
+      continue
+    }
+    const rec = cur as Record<string, unknown>
+    for (const key of Object.keys(rec)) {
+      const v = rec[key]
+      const url = coerceImageUrlCandidate(v)
+      if (url && /image|photo|thumbnail|asset/i.test(key)) out.push(url)
+      if (v && typeof v === 'object') queue.push(v)
+    }
+  }
+}
+
+function coerceImageUrlCandidate(v: unknown): string | null {
+  if (typeof v === 'string' && v.length < 2000) return v
+  if (Array.isArray(v)) {
+    for (const item of v) {
+      const u = coerceImageUrlCandidate(item)
+      if (u) return u
+    }
+  }
+  if (v && typeof v === 'object') {
+    const rec = v as Record<string, unknown>
+    for (const k of ['url', 'src', 'href', 'contentUrl', 'large', 'full']) {
+      const inner = rec[k]
+      if (typeof inner === 'string' && inner.length < 2000) return inner
+    }
+  }
+  return null
+}
+
+// Resolve, filter, dedupe. Keeps only http(s) URLs that look like
+// images (extension or path hint). Caps the list so the AI prompt
+// stays compact.
+function normalizeUrlCandidates(
+  raw: (string | null | undefined)[],
+  baseUrl: string,
+): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const r of raw) {
+    if (!r || typeof r !== 'string') continue
+    const trimmed = r.trim()
+    if (!trimmed || trimmed.startsWith('data:') || trimmed.startsWith('javascript:')) continue
+    let resolved: string
+    try {
+      resolved = new URL(trimmed, baseUrl).toString()
+    } catch {
+      continue
+    }
+    if (!/^https?:\/\//.test(resolved)) continue
+    if (!looksLikeImageUrl(resolved)) continue
+    if (seen.has(resolved)) continue
+    seen.add(resolved)
+    out.push(resolved)
+    if (out.length >= MAX_CANDIDATES) break
+  }
+  return out
+}
+
+function looksLikeImageUrl(url: string): boolean {
+  // Path or query that smells like an image. Permissive — CDN paths
+  // often drop the extension. Excludes obvious non-image endpoints.
+  if (/\.(jpe?g|png|webp|gif|avif|svg)(\?|$|#)/i.test(url)) return true
+  if (/\/image[s]?\//i.test(url)) return true
+  if (/cdn|media|akamaized|cloudfront|imgix|shopify|scene7|salsify|contentful/i.test(url)) return true
+  // Reject obvious tracking pixels and analytics.
+  if (/pixel|tracking|analytics|beacon|googletagmanager/i.test(url)) return false
+  return false
 }
 
 function pickPriceCents(rec: Record<string, unknown>): number | null {

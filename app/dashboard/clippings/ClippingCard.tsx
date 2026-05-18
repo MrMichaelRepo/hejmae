@@ -121,12 +121,6 @@ export default function ClippingCard({
           {row.brand?.trim() || sourceHost || '—'}
         </div>
 
-        {row.item_type || row.material ? (
-          <div className="font-sans text-[10px] tracking-[0.12em] text-hm-nav truncate">
-            {[row.item_type, row.material].filter(Boolean).join(' · ')}
-          </div>
-        ) : null}
-
         <div className="flex items-center gap-2 flex-wrap mt-0.5">
           {row.retail_price_cents != null ? (
             <span className="font-garamond text-[0.95rem] text-hm-text">
