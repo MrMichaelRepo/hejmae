@@ -37,7 +37,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     const { data: clip } = await sb
       .from('clipping_items')
       .select(
-        'id, designer_id, source_url, name, vendor, image_url, retail_price_cents, trade_price_cents, catalog_product_id',
+        'id, designer_id, source_url, name, brand, image_url, retail_price_cents, trade_price_cents, catalog_product_id',
       )
       .eq('id', id)
       .is('deleted_at', null)
@@ -46,6 +46,20 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     if (clip.designer_id !== ctx.designerId) throw notFound('Clipping not found')
 
     const project = await loadOwnedProject(ctx.designerId, body.project_id)
+
+    // Vendor (retailer / where-to-buy) lives on the catalog row, not on
+    // the clipping. We pull it here so items.vendor and the trade-price
+    // lookup both resolve to the actual supplier rather than the
+    // manufacturer brand on the clip.
+    let catalogVendor: string | null = null
+    if (clip.catalog_product_id) {
+      const { data: cat } = await sb
+        .from('catalog_products')
+        .select('vendor')
+        .eq('id', clip.catalog_product_id)
+        .maybeSingle()
+      catalogVendor = cat?.vendor ?? null
+    }
 
     if (body.room_id) {
       const { data: room } = await sb
@@ -63,9 +77,12 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     // the scrape path (e.g. it failed and the designer added it anyway).
     let catalogProductId = clip.catalog_product_id
     if (!catalogProductId && clip.name) {
+      // Fallback path — no catalog row yet (e.g. scrape failed). We
+      // don't have a clean retailer signal here, so vendor stays null.
+      // The user can edit it later on the items page.
       const cat = await upsertCatalogProduct({
         name: clip.name,
-        vendor: clip.vendor,
+        vendor: null,
         image_url: clip.image_url,
         source_url: clip.source_url,
         retail_price_cents: clip.retail_price_cents,
@@ -88,10 +105,13 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     }
 
     // Trade price precedence: explicit body value → stored clip value →
-    // vendor-discount-derived. Matches the items-create flow.
+    // vendor-discount-derived. Matches the items-create flow. The
+    // vendor lookup keys on catalog.vendor (the retailer), NOT the
+    // clip's brand — a Gubi chair bought through DWR matches the
+    // designer's DWR trade discount, not Gubi.
     let tradePriceCents = body.trade_price_cents ?? clip.trade_price_cents ?? 0
-    if (clip.vendor && shouldAutoFillTradePrice(tradePriceCents)) {
-      const vendorRow = await findVendorByName(ctx.designerId, clip.vendor)
+    if (catalogVendor && shouldAutoFillTradePrice(tradePriceCents)) {
+      const vendorRow = await findVendorByName(ctx.designerId, catalogVendor)
       const derived = vendorRow
         ? tradePriceFromDiscount(
             clip.retail_price_cents,
@@ -122,7 +142,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
         room_id: body.room_id ?? null,
         catalog_product_id: catalogProductId,
         name,
-        vendor: clip.vendor,
+        vendor: catalogVendor,
         image_url: clip.image_url,
         source_url: clip.source_url,
         trade_price_cents: tradePriceCents,

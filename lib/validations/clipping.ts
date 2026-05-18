@@ -33,7 +33,7 @@ export const clippingAddToProjectInput = z.object({
 export const clippingListQuery = z.object({
   designer_id: uuid.nullish(),
   project_id: uuid.nullish(),
-  vendor: z.string().max(200).nullish(),
+  brand: z.string().max(200).nullish(),
   item_type: z.string().max(100).nullish(),
   week_added: z
     .string()

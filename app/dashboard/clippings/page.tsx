@@ -25,12 +25,12 @@ export default async function ClippingsPage() {
       .eq('designer_id', designerId)
       .eq('status', 'active')
       .order('name'),
-    // Pull just enough rows to derive vendor / item_type / week_added
+    // Pull just enough rows to derive brand / item_type / week_added
     // filter options. We cap at 500 — beyond that the filter chips
     // become noise anyway.
     sb
       .from('clipping_items')
-      .select('vendor, item_type, week_added')
+      .select('brand, item_type, week_added')
       .eq('designer_id', designerId)
       .is('deleted_at', null)
       .limit(500),
@@ -42,16 +42,16 @@ export default async function ClippingsPage() {
   )
   const teammatesSigned = await withSignedUrlsList(teammates, 'logo_url')
 
-  const distinctVendors = new Set<string>()
+  const distinctBrands = new Set<string>()
   const distinctItemTypes = new Set<string>()
   const distinctWeeks = new Set<string>()
   for (const r of distinctRes.data ?? []) {
-    if (r.vendor) distinctVendors.add(r.vendor)
+    if (r.brand) distinctBrands.add(r.brand)
     if (r.item_type) distinctItemTypes.add(r.item_type)
     if (r.week_added) distinctWeeks.add(r.week_added)
   }
 
-  const vendorOptions: ClippingsFilterOption[] = Array.from(distinctVendors)
+  const brandOptions: ClippingsFilterOption[] = Array.from(distinctBrands)
     .sort()
     .map((v) => ({ value: v, label: v }))
   const itemTypeOptions: ClippingsFilterOption[] = Array.from(distinctItemTypes)
@@ -69,7 +69,7 @@ export default async function ClippingsPage() {
         logo_url: u.logo_url,
       }))}
       projects={(projectsRes.data ?? []) as Array<{ id: string; name: string }>}
-      vendorOptions={vendorOptions}
+      brandOptions={brandOptions}
       itemTypeOptions={itemTypeOptions}
       weekOptions={weekOptions}
     />

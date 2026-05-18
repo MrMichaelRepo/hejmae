@@ -18,10 +18,22 @@ const MAX_HTML_CHARS = 200_000
 
 export interface AiExtractedProduct {
   name: string | null
+  // Manufacturer / designer brand (e.g. "Gubi", "Vitra"). Display-only.
+  brand: string | null
+  // Retailer / where-to-buy (e.g. "Design Within Reach"). Null when the
+  // brand IS the retailer (direct-to-consumer storefronts).
   vendor: string | null
   image_url: string | null
   retail_price_cents: number | null
   description: string | null
+  // Short product-type label ("Lounge chair", "Sconce", "Sofa") for
+  // the dashboard chip. AI-normalized — independent of any
+  // category/itemType the page emits, which is often vendor-internal
+  // taxonomy noise.
+  item_type: string | null
+  // Dominant material or style cue ("Performance tweed", "Solid
+  // walnut", "Brushed brass"). One short phrase, not a list.
+  material: string | null
 }
 
 export async function aiExtractProduct(
@@ -74,10 +86,13 @@ export async function aiExtractProduct(
 
   const result: AiExtractedProduct = {
     name: pickStr(json, 'name'),
+    brand: pickStr(json, 'brand'),
     vendor: pickStr(json, 'vendor'),
     image_url: pickAbsoluteUrl(json, 'image_url', url),
     retail_price_cents: pickPriceCents(json),
     description: pickStr(json, 'description'),
+    item_type: pickStr(json, 'item_type'),
+    material: pickStr(json, 'material'),
   }
 
   // Log what the model actually returned vs. what we kept, so we can
@@ -86,6 +101,7 @@ export async function aiExtractProduct(
     url,
     raw: {
       name: typeof json.name,
+      brand: typeof json.brand,
       vendor: typeof json.vendor,
       image_url: typeof json.image_url === 'string' ? json.image_url.slice(0, 120) : null,
       price: json.price,
@@ -93,10 +109,13 @@ export async function aiExtractProduct(
     },
     accepted: {
       name: result.name != null,
+      brand: result.brand != null,
       vendor: result.vendor != null,
       image_url: result.image_url != null,
       retail_price_cents: result.retail_price_cents,
       description: result.description != null,
+      item_type: result.item_type,
+      material: result.material,
     },
     usage: res.usage,
   }))
@@ -105,18 +124,21 @@ export async function aiExtractProduct(
 }
 
 function buildPrompt(url: string, cleaned: string): string {
-  return `You are extracting product data from a single product-page HTML snapshot.
+  return `You are extracting product data from a single product-page HTML snapshot for an interior-design "moodboard" tool. The user is curating furniture, lighting, and decor — they want clean, scannable cards, not the verbose marketing names retailers emit.
 
 URL: ${url}
 
 Return ONLY a JSON object — no prose, no code fence — with this schema:
 
 {
-  "name": string | null,            // product name as it appears on the page
-  "vendor": string | null,          // brand or retailer (e.g. "Pottery Barn", "Rejuvenation")
-  "image_url": string | null,       // absolute https URL of the main product image
-  "price": number | null,           // current retail price in the page's currency, as a plain number (e.g. 1299.00). Prefer the SALE price if both list and sale are shown.
-  "description": string | null      // 1–3 sentence product description, plain text, no HTML
+  "name": string | null,            // Cleaned product name. Strip variant tails (color/size/SKU) and trailing site/brand suffixes. Title case. Target 2–6 words, max ~40 chars. Examples: "Hooked Wall Sconce" (not "HOOKED WALL / CROSS / SMALL / STONE"), "Remmy Swivel Armchair" (not "Remmy Upholstered Petite Swivel Armchair, Polyester Wrapped Cushions, Performance Heathered Tweed Knoll Gray").
+  "brand": string | null,           // Manufacturer or designer brand of the product itself, NOT the website selling it (e.g. "Gubi", "Vitra", "Hay", "Buster + Punch"). For direct-to-consumer retailers selling their own line (Pottery Barn, West Elm, Rejuvenation, CB2), the brand IS the retailer — return their name. Avoid all-caps slugs like "BRANDS-GUBI".
+  "vendor": string | null,          // Retailer / where to buy. ONLY set this when it's different from the brand — e.g. brand="Gubi", vendor="Design Within Reach". For direct-to-consumer storefronts where brand and seller are the same, return null.
+  "image_url": string | null,       // Absolute https URL of the main product image.
+  "price": number | null,           // Current retail price in the page's currency, as a plain number (e.g. 1299.00). Prefer SALE price if both list and sale are shown.
+  "description": string | null,     // 1–3 sentence description, plain text, no HTML.
+  "item_type": string | null,       // Short product-type label, 1–3 words, title case. The category a designer would file this under. Examples: "Lounge chair", "Sconce", "Pendant light", "Sofa", "Dining chair", "Side table", "Rug". Do NOT use retailer-internal slugs like "outdoor-lounge-chairs-ottomans" or "BRANDS-GUBI".
+  "material": string | null         // Dominant material OR style cue as one short phrase. Pick whichever is more identifying. Examples: "Performance tweed", "Solid walnut", "Brushed brass", "Travertine", "Boucle". null if not derivable. Do not list multiple materials.
 }
 
 If a field can't be determined confidently, return null for it. Do not invent values. Do not return placeholder text.

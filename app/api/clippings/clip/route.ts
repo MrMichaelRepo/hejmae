@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
     const catalogUrl = body.canonical_url ?? body.url
     const { data: catalogMatch } = await sb
       .from('catalog_products')
-      .select('id, name, vendor, image_url, retail_price_cents, clipped_count')
+      .select('id, name, brand, image_url, retail_price_cents, clipped_count, item_type, material')
       .eq('source_url', catalogUrl)
       .is('merged_into_id', null)
       .is('deleted_at', null)
@@ -132,9 +132,11 @@ export async function POST(req: NextRequest) {
 
     if (catalogMatch) {
       insertPayload.name = catalogMatch.name
-      insertPayload.vendor = catalogMatch.vendor
+      insertPayload.brand = catalogMatch.brand
       insertPayload.image_url = catalogMatch.image_url
       insertPayload.retail_price_cents = catalogMatch.retail_price_cents
+      insertPayload.item_type = catalogMatch.item_type
+      insertPayload.material = catalogMatch.material
       insertPayload.scrape_status = 'complete'
     } else if (body.page_title) {
       // Provisional name from the tab title so the card isn't blank

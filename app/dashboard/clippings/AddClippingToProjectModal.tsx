@@ -91,9 +91,9 @@ export default function AddClippingToProjectModal({
         <div className="font-serif text-[1.1rem] leading-tight">
           {clipping.name?.trim() || clipping.source_url}
         </div>
-        {clipping.vendor ? (
+        {clipping.brand ? (
           <div className="font-garamond text-[0.9rem] text-hm-nav mt-1">
-            {clipping.vendor}
+            {clipping.brand}
           </div>
         ) : null}
       </div>

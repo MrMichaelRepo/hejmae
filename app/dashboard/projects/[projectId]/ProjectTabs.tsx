@@ -5,8 +5,8 @@ import { usePathname } from 'next/navigation'
 
 const TABS: Array<[string, string]> = [
   ['Overview', ''],
-  ['Items', '/items'],
   ['Floor Plan', '/floor-plan'],
+  ['Items', '/items'],
   ['Proposal', '/proposal'],
   ['Invoices', '/invoices'],
   ['Purchase Orders', '/purchase-orders'],

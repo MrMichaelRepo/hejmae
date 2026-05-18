@@ -7,15 +7,17 @@
 -- extension pulled out of the rendered page at clip time. Nullable
 -- because not every site emits a canonical and the clipper soft-fails
 -- when capture is impossible (chrome:// pages, etc.).
+--
+-- `if not exists` guards make this safe to re-run.
 
 alter table public.clipping_items
-  add column canonical_url text;
+  add column if not exists canonical_url text;
 
 comment on column public.clipping_items.canonical_url is
   'Canonical URL from <link rel="canonical"> at clip time. Used with source_url for per-user dedup; catalog dedup keys on the same value (see catalog_products.source_url).';
 
 -- Partial-unique mirrors clipping_items_dedup_idx — one canonical per
 -- user among live rows. Lets a soft-deleted row be re-clipped.
-create unique index clipping_items_canonical_dedup_idx
+create unique index if not exists clipping_items_canonical_dedup_idx
   on public.clipping_items (clipper_user_id, canonical_url)
   where deleted_at is null and canonical_url is not null;

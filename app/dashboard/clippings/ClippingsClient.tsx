@@ -10,6 +10,8 @@ import { toast } from '@/components/ui/Toast'
 import { formatWeekRange } from '@/lib/clippings/week'
 import ClippingCard from './ClippingCard'
 import AddClippingToProjectModal from './AddClippingToProjectModal'
+import BulkAddToProjectModal from './BulkAddToProjectModal'
+import { formatCents } from '@/lib/format'
 import type { ClippingItemFeedRow } from '@/lib/types-ui'
 
 export interface ClippingsFilterOption {
@@ -28,7 +30,7 @@ interface Props {
   currentUserId: string
   teammates: Teammate[]
   projects: Array<{ id: string; name: string }>
-  vendorOptions: ClippingsFilterOption[]
+  brandOptions: ClippingsFilterOption[]
   itemTypeOptions: ClippingsFilterOption[]
   // Pre-sorted desc list of Monday ISO dates the studio has clippings for.
   weekOptions: string[]
@@ -37,7 +39,7 @@ interface Props {
 interface Filters {
   designerId: string
   weekAdded: string
-  vendor: string
+  brand: string
   itemType: string
   projectId: string
 }
@@ -45,7 +47,7 @@ interface Filters {
 const EMPTY_FILTERS: Filters = {
   designerId: '',
   weekAdded: '',
-  vendor: '',
+  brand: '',
   itemType: '',
   projectId: '',
 }
@@ -65,7 +67,7 @@ export default function ClippingsClient({
   currentUserId,
   teammates,
   projects,
-  vendorOptions,
+  brandOptions,
   itemTypeOptions,
   weekOptions,
 }: Props) {
@@ -76,6 +78,41 @@ export default function ClippingsClient({
   const [loadingMore, setLoadingMore] = useState(false)
   const [pickingForProject, setPickingForProject] = useState<ClippingItemFeedRow | null>(null)
   const [pendingDeletes, setPendingDeletes] = useState<PendingDelete[]>([])
+
+  // Bulk selection mode. Toggling off clears any selected ids so the
+  // next entry starts fresh.
+  const [selectMode, setSelectMode] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkModalOpen, setBulkModalOpen] = useState(false)
+
+  const toggleSelectMode = () => {
+    setSelectMode((prev) => {
+      if (prev) setSelectedIds(new Set())
+      return !prev
+    })
+  }
+
+  const toggleSelected = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  // Sum the retail price of selected rows. Rows still missing a price
+  // contribute 0 — the total is "best known", not authoritative.
+  const selectionTotalCents = useMemo(() => {
+    if (!rows || selectedIds.size === 0) return 0
+    let sum = 0
+    for (const r of rows) {
+      if (selectedIds.has(r.id) && r.retail_price_cents != null) {
+        sum += r.retail_price_cents
+      }
+    }
+    return sum
+  }, [rows, selectedIds])
 
   const filtersActive = useMemo(
     () => Object.values(filters).some((v) => v !== ''),
@@ -90,7 +127,7 @@ export default function ClippingsClient({
       })
       if (filters.designerId) params.set('designer_id', filters.designerId)
       if (filters.weekAdded) params.set('week_added', filters.weekAdded)
-      if (filters.vendor) params.set('vendor', filters.vendor)
+      if (filters.brand) params.set('brand', filters.brand)
       if (filters.itemType) params.set('item_type', filters.itemType)
       if (filters.projectId) params.set('project_id', filters.projectId)
 
@@ -194,22 +231,35 @@ export default function ClippingsClient({
   }
 
   return (
-    <div className="max-w-7xl">
+    <div className={['max-w-7xl', selectMode ? 'pb-24' : ''].join(' ')}>
       <PageHeader
         eyebrow="Sourcing"
         title="Clippings"
         subtitle="Everything your studio has clipped from the web. Promote a clipping to a project when you're ready to spec it."
       />
 
-      <FilterBar
-        filters={filters}
-        onChange={setFilters}
-        teammates={teammates}
-        projects={projects}
-        vendorOptions={vendorOptions}
-        itemTypeOptions={itemTypeOptions}
-        weekOptions={weekOptions}
-      />
+      <div className="flex items-start justify-between gap-4 mb-2">
+        <FilterBar
+          filters={filters}
+          onChange={setFilters}
+          teammates={teammates}
+          projects={projects}
+          brandOptions={brandOptions}
+          itemTypeOptions={itemTypeOptions}
+          weekOptions={weekOptions}
+        />
+        <button
+          onClick={toggleSelectMode}
+          className={[
+            'shrink-0 font-sans text-[10px] uppercase tracking-[0.22em] px-4 py-2 rounded-full border transition-colors',
+            selectMode
+              ? 'bg-hm-text text-bg border-hm-text'
+              : 'bg-transparent text-hm-text border-hm-text/25 hover:border-hm-text',
+          ].join(' ')}
+        >
+          {selectMode ? 'Cancel selection' : 'Select'}
+        </button>
+      </div>
 
       {pendingDeletes.length > 0 ? (
         <div className="mb-6 flex flex-col gap-2">
@@ -264,6 +314,9 @@ export default function ClippingsClient({
                 onDelete={() => handleDelete(row)}
                 onAddToProject={() => setPickingForProject(row)}
                 weekLabel={formatWeekRange(row.week_added)}
+                selectMode={selectMode}
+                selected={selectedIds.has(row.id)}
+                onToggleSelect={() => toggleSelected(row.id)}
               />
             ))}
           </div>
@@ -284,6 +337,50 @@ export default function ClippingsClient({
         onClose={() => setPickingForProject(null)}
         onAdded={() => setPickingForProject(null)}
       />
+
+      {/* Sticky selection footer — fixed to viewport bottom while
+          select mode is on. Padding is generous because the page grid
+          extends underneath. */}
+      {selectMode ? (
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-bg border-t border-hm-text/15 shadow-[0_-2px_12px_rgba(30,33,40,0.08)]">
+          <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
+            <div className="flex items-baseline gap-4">
+              <div className="font-serif text-[1.05rem] text-hm-text">
+                {selectedIds.size} selected
+              </div>
+              <div className="font-garamond text-[0.95rem] text-hm-nav">
+                Total: {formatCents(selectionTotalCents)}
+              </div>
+            </div>
+            <Button
+              onClick={() => setBulkModalOpen(true)}
+              disabled={selectedIds.size === 0}
+            >
+              Add {selectedIds.size > 0 ? selectedIds.size : ''} to project
+            </Button>
+          </div>
+        </div>
+      ) : null}
+
+      <BulkAddToProjectModal
+        open={bulkModalOpen}
+        selectedCount={selectedIds.size}
+        totalCents={selectionTotalCents}
+        selectedIds={Array.from(selectedIds)}
+        projects={projects}
+        onClose={() => setBulkModalOpen(false)}
+        onAdded={(ok) => {
+          setBulkModalOpen(false)
+          if (ok > 0) {
+            // Refresh the feed and exit select mode after a successful
+            // bulk add. The cards stay in place but the user can see
+            // them tagged with the project on next reload.
+            setSelectedIds(new Set())
+            setSelectMode(false)
+            fetchPage(1, false).catch(() => {})
+          }
+        }}
+      />
     </div>
   )
 }
@@ -297,7 +394,7 @@ function FilterBar({
   onChange,
   teammates,
   projects,
-  vendorOptions,
+  brandOptions,
   itemTypeOptions,
   weekOptions,
 }: {
@@ -305,7 +402,7 @@ function FilterBar({
   onChange: (next: Filters) => void
   teammates: Teammate[]
   projects: Array<{ id: string; name: string }>
-  vendorOptions: ClippingsFilterOption[]
+  brandOptions: ClippingsFilterOption[]
   itemTypeOptions: ClippingsFilterOption[]
   weekOptions: string[]
 }) {
@@ -334,10 +431,10 @@ function FilterBar({
         }))}
       />
       <FilterSelect
-        label="Vendor"
-        value={filters.vendor}
-        onChange={(v) => set('vendor', v)}
-        options={vendorOptions}
+        label="Brand"
+        value={filters.brand}
+        onChange={(v) => set('brand', v)}
+        options={brandOptions}
       />
       <FilterSelect
         label="Item type"

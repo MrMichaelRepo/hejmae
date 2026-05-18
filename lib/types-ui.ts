@@ -48,11 +48,12 @@ export interface ClippingItemFeedRow {
   catalog_product_id: string | null
   source_url: string
   name: string | null
-  vendor: string | null
+  brand: string | null
   image_url: string | null
   retail_price_cents: number | null
   description: string | null
   item_type: string | null
+  material: string | null
   scrape_status: import('@/lib/supabase/types').ClippingScrapeStatus
   week_added: string
   created_at: string

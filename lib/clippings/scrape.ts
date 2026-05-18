@@ -13,11 +13,20 @@ import { load, type CheerioAPI } from 'cheerio'
 
 export interface ScrapedProduct {
   name: string | null
+  // Manufacturer / designer brand (e.g. "Gubi"). Sourced from JSON-LD
+  // `brand` and microdata. Display-only on the clipping card.
+  brand: string | null
+  // Retailer / where-to-buy (e.g. "Design Within Reach"). Sourced from
+  // og:site_name / hostname. Used for trade-price lookup and items.vendor
+  // on add-to-project. Stored on catalog_products, not on clipping_items.
   vendor: string | null
   image_url: string | null
   retail_price_cents: number | null
   description: string | null
   item_type: string | null
+  // No deterministic source — only filled by the AI extractor. Kept
+  // on this type so run-scrape can carry it through one merge struct.
+  material: string | null
 }
 
 export function scrapeProductHtml(
@@ -67,19 +76,26 @@ export function scrapeProductHtml(
   const brand =
     pickStr(ld, 'brand') ??
     brandFromLd(ld) ??
-    nd.vendor ??
+    nd.brand ??
     microdataValue($, 'brand')
-  const vendor = brand ?? metaContent($, 'og:site_name') ?? vendorFromHostname(url)
+
+  // Retailer: site_name (canonical) → URL hostname. We deliberately do
+  // NOT fall back to `brand` here — they're different concepts.
+  const vendor =
+    metaContent($, 'og:site_name') ??
+    vendorFromHostname(url)
 
   const itemType = pickStr(ld, 'category') ?? null
 
   return {
     name: name ? trimMax(name, 300) : null,
+    brand: brand ? trimMax(brand, 200) : null,
     vendor: vendor ? trimMax(vendor, 200) : null,
     image_url: image,
     retail_price_cents: price,
     description: description ? trimMax(description, 4000) : null,
     item_type: itemType ? trimMax(itemType, 100) : null,
+    material: null,
   }
 }
 
@@ -361,7 +377,7 @@ function extractFromNextData($: CheerioAPI): Partial<ScrapedProduct> {
       'shortDescription',
       'productDescription',
     ]),
-    vendor: pickFirstString(node, ['brand', 'brandName', 'vendor', 'manufacturer']),
+    brand: pickFirstString(node, ['brand', 'brandName', 'vendor', 'manufacturer']),
   }
 }
 

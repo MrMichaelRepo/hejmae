@@ -10,6 +10,13 @@ interface Props {
   onDelete: () => void
   onAddToProject: () => void
   weekLabel: string
+  // Bulk-select mode: when true, the card swallows its image/title
+  // links and clicking anywhere on the card toggles selection. The
+  // per-card "Add to project" + delete actions are hidden so the only
+  // affordance is selection.
+  selectMode?: boolean
+  selected?: boolean
+  onToggleSelect?: () => void
 }
 
 export default function ClippingCard({
@@ -18,13 +25,52 @@ export default function ClippingCard({
   onDelete,
   onAddToProject,
   weekLabel,
+  selectMode = false,
+  selected = false,
+  onToggleSelect,
 }: Props) {
   const isPending = row.scrape_status === 'pending'
   const isFailed = row.scrape_status === 'failed'
   const sourceHost = safeHost(row.source_url)
 
   return (
-    <article className="group border border-hm-text/10 bg-bg flex flex-col">
+    <article
+      className={[
+        'group border bg-bg flex flex-col transition-colors relative',
+        selectMode && selected
+          ? 'border-hm-text ring-1 ring-hm-text'
+          : 'border-hm-text/10',
+      ].join(' ')}
+    >
+      {/* Select-mode overlay — captures clicks across the whole card so
+          the underlying image / title links can't fire. Sits above
+          everything except the explicit selection checkmark. */}
+      {selectMode ? (
+        <button
+          type="button"
+          onClick={onToggleSelect}
+          aria-pressed={selected}
+          aria-label={selected ? 'Deselect clipping' : 'Select clipping'}
+          className="absolute inset-0 z-20 cursor-pointer bg-transparent border-0"
+        />
+      ) : null}
+
+      {selectMode ? (
+        <div
+          aria-hidden
+          className={[
+            'absolute top-2.5 right-2.5 z-30 inline-flex items-center justify-center w-6 h-6 rounded-full border transition-colors',
+            selected
+              ? 'bg-hm-text border-hm-text text-bg'
+              : 'bg-bg/90 backdrop-blur border-hm-text/30 text-transparent',
+          ].join(' ')}
+        >
+          <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="3">
+            <path d="M5 12l5 5 9-11" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+      ) : null}
+
       {/* Image */}
       <a
         href={row.source_url}
@@ -71,9 +117,15 @@ export default function ClippingCard({
             (isPending ? 'Loading product…' : sourceHost ?? row.source_url)}
         </a>
 
-        <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
-          {row.vendor?.trim() || sourceHost || '—'}
+        <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav truncate">
+          {row.brand?.trim() || sourceHost || '—'}
         </div>
+
+        {row.item_type || row.material ? (
+          <div className="font-sans text-[10px] tracking-[0.12em] text-hm-nav truncate">
+            {[row.item_type, row.material].filter(Boolean).join(' · ')}
+          </div>
+        ) : null}
 
         <div className="flex items-center gap-2 flex-wrap mt-0.5">
           {row.retail_price_cents != null ? (
@@ -91,25 +143,28 @@ export default function ClippingCard({
           </span>
         </div>
 
-        {/* Actions */}
-        <div className="mt-3 pt-3 border-t border-hm-text/10 flex items-center justify-between gap-2">
-          <button
-            onClick={onAddToProject}
-            disabled={isPending}
-            className="font-sans text-[10px] uppercase tracking-[0.22em] bg-hm-text text-bg px-4 py-2 rounded-full hover:bg-hm-text/90 disabled:opacity-40 disabled:cursor-not-allowed"
-          >
-            Add to project
-          </button>
-          {canDelete ? (
+        {/* Actions — hidden in bulk select mode so the only affordance
+            is the selection click target. */}
+        {selectMode ? null : (
+          <div className="mt-3 pt-3 border-t border-hm-text/10 flex items-center justify-between gap-2">
             <button
-              onClick={onDelete}
-              aria-label="Delete clipping"
-              className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav hover:text-red-700 px-3 py-2"
+              onClick={onAddToProject}
+              disabled={isPending}
+              className="font-sans text-[10px] uppercase tracking-[0.22em] bg-hm-text text-bg px-4 py-2 rounded-full hover:bg-hm-text/90 disabled:opacity-40 disabled:cursor-not-allowed"
             >
-              ✕
+              Add to project
             </button>
-          ) : null}
-        </div>
+            {canDelete ? (
+              <button
+                onClick={onDelete}
+                aria-label="Delete clipping"
+                className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav hover:text-red-700 px-3 py-2"
+              >
+                ✕
+              </button>
+            ) : null}
+          </div>
+        )}
       </div>
     </article>
   )
