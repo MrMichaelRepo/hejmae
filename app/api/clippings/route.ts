@@ -5,7 +5,7 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { requireDesigner } from '@/lib/auth/designer'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import { withErrorHandling } from '@/lib/errors'
+import { withErrorHandling, notFound } from '@/lib/errors'
 import { withSignedUrlsList } from '@/lib/storage'
 import { clippingListQuery } from '@/lib/validations/clipping'
 import type { ClippingItemFeedRow } from '@/lib/types-ui'
@@ -67,7 +67,7 @@ export async function GET(req: NextRequest) {
         .eq('id', query.project_id)
         .eq('designer_id', ctx.designerId)
         .maybeSingle()
-      if (!proj) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      if (!proj) throw notFound('project_id does not belong to this studio')
       q = q.eq('project_id', query.project_id)
     }
     if (query.brand) q = q.ilike('brand', query.brand)
