@@ -2,49 +2,55 @@
 
 import { titleCase } from '@/lib/format'
 
+// Earthy palette — never the bright Tailwind defaults. These badges live
+// inside a cream world; status colors should belong to it, not interrupt it.
 const TONE: Record<string, string> = {
-  neutral: 'border-hm-text/20 text-hm-nav',
-  amber: 'border-amber-700/30 text-amber-800 bg-amber-50/30',
-  green: 'border-emerald-700/30 text-emerald-800 bg-emerald-50/30',
-  blue: 'border-sky-700/30 text-sky-800 bg-sky-50/30',
-  red: 'border-red-700/30 text-red-800 bg-red-50/30',
-  grey: 'border-hm-text/15 text-hm-nav/70',
+  neutral: 'border-line text-ink-muted bg-bg-elevated',
+  grey:    'border-line text-ink-subtle bg-transparent',
+  sage:    'border-success/30 text-success bg-success-soft/50',
+  amber:   'border-warn/30 text-warn bg-warn-soft/50',
+  brick:   'border-danger/30 text-danger bg-danger-soft/50',
+  terra:   'border-accent/30 text-accent bg-accent-soft/50',
+  // Back-compat aliases — older call sites map color words → earthy tones
+  green: 'border-success/30 text-success bg-success-soft/50',
+  blue:  'border-accent/30 text-accent bg-accent-soft/50',
+  red:   'border-danger/30 text-danger bg-danger-soft/50',
 }
 
 const ITEM_STATUS: Record<string, keyof typeof TONE> = {
-  sourcing: 'grey',
-  approved: 'amber',
-  ordered: 'green',
-  received: 'blue',
-  installed: 'blue',
+  sourcing:  'grey',
+  approved:  'amber',
+  ordered:   'sage',
+  received:  'terra',
+  installed: 'terra',
 }
 
 const PROPOSAL_STATUS: Record<string, keyof typeof TONE> = {
-  draft: 'grey',
-  sent: 'amber',
-  partially_approved: 'amber',
-  fully_approved: 'green',
+  draft:               'grey',
+  sent:                'amber',
+  partially_approved:  'amber',
+  fully_approved:      'sage',
 }
 
 const INVOICE_STATUS: Record<string, keyof typeof TONE> = {
-  draft: 'grey',
-  sent: 'amber',
+  draft:          'grey',
+  sent:           'amber',
   partially_paid: 'amber',
-  paid: 'green',
+  paid:           'sage',
 }
 
 const PO_STATUS: Record<string, keyof typeof TONE> = {
-  draft: 'grey',
-  sent: 'amber',
-  acknowledged: 'amber',
-  partially_received: 'blue',
-  complete: 'green',
+  draft:               'grey',
+  sent:                'amber',
+  acknowledged:        'amber',
+  partially_received:  'terra',
+  complete:            'sage',
 }
 
 const PROJECT_STATUS: Record<string, keyof typeof TONE> = {
-  active: 'green',
-  completed: 'blue',
-  archived: 'grey',
+  active:    'sage',
+  completed: 'terra',
+  archived:  'grey',
 }
 
 export function StatusBadge({

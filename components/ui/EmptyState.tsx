@@ -14,13 +14,13 @@ export default function EmptyState({
   return (
     <div
       className={[
-        'border border-dashed border-hm-text/15 text-center',
+        'border border-dashed border-line rounded-lg bg-bg-elevated/40 text-center',
         small ? 'p-8' : 'p-14',
       ].join(' ')}
     >
       <div className="font-serif text-[1.3rem] mb-2 leading-tight">{title}</div>
       {body ? (
-        <p className="font-garamond text-[0.95rem] leading-[1.7] text-hm-nav max-w-md mx-auto mb-5">
+        <p className="font-garamond text-[0.95rem] leading-[1.7] text-ink-muted max-w-md mx-auto mb-5">
           {body}
         </p>
       ) : null}
@@ -44,7 +44,7 @@ export function PageHeader({
     <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4 mb-10">
       <div>
         {eyebrow ? (
-          <div className="font-sans text-[10px] uppercase tracking-[0.26em] text-hm-nav mb-3">
+          <div className="font-sans text-[10px] uppercase tracking-[0.26em] text-ink-muted mb-3">
             {eyebrow}
           </div>
         ) : null}
@@ -52,7 +52,7 @@ export function PageHeader({
           {title}
         </h1>
         {subtitle ? (
-          <p className="mt-2 font-garamond text-[1rem] leading-[1.7] text-hm-nav max-w-xl">
+          <p className="mt-2 font-garamond text-[1rem] leading-[1.7] text-ink-muted max-w-xl">
             {subtitle}
           </p>
         ) : null}

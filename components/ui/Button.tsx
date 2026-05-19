@@ -2,7 +2,7 @@
 
 import { forwardRef, type ButtonHTMLAttributes } from 'react'
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
+type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'accent'
 type Size = 'sm' | 'md' | 'lg'
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -12,13 +12,21 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const VARIANTS: Record<Variant, string> = {
-  primary: 'bg-hm-text text-bg hover:bg-hm-text/90 border border-hm-text',
+  // Default high-emphasis button — dark ink on cream
+  primary:
+    'bg-ink text-bg border border-ink hover:bg-ink/90 focus-visible:shadow-focus',
+  // Hairline outline — the workhorse
   secondary:
-    'bg-transparent text-hm-text border border-hm-text/25 hover:bg-hm-text hover:text-bg',
+    'bg-transparent text-ink border border-ink/20 hover:border-ink hover:bg-ink hover:text-bg focus-visible:shadow-focus',
+  // Tertiary, no chrome until hover
   ghost:
-    'bg-transparent text-hm-nav hover:text-hm-text hover:bg-hm-text/[0.04] border border-transparent',
+    'bg-transparent text-ink-muted hover:text-ink hover:bg-ink/[0.04] border border-transparent focus-visible:shadow-focus',
+  // Destructive — muted brick, never bright red
   danger:
-    'bg-transparent text-red-700 border border-red-700/30 hover:bg-red-700 hover:text-bg',
+    'bg-transparent text-danger border border-danger/30 hover:bg-danger hover:text-bg focus-visible:shadow-focus',
+  // Single brand accent — use sparingly, e.g. "Save & send"
+  accent:
+    'bg-accent text-bg border border-accent hover:bg-accent-hover focus-visible:shadow-focus',
 }
 
 const SIZES: Record<Size, string> = {
@@ -36,7 +44,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
       ref={ref}
       disabled={disabled || loading}
       className={[
-        'inline-flex items-center justify-center gap-2 font-sans uppercase tracking-[0.2em] rounded-full transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed',
+        'inline-flex items-center justify-center gap-2 font-sans uppercase tracking-[0.2em] rounded-full transition-all duration-150 ease-out-soft outline-none disabled:opacity-50 disabled:cursor-not-allowed',
         VARIANTS[variant],
         SIZES[size],
         className,

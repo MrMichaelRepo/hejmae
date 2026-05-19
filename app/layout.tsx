@@ -1,12 +1,29 @@
 import type { Metadata, Viewport } from 'next'
-import { DM_Serif_Text } from 'next/font/google'
+import { DM_Serif_Text, EB_Garamond, Inter } from 'next/font/google'
 import './globals.css'
 import { ToastHost } from '@/components/ui/Toast'
 
+// Editorial display — used only at 32px+ for hero/section titles
 const dmSerifText = DM_Serif_Text({
   subsets: ['latin'],
   weight: ['400'],
   variable: '--font-dm-serif-text',
+  display: 'swap',
+})
+
+// Long-form / proposals / marketing body — never UI chrome
+const ebGaramond = EB_Garamond({
+  subsets: ['latin'],
+  weight: ['400', '500', '600'],
+  variable: '--font-eb-garamond',
+  display: 'swap',
+})
+
+// UI chrome — replaces TeX Gyre Adventor everywhere font-sans was used
+const inter = Inter({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-inter',
   display: 'swap',
 })
 
@@ -42,8 +59,11 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={dmSerifText.variable}>
-      <body className="bg-bg text-hm-text font-garamond min-h-screen">
+    <html
+      lang="en"
+      className={`${dmSerifText.variable} ${ebGaramond.variable} ${inter.variable}`}
+    >
+      <body className="bg-bg text-ink font-garamond min-h-screen">
         {children}
         <ToastHost />
       </body>

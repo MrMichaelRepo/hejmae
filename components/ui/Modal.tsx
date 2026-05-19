@@ -43,21 +43,21 @@ export default function Modal({
       className="fixed inset-0 z-50 flex items-center justify-center px-4"
       onClick={onClose}
     >
-      <div className="absolute inset-0 bg-hm-text/30" />
+      <div className="absolute inset-0 bg-ink/30 animate-backdrop-in" />
       <div
         className={[
-          'relative bg-bg border border-hm-text/15 shadow-2xl w-full',
+          'relative bg-bg-elevated border border-line rounded-lg shadow-elev2 w-full animate-sheet-in',
           widths[size],
           'max-h-[90vh] overflow-y-auto',
         ].join(' ')}
         onClick={(e) => e.stopPropagation()}
       >
         {title ? (
-          <div className="border-b border-hm-text/10 px-7 py-5 flex items-center justify-between">
+          <div className="border-b border-line px-7 py-5 flex items-center justify-between">
             <div className="font-serif text-[1.2rem] leading-none">{title}</div>
             <button
               onClick={onClose}
-              className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-hm-text"
+              className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted hover:text-ink transition-colors"
               aria-label="Close"
             >
               ✕
@@ -101,18 +101,18 @@ export function Drawer({
 
   return createPortal(
     <div className="fixed inset-0 z-50" onClick={onClose}>
-      <div className="absolute inset-0 bg-hm-text/30" />
+      <div className="absolute inset-0 bg-ink/30 animate-backdrop-in" />
       <div
-        className="absolute right-0 top-0 bottom-0 bg-bg border-l border-hm-text/15 shadow-2xl flex flex-col"
+        className="absolute right-0 top-0 bottom-0 bg-bg-elevated border-l border-line shadow-elev2 flex flex-col animate-drawer-in"
         style={{ width: `min(${width}px, 100vw)` }}
         onClick={(e) => e.stopPropagation()}
       >
         {title ? (
-          <div className="border-b border-hm-text/10 px-7 py-5 flex items-center justify-between shrink-0">
+          <div className="border-b border-line px-7 py-5 flex items-center justify-between shrink-0">
             <div className="font-serif text-[1.2rem] leading-none">{title}</div>
             <button
               onClick={onClose}
-              className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-hm-text"
+              className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted hover:text-ink transition-colors"
               aria-label="Close"
             >
               ✕

@@ -2,31 +2,53 @@
 @tailwind components;
 @tailwind utilities;
 
-@font-face {
-  font-family: 'TeX Gyre Adventor';
-  font-style: normal;
-  font-weight: 400;
-  font-display: swap;
-  src: url('/fonts/texgyreadventor-regular.woff') format('woff');
-}
-
-@font-face {
-  font-family: 'TeX Gyre Adventor';
-  font-style: normal;
-  font-weight: 700;
-  font-display: swap;
-  src: url('/fonts/texgyreadventor-bold.woff') format('woff');
-}
-
 :root {
+  /* Canvas + surfaces */
   --bg: #eae8e0;
+  --bg-elevated: #f3f1ea;
+  --surface: #fbfaf6;
+
+  /* Ink ramp */
   --text: #1e2128;
+  --ink-muted: #4a5068;
+  --ink-subtle: #8a8e9c;
+
+  /* Legacy alias — kept so any `var(--nav-text)` usage still resolves */
   --nav-text: #4a5068;
+
+  /* Hairlines */
+  --line: #d8d4c6;
+  --line-strong: #c5c0ae;
+
+  /* Accent */
+  --accent: #8b3a2e;
+  --accent-soft: #e8d5c8;
+
+  /* Motion */
+  --ease-out-soft: cubic-bezier(.2, .8, .2, 1);
+  --dur-fast: 150ms;
+  --dur-base: 220ms;
 }
 
 body {
   background-color: var(--bg);
   color: var(--text);
+  font-feature-settings: 'ss01', 'cv11';
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular numbers wherever money or quantity is shown.
+   Apply with: <span className="num">$1,234.00</span> */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Focus ring — always visible. Use on any interactive that doesn't already
+   set its own focus state. */
+.focus-ring:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+  border-radius: 4px;
 }
 
 @keyframes fadeUp {
@@ -54,7 +76,7 @@ body {
 .reveal-d2 { transition-delay: 0.2s; }
 .reveal-d3 { transition-delay: 0.3s; }
 
-.nav-item { transition: color 0.15s; }
+.nav-item { transition: color var(--dur-fast); }
 .nav-item:hover { color: var(--text); }
 .underline-animated { position: relative; }
 .underline-animated::after {
@@ -88,3 +110,68 @@ body {
 .ProseMirror ol { list-style: decimal; padding-left: 1.5rem; margin: 0.5em 0; }
 .ProseMirror p { margin: 0 0 0.75em; }
 .ProseMirror a { color: var(--text, #1e2128); text-decoration: underline; }
+
+/* ── cmdk command palette ────────────────────────────────────────────── */
+[cmdk-root] {
+  width: 100%;
+}
+[cmdk-input] {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 14px;
+  color: var(--text);
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--line);
+}
+[cmdk-input]::placeholder { color: var(--ink-subtle); }
+[cmdk-list] {
+  max-height: 380px;
+  overflow: auto;
+  padding: 8px;
+  scroll-padding: 8px;
+}
+[cmdk-empty] {
+  padding: 28px 20px;
+  font-family: var(--font-eb-garamond), Georgia, serif;
+  color: var(--ink-muted);
+  text-align: center;
+  font-size: 14px;
+}
+[cmdk-group-heading] {
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--ink-subtle);
+  padding: 12px 12px 6px;
+}
+[cmdk-item] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+  transition: background-color var(--dur-fast) var(--ease-out-soft);
+}
+[cmdk-item][data-selected='true'] {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+[cmdk-item] kbd {
+  margin-left: auto;
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--ink-subtle);
+  background: rgba(30, 33, 40, 0.05);
+  border-radius: 4px;
+  padding: 2px 6px;
+}

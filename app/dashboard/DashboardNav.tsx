@@ -30,10 +30,10 @@ export default function DashboardNav() {
             key={href}
             href={href}
             className={[
-              'font-sans text-[11px] uppercase tracking-[0.2em] px-3 py-2.5 rounded-sm transition-colors',
+              'font-sans text-[11px] uppercase tracking-[0.2em] px-3 py-2.5 rounded-sm transition-colors duration-150 ease-out-soft focus-ring',
               active
-                ? 'text-hm-text bg-hm-text/[0.06]'
-                : 'text-hm-nav hover:text-hm-text hover:bg-hm-text/[0.04]',
+                ? 'text-ink bg-accent-soft/40'
+                : 'text-ink-muted hover:text-ink hover:bg-ink/[0.04]',
             ].join(' ')}
           >
             {label}
