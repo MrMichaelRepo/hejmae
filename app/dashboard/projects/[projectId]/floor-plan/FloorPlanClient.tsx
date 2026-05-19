@@ -16,7 +16,7 @@
 // in the DB but the UI no longer writes to it.
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '@/lib/api'
-import { PageSpinner } from '@/components/ui/Spinner'
+import Spinner, { PageSpinner } from '@/components/ui/Spinner'
 import EmptyState from '@/components/ui/EmptyState'
 import Button from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Input'
@@ -151,7 +151,31 @@ export default function FloorPlanClient({
     setRotating(true)
     try {
       await api.post(`/api/projects/${projectId}/floor-plan/rotate`, {})
-      await load()
+      // Refetch everything to local vars first; don't touch state until the
+      // new image has decoded. Otherwise the room/pin coordinates flip onto
+      // the old image while the new one is still in flight, which looks
+      // jarring.
+      const [p, i, r] = await Promise.all([
+        api.get<Project>(`/api/projects/${projectId}`),
+        api.get<Item[]>(`/api/projects/${projectId}/items`),
+        api.get<Room[]>(`/api/projects/${projectId}/rooms`),
+      ])
+      const proj = p.data as Project
+      const nextItems = (i.data as Item[]) ?? []
+      const nextRooms = (r.data as Room[]) ?? []
+
+      if (proj.floor_plan_url) {
+        await new Promise<void>((resolve) => {
+          const img = new window.Image()
+          img.onload = () => resolve()
+          img.onerror = () => resolve()
+          img.src = proj.floor_plan_url!
+        })
+      }
+
+      setProject(proj)
+      setItems(nextItems)
+      setRooms(nextRooms)
       toast.success('Rotated 90°')
     } catch (e) {
       toast.error((e as Error).message)
@@ -359,7 +383,10 @@ export default function FloorPlanClient({
       <div className="border border-hm-text/10 relative bg-hm-text/[0.02] select-none">
         <div
           ref={mediaRef}
-          className="relative"
+          className={[
+            'relative transition-opacity duration-200',
+            rotating ? 'opacity-40 pointer-events-none' : '',
+          ].join(' ')}
           onMouseDown={handleCanvasMouseDown}
           onMouseMove={handleMove}
           onMouseUp={handleMouseUp}
@@ -482,6 +509,17 @@ export default function FloorPlanClient({
               })()
             : null}
         </div>
+
+        {rotating ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-bg/30 backdrop-blur-[1px] pointer-events-none">
+            <div className="flex items-center gap-3 bg-bg border border-hm-text/15 px-4 py-2.5 shadow-sm">
+              <Spinner size={16} />
+              <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav">
+                Rotating
+              </span>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <aside className="space-y-4">
