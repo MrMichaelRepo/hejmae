@@ -5,6 +5,7 @@ import Link from 'next/link'
 import DashboardNav from './DashboardNav'
 import MobileNavTrigger from './MobileNavTrigger'
 import { CommandPaletteProvider, CommandPaletteTrigger } from '@/components/ui/CommandPalette'
+import { DensityProvider } from '@/components/ui/Density'
 
 const clerkAppearance = {
   variables: {
@@ -28,6 +29,7 @@ export default async function DashboardLayout({
 
   return (
     <ClerkProvider afterSignOutUrl="/" appearance={clerkAppearance}>
+      <DensityProvider>
       <CommandPaletteProvider>
         <div className="min-h-screen flex">
           {/* ── Sidebar ───────────────────────────────────────────────────────── */}
@@ -64,6 +66,7 @@ export default async function DashboardLayout({
           </div>
         </div>
       </CommandPaletteProvider>
+      </DensityProvider>
     </ClerkProvider>
   )
 }

@@ -6,6 +6,7 @@ import { api } from '@/lib/api'
 import { PageHeader } from '@/components/ui/EmptyState'
 import Button from '@/components/ui/Button'
 import { Field, Input, Select } from '@/components/ui/Input'
+import { DensityToggle } from '@/components/ui/Density'
 import { toast } from '@/components/ui/Toast'
 import type { DesignerUser, PricingMode } from '@/lib/types-ui'
 
@@ -193,6 +194,17 @@ export default function SettingsClient({ initialUser }: { initialUser: DesignerU
             </div>
           </div>
         </label>
+      </Section>
+
+      <Section title="Display preferences">
+        <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-2">
+          Row density
+        </div>
+        <p className="font-garamond text-[0.9rem] text-ink-muted leading-[1.6] mb-3 max-w-md">
+          Controls list and table spacing across the studio. Compact is best
+          for large projects; Spacious is easier to scan on a small screen.
+        </p>
+        <DensityToggle />
       </Section>
 
       <div className="flex justify-end mb-12">

@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import Link from 'next/link'
 import { api, ApiError } from '@/lib/api'
+import { useOpenOnQuery } from '@/lib/hooks/useOpenOnQuery'
 import { formatCents, formatRelative } from '@/lib/format'
 import { PageHeader } from '@/components/ui/EmptyState'
 import EmptyState from '@/components/ui/EmptyState'
+import ProjectsEmpty from '@/components/ui/empty/ProjectsEmpty'
 import { StatusBadge } from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import { Field, Input, Select, Textarea } from '@/components/ui/Input'
@@ -41,6 +43,11 @@ export default function ProjectsClient({ initialProjects, initialClients }: Prop
   const [search, setSearch] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [openCreate, setOpenCreate] = useState(false)
+
+  useOpenOnQuery(
+    'new',
+    useCallback(() => setOpenCreate(true), []),
+  )
 
   const reload = () => {
     Promise.all([
@@ -103,21 +110,14 @@ export default function ProjectsClient({ initialProjects, initialClients }: Prop
           {error}
         </div>
       ) : filtered.length === 0 ? (
-        <EmptyState
-          title={projects.length === 0 ? 'No projects yet' : 'No matches'}
-          body={
-            projects.length === 0
-              ? 'Create your first project to start sourcing, building proposals, and invoicing.'
-              : 'Try a different filter or search term.'
-          }
-          action={
-            projects.length === 0 ? (
-              <Button variant="primary" onClick={() => setOpenCreate(true)}>
-                Create first project
-              </Button>
-            ) : null
-          }
-        />
+        projects.length === 0 ? (
+          <ProjectsEmpty onCreate={() => setOpenCreate(true)} />
+        ) : (
+          <EmptyState
+            title="No matches"
+            body="Try a different filter or search term."
+          />
+        )
       ) : (
         <div className="border border-hm-text/10">
           {filtered.map((p, i) => {

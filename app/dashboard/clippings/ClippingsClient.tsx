@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { api, ApiError } from '@/lib/api'
 import { PageHeader } from '@/components/ui/EmptyState'
 import EmptyState from '@/components/ui/EmptyState'
-import { PageSpinner } from '@/components/ui/Spinner'
+import ClippingsEmpty from '@/components/ui/empty/ClippingsEmpty'
+import { SkeletonGrid } from '@/components/ui/Skeleton'
 import Button from '@/components/ui/Button'
 import { toast } from '@/components/ui/Toast'
 import { formatWeekRange } from '@/lib/clippings/week'
@@ -283,7 +284,7 @@ export default function ClippingsClient({
       ) : null}
 
       {rows === null ? (
-        <PageSpinner />
+        <SkeletonGrid count={9} />
       ) : rows.length === 0 ? (
         filtersActive ? (
           <EmptyState
@@ -297,11 +298,7 @@ export default function ClippingsClient({
             small
           />
         ) : (
-          <EmptyState
-            title="Nothing clipped yet."
-            body="Install the Hejmae Clipper to start saving products while you browse."
-            small
-          />
+          <ClippingsEmpty />
         )
       ) : (
         <>

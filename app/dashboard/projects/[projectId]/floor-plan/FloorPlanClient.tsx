@@ -26,12 +26,13 @@ import { toast } from '@/components/ui/Toast'
 import { titleCase } from '@/lib/format'
 import type { Project, Room, Item } from '@/lib/types-ui'
 
+// Earthy palette — mirrors the on-page Badge tones in components/ui/Badge.tsx.
 const PIN_COLOR: Record<string, string> = {
-  sourcing: '#9ca3af',
-  approved: '#b45309',
-  ordered: '#15803d',
-  received: '#0369a1',
-  installed: '#0369a1',
+  sourcing: '#8a8e9c', // ink-subtle
+  approved: '#b8843e', // warn (burnt mustard)
+  ordered:  '#5b6e4a', // success (sage)
+  received: '#8b3a2e', // accent (terracotta)
+  installed: '#8b3a2e',
 }
 
 type Mode = 'idle' | 'place' | 'draw'
@@ -380,7 +381,19 @@ export default function FloorPlanClient({
 
   return (
     <div className="grid md:grid-cols-[1fr_300px] gap-6">
-      <div className="border border-hm-text/10 relative bg-hm-text/[0.02] select-none">
+      <div
+        className="border border-line relative select-none rounded"
+        style={{
+          // Dotted "drafting paper" grid — visible only at the edges around
+          // the floor plan image. 24px spacing reads as graph paper without
+          // competing with floor plan linework underneath.
+          backgroundColor: 'var(--bg-elevated, #f3f1ea)',
+          backgroundImage:
+            'radial-gradient(circle, rgba(139,58,46,0.18) 1px, transparent 1px)',
+          backgroundSize: '24px 24px',
+          backgroundPosition: '0 0',
+        }}
+      >
         <div
           ref={mediaRef}
           className={[

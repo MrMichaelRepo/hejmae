@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { api } from '@/lib/api'
+import { useOpenOnQuery } from '@/lib/hooks/useOpenOnQuery'
 import { PageHeader } from '@/components/ui/EmptyState'
 import EmptyState from '@/components/ui/EmptyState'
 import Button from '@/components/ui/Button'
@@ -22,6 +23,11 @@ export default function VendorsClient({ initialVendors }: { initialVendors: Vend
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<Vendor | null>(null)
   const [openCreate, setOpenCreate] = useState(false)
+
+  useOpenOnQuery(
+    'new',
+    useCallback(() => setOpenCreate(true), []),
+  )
 
   const reload = async () => {
     const r = await api.get<Vendor[]>('/api/vendors')

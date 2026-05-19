@@ -5,9 +5,10 @@ import Image from 'next/image'
 import { api } from '@/lib/api'
 import { formatCents } from '@/lib/format'
 import { PageHeader } from '@/components/ui/EmptyState'
-import { PageSpinner } from '@/components/ui/Spinner'
+import { SkeletonGrid } from '@/components/ui/Skeleton'
 import { Input } from '@/components/ui/Input'
 import EmptyState from '@/components/ui/EmptyState'
+import CatalogEmpty from '@/components/ui/empty/CatalogEmpty'
 import AddToProjectModal from './AddToProjectModal'
 import ImageSearchModal, { type ImageSearchResult } from './ImageSearchModal'
 import type { CatalogProduct } from '@/lib/types-ui'
@@ -143,25 +144,27 @@ export default function CatalogClient({
       ) : null}
 
       {results === null ? (
-        <PageSpinner />
+        <SkeletonGrid count={10} />
       ) : results.length === 0 ? (
-        <EmptyState
-          title={
-            imageSearch
-              ? 'No similar products found'
-              : tab === 'library'
-                ? 'Library is empty'
-                : 'No catalog products yet'
-          }
-          body={
-            imageSearch
-              ? 'Try a different image or use text search.'
-              : tab === 'library'
+        imageSearch ? (
+          <EmptyState
+            title="No similar products found"
+            body="Try a different image or use text search."
+            small
+          />
+        ) : tab === 'library' && !q ? (
+          <CatalogEmpty />
+        ) : (
+          <EmptyState
+            title={tab === 'library' ? 'Library is empty' : 'No catalog products yet'}
+            body={
+              tab === 'library'
                 ? 'As you add items to projects, they show up here for easy reuse.'
-                : 'The platform-wide catalog grows as designers across hejmae source items. Add your first item to seed it.'
-          }
-          small
-        />
+                : 'The platform-wide catalog grows as designers across hejmae source items.'
+            }
+            small
+          />
+        )
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {results.map((p) => (

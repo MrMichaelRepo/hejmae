@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { api } from '@/lib/api'
 import Button from '@/components/ui/Button'
 import { Field, Input, Select, Textarea } from '@/components/ui/Input'
-import Modal from '@/components/ui/Modal'
+import { Drawer } from '@/components/ui/Modal'
 import { toast } from '@/components/ui/Toast'
 import type { Project, Client, ProjectStatus, PricingMode } from '@/lib/types-ui'
 
@@ -84,7 +84,7 @@ export default function EditProjectModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Project settings" size="lg">
+    <Drawer open={open} onClose={onClose} title="Project settings" width={560}>
       <Field label="Name">
         <Input
           value={name}
@@ -174,6 +174,6 @@ export default function EditProjectModal({
           </Button>
         </div>
       </div>
-    </Modal>
+    </Drawer>
   )
 }

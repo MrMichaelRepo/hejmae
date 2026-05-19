@@ -1,10 +1,9 @@
 // React-PDF document for invoices.
 //
 // Rendered server-side via /api/projects/[projectId]/invoices/[invoiceId]/pdf.
-// We deliberately use only built-in fonts (Helvetica family) so we don't
-// need to ship font files at deploy time. Layout mirrors the on-screen
-// print preview at app/dashboard/projects/[projectId]/invoices/[invoiceId]/print
-// without trying to be pixel-perfect — PDF metrics differ from CSS.
+// Typography mirrors the on-screen brand: Inter for UI labels, EB Garamond
+// for descriptions, DM Serif Text for the document number. Fonts are
+// registered lazily via ensureFontsRegistered().
 import {
   Document,
   Page,
@@ -14,6 +13,9 @@ import {
   Image,
 } from '@react-pdf/renderer'
 import { formatCents, formatDate } from '@/lib/format'
+import { ensureFontsRegistered, PDF_COLORS } from './fonts'
+
+ensureFontsRegistered()
 
 export interface InvoicePDFData {
   invoice: {
@@ -47,75 +49,83 @@ export interface InvoicePDFData {
 
 const styles = StyleSheet.create({
   page: {
-    paddingTop: 48,
-    paddingBottom: 48,
-    paddingHorizontal: 56,
-    fontFamily: 'Helvetica',
-    fontSize: 10,
-    color: '#1e2128',
+    paddingTop: 56,
+    paddingBottom: 56,
+    paddingHorizontal: 64,
+    fontFamily: 'EB Garamond',
+    fontSize: 10.5,
+    color: PDF_COLORS.ink,
+    backgroundColor: PDF_COLORS.cream,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    paddingBottom: 16,
-    marginBottom: 28,
+    paddingBottom: 18,
+    marginBottom: 32,
     borderBottomWidth: 1,
-    borderBottomColor: '#e5e3dd',
+    borderBottomColor: PDF_COLORS.line,
     borderBottomStyle: 'solid',
   },
   studioName: {
-    fontFamily: 'Helvetica-Bold',
-    fontSize: 10,
-    letterSpacing: 1.4,
+    fontFamily: 'Inter',
+    fontWeight: 700,
+    fontSize: 9,
+    letterSpacing: 1.6,
     textTransform: 'uppercase',
   },
   logo: {
     height: 36,
-    marginBottom: 8,
+    marginBottom: 10,
     objectFit: 'contain',
   },
   invoiceLabel: {
-    fontFamily: 'Helvetica-Bold',
-    fontSize: 9,
-    letterSpacing: 1.4,
+    fontFamily: 'Inter',
+    fontWeight: 700,
+    fontSize: 8,
+    letterSpacing: 1.8,
     textTransform: 'uppercase',
     textAlign: 'right',
+    color: PDF_COLORS.inkMuted,
   },
   invoiceNumber: {
-    fontFamily: 'Helvetica',
-    fontSize: 18,
-    marginTop: 6,
+    fontFamily: 'DM Serif Text',
+    fontSize: 22,
+    marginTop: 8,
     textAlign: 'right',
   },
   invoiceDate: {
-    fontSize: 10,
-    color: '#6b7280',
+    fontFamily: 'Inter',
+    fontSize: 9.5,
+    color: PDF_COLORS.inkSubtle,
     marginTop: 4,
     textAlign: 'right',
   },
   metaRow: {
     flexDirection: 'row',
-    marginBottom: 32,
+    marginBottom: 36,
   },
   metaCol: {
     flex: 1,
     paddingRight: 16,
   },
   metaLabel: {
+    fontFamily: 'Inter',
+    fontWeight: 700,
     fontSize: 8,
-    fontFamily: 'Helvetica-Bold',
-    letterSpacing: 1.4,
+    letterSpacing: 1.6,
     textTransform: 'uppercase',
-    color: '#6b7280',
+    color: PDF_COLORS.inkSubtle,
     marginBottom: 6,
   },
   metaValue: {
-    fontSize: 12,
+    fontFamily: 'EB Garamond',
+    fontSize: 13,
   },
   metaSub: {
-    fontSize: 10,
-    color: '#6b7280',
+    fontFamily: 'EB Garamond',
+    fontSize: 10.5,
+    color: PDF_COLORS.inkMuted,
     marginTop: 2,
   },
   table: {
@@ -123,19 +133,21 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: 'row',
-    paddingBottom: 6,
+    paddingBottom: 8,
     borderBottomWidth: 1,
+    borderBottomColor: PDF_COLORS.ink,
     borderBottomStyle: 'solid',
+    fontFamily: 'Inter',
+    fontWeight: 700,
     fontSize: 8,
-    fontFamily: 'Helvetica-Bold',
-    letterSpacing: 1.2,
+    letterSpacing: 1.4,
     textTransform: 'uppercase',
   },
   tableRow: {
     flexDirection: 'row',
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderBottomWidth: 0.5,
-    borderBottomColor: '#e5e3dd',
+    borderBottomColor: PDF_COLORS.line,
     borderBottomStyle: 'solid',
   },
   colDesc: { flex: 4, paddingRight: 8 },
@@ -150,9 +162,10 @@ const styles = StyleSheet.create({
     flex: 7.3,
     textAlign: 'right',
     paddingRight: 8,
+    fontFamily: 'Inter',
+    fontWeight: 700,
     fontSize: 8,
-    fontFamily: 'Helvetica-Bold',
-    letterSpacing: 1.2,
+    letterSpacing: 1.4,
     textTransform: 'uppercase',
   },
   totalsValue: {
@@ -160,34 +173,48 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   balanceLabel: {
+    fontFamily: 'Inter',
+    fontWeight: 700,
     fontSize: 9,
-    fontFamily: 'Helvetica-Bold',
-    letterSpacing: 1.2,
+    letterSpacing: 1.4,
     textTransform: 'uppercase',
   },
   balanceValue: {
-    fontSize: 16,
+    fontFamily: 'DM Serif Text',
+    fontSize: 18,
     textAlign: 'right',
   },
   notes: {
-    marginTop: 32,
+    marginTop: 36,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: '#e5e3dd',
+    borderTopColor: PDF_COLORS.line,
     borderTopStyle: 'solid',
   },
   paidBanner: {
-    marginTop: 32,
-    fontSize: 10,
-    color: '#6b7280',
+    marginTop: 36,
+    fontFamily: 'Inter',
+    fontSize: 9.5,
+    color: PDF_COLORS.inkMuted,
     textAlign: 'center',
+    letterSpacing: 0.4,
+  },
+  pageNumber: {
+    position: 'absolute',
+    bottom: 28,
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    fontFamily: 'DM Serif Text',
+    fontSize: 9,
+    color: PDF_COLORS.inkSubtle,
   },
 })
 
 export default function InvoicePDF({ data }: { data: InvoicePDFData }) {
   const { invoice, lines, designer, project, client, payments_total_cents } =
     data
-  const brand = designer.brand_color ?? '#1e2128'
+  const brand = designer.brand_color ?? PDF_COLORS.accent
   const balance = Math.max(0, invoice.total_cents - payments_total_cents)
   const sortedLines = lines.slice().sort((a, b) => a.position - b.position)
   const studioLabel =
@@ -196,7 +223,7 @@ export default function InvoicePDF({ data }: { data: InvoicePDFData }) {
   return (
     <Document title={`Invoice ${invoice.id.slice(0, 8).toUpperCase()}`}>
       <Page size="LETTER" style={styles.page}>
-        <View style={[styles.header, { borderBottomColor: brand + '55' }]}>
+        <View style={styles.header}>
           <View>
             {designer.logo_url ? (
               <Image src={designer.logo_url} style={styles.logo} />
@@ -206,9 +233,7 @@ export default function InvoicePDF({ data }: { data: InvoicePDFData }) {
             </Text>
           </View>
           <View>
-            <Text style={[styles.invoiceLabel, { color: brand }]}>
-              Invoice
-            </Text>
+            <Text style={styles.invoiceLabel}>Invoice</Text>
             <Text style={styles.invoiceNumber}>
               #{invoice.id.slice(0, 8).toUpperCase()}
             </Text>
@@ -239,7 +264,7 @@ export default function InvoicePDF({ data }: { data: InvoicePDFData }) {
         </View>
 
         <View style={styles.table}>
-          <View style={[styles.tableHeader, { borderBottomColor: brand, color: brand }]}>
+          <View style={styles.tableHeader}>
             <Text style={styles.colDesc}>Description</Text>
             <Text style={styles.colQty}>Qty</Text>
             <Text style={styles.colUnit}>Unit</Text>
@@ -258,7 +283,7 @@ export default function InvoicePDF({ data }: { data: InvoicePDFData }) {
             </View>
           ))}
 
-          <View style={[styles.totalsRow, { marginTop: 12 }]}>
+          <View style={[styles.totalsRow, { marginTop: 14 }]}>
             <Text style={styles.totalsLabel}>Subtotal</Text>
             <Text style={styles.totalsValue}>
               {formatCents(invoice.total_cents)}
@@ -266,15 +291,15 @@ export default function InvoicePDF({ data }: { data: InvoicePDFData }) {
           </View>
           {payments_total_cents > 0 ? (
             <View style={styles.totalsRow}>
-              <Text style={[styles.totalsLabel, { color: '#6b7280' }]}>
+              <Text style={[styles.totalsLabel, { color: PDF_COLORS.inkMuted }]}>
                 Payments received
               </Text>
-              <Text style={[styles.totalsValue, { color: '#6b7280' }]}>
+              <Text style={[styles.totalsValue, { color: PDF_COLORS.inkMuted }]}>
                 −{formatCents(payments_total_cents)}
               </Text>
             </View>
           ) : null}
-          <View style={[styles.totalsRow, { marginTop: 6 }]}>
+          <View style={[styles.totalsRow, { marginTop: 8 }]}>
             <Text
               style={[
                 styles.totalsLabel,
@@ -299,7 +324,7 @@ export default function InvoicePDF({ data }: { data: InvoicePDFData }) {
         {invoice.notes ? (
           <View style={styles.notes}>
             <Text style={styles.metaLabel}>Notes</Text>
-            <Text style={{ fontSize: 10, lineHeight: 1.6 }}>
+            <Text style={{ fontSize: 10.5, lineHeight: 1.65 }}>
               {invoice.notes}
             </Text>
           </View>
@@ -307,9 +332,17 @@ export default function InvoicePDF({ data }: { data: InvoicePDFData }) {
 
         {invoice.paid_at ? (
           <Text style={styles.paidBanner}>
-            Paid {formatDate(invoice.paid_at)}. Thank you.
+            PAID · {formatDate(invoice.paid_at)} · Thank you.
           </Text>
         ) : null}
+
+        <Text
+          style={styles.pageNumber}
+          render={({ pageNumber, totalPages }) =>
+            `${pageNumber} / ${totalPages}`
+          }
+          fixed
+        />
       </Page>
     </Document>
   )

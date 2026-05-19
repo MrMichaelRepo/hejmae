@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import Button from '@/components/ui/Button'
 import { Field, Input, Textarea } from '@/components/ui/Input'
-import Modal from '@/components/ui/Modal'
+import { Drawer } from '@/components/ui/Modal'
 import { toast } from '@/components/ui/Toast'
 import type { Vendor } from '@/lib/types-ui'
 
@@ -129,10 +129,11 @@ export function VendorFormModal({
   }
 
   return (
-    <Modal
+    <Drawer
       open={open}
       onClose={onClose}
       title={initial ? 'Edit vendor' : 'New vendor'}
+      width={640}
     >
       <form onSubmit={submit}>
         <Field label="Name">
@@ -329,13 +330,13 @@ export function VendorFormModal({
           </Button>
         </div>
       </form>
-    </Modal>
+    </Drawer>
   )
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mt-5 mb-2">
+    <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mt-5 mb-2">
       {children}
     </div>
   )

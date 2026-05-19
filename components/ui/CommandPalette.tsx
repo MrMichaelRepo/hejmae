@@ -2,8 +2,9 @@
 
 import { Command } from 'cmdk'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState, useCallback, createContext, useContext } from 'react'
+import { useEffect, useState, useCallback, createContext, useContext, useRef } from 'react'
 import { createPortal } from 'react-dom'
+import { api } from '@/lib/api'
 
 type PaletteCtx = { open: () => void; close: () => void; toggle: () => void }
 const Ctx = createContext<PaletteCtx | null>(null)
@@ -14,20 +15,34 @@ export function useCommandPalette() {
   return ctx
 }
 
+interface SearchHit {
+  id: string
+  name: string
+  subtitle?: string
+}
+
+interface SearchResults {
+  projects: Array<{ id: string; name: string; location: string | null; status: string }>
+  clients: Array<{ id: string; name: string; email: string | null }>
+  vendors: Array<{ id: string; name: string }>
+  catalog_products: Array<{ id: string; name: string; brand: string | null }>
+}
+
+const EMPTY_RESULTS: SearchResults = {
+  projects: [],
+  clients: [],
+  vendors: [],
+  catalog_products: [],
+}
+
 /**
  * Global ⌘K palette. Mount once near the root of any authenticated layout.
- * Quick actions and route jumps are statically wired; project/client/vendor
- * fuzzy search will hit /api/search/quick once that endpoint exists.
+ * Quick actions and route jumps are static; project/client/vendor/catalog
+ * lookups hit /api/search/quick with a 200ms debounce.
  */
 export function CommandPaletteProvider({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const router = useRouter()
-
-  const ctx: PaletteCtx = {
-    open: () => setOpen(true),
-    close: () => setOpen(false),
-    toggle: () => setOpen((v) => !v),
-  }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -49,6 +64,12 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
     [router],
   )
 
+  const ctx: PaletteCtx = {
+    open: () => setOpen(true),
+    close: () => setOpen(false),
+    toggle: () => setOpen((v) => !v),
+  }
+
   return (
     <Ctx.Provider value={ctx}>
       {children}
@@ -60,6 +81,46 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
 }
 
 function Palette({ onClose, go }: { onClose: () => void; go: (href: string) => void }) {
+  const [query, setQuery] = useState('')
+  const [results, setResults] = useState<SearchResults>(EMPTY_RESULTS)
+  const [searching, setSearching] = useState(false)
+  const reqId = useRef(0)
+
+  // Debounced fetch — fires 180ms after the user stops typing.
+  useEffect(() => {
+    const q = query.trim()
+    if (q.length < 2) {
+      setResults(EMPTY_RESULTS)
+      setSearching(false)
+      return
+    }
+    setSearching(true)
+    const myId = ++reqId.current
+    const handle = setTimeout(() => {
+      api
+        .get<SearchResults>(`/api/search/quick?q=${encodeURIComponent(q)}`)
+        .then((res) => {
+          if (myId !== reqId.current) return // stale
+          setResults((res.data as SearchResults) ?? EMPTY_RESULTS)
+        })
+        .catch(() => {
+          if (myId !== reqId.current) return
+          setResults(EMPTY_RESULTS)
+        })
+        .finally(() => {
+          if (myId === reqId.current) setSearching(false)
+        })
+    }, 180)
+    return () => clearTimeout(handle)
+  }, [query])
+
+  const hasResults =
+    results.projects.length > 0 ||
+    results.clients.length > 0 ||
+    results.vendors.length > 0 ||
+    results.catalog_products.length > 0
+  const showSearch = query.trim().length >= 2
+
   return (
     <div
       className="fixed inset-0 z-[60] flex items-start justify-center pt-[14vh] px-4"
@@ -70,10 +131,86 @@ function Palette({ onClose, go }: { onClose: () => void; go: (href: string) => v
         onClick={(e) => e.stopPropagation()}
         className="relative w-full max-w-xl bg-bg-elevated border border-line rounded-lg shadow-elev2 overflow-hidden animate-sheet-in"
       >
-        <Command label="Command Menu">
-          <Command.Input placeholder="Jump to a page, create something, or search…" autoFocus />
+        <Command label="Command Menu" shouldFilter={!showSearch}>
+          <Command.Input
+            value={query}
+            onValueChange={setQuery}
+            placeholder="Jump to a page, create something, or search…"
+            autoFocus
+          />
           <Command.List>
-            <Command.Empty>No matches. Try a different search.</Command.Empty>
+            <Command.Empty>
+              {searching ? 'Searching…' : 'No matches. Try a different search.'}
+            </Command.Empty>
+
+            {showSearch && hasResults ? (
+              <>
+                {results.projects.length > 0 ? (
+                  <Command.Group heading="Projects">
+                    {results.projects.map((p) => (
+                      <Command.Item
+                        key={`p-${p.id}`}
+                        value={`project ${p.name} ${p.location ?? ''}`}
+                        onSelect={() => go(`/dashboard/projects/${p.id}`)}
+                      >
+                        <span className="truncate">{p.name}</span>
+                        {p.location ? (
+                          <span className="ml-2 text-ink-subtle truncate">{p.location}</span>
+                        ) : null}
+                      </Command.Item>
+                    ))}
+                  </Command.Group>
+                ) : null}
+
+                {results.clients.length > 0 ? (
+                  <Command.Group heading="Clients">
+                    {results.clients.map((c) => (
+                      <Command.Item
+                        key={`c-${c.id}`}
+                        value={`client ${c.name} ${c.email ?? ''}`}
+                        onSelect={() => go(`/dashboard/clients/${c.id}`)}
+                      >
+                        <span className="truncate">{c.name}</span>
+                        {c.email ? (
+                          <span className="ml-2 text-ink-subtle truncate">{c.email}</span>
+                        ) : null}
+                      </Command.Item>
+                    ))}
+                  </Command.Group>
+                ) : null}
+
+                {results.vendors.length > 0 ? (
+                  <Command.Group heading="Vendors">
+                    {results.vendors.map((v) => (
+                      <Command.Item
+                        key={`v-${v.id}`}
+                        value={`vendor ${v.name}`}
+                        onSelect={() => go(`/dashboard/vendors?focus=${v.id}`)}
+                      >
+                        <span className="truncate">{v.name}</span>
+                      </Command.Item>
+                    ))}
+                  </Command.Group>
+                ) : null}
+
+                {results.catalog_products.length > 0 ? (
+                  <Command.Group heading="Catalog">
+                    {results.catalog_products.map((c) => (
+                      <Command.Item
+                        key={`cat-${c.id}`}
+                        value={`catalog ${c.name} ${c.brand ?? ''}`}
+                        onSelect={() => go(`/dashboard/catalog?focus=${c.id}`)}
+                      >
+                        <span className="truncate">{c.name}</span>
+                        {c.brand ? (
+                          <span className="ml-2 text-ink-subtle truncate">{c.brand}</span>
+                        ) : null}
+                      </Command.Item>
+                    ))}
+                  </Command.Group>
+                ) : null}
+              </>
+            ) : null}
 
             <Command.Group heading="Create">
               <Command.Item onSelect={() => go('/dashboard/projects?new=1')}>
@@ -84,9 +221,6 @@ function Palette({ onClose, go }: { onClose: () => void; go: (href: string) => v
               </Command.Item>
               <Command.Item onSelect={() => go('/dashboard/vendors?new=1')}>
                 New vendor
-              </Command.Item>
-              <Command.Item onSelect={() => go('/dashboard/clippings?new=1')}>
-                New clipping
               </Command.Item>
             </Command.Group>
 

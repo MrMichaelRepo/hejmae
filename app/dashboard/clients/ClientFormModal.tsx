@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import Button from '@/components/ui/Button'
 import { Field, Input, Textarea } from '@/components/ui/Input'
-import Modal from '@/components/ui/Modal'
+import { Drawer } from '@/components/ui/Modal'
 import { toast } from '@/components/ui/Toast'
 import type { Client } from '@/lib/types-ui'
 
@@ -58,7 +58,12 @@ export function ClientFormModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={initial ? 'Edit client' : 'New client'}>
+    <Drawer
+      open={open}
+      onClose={onClose}
+      title={initial ? 'Edit client' : 'New client'}
+      width={520}
+    >
       <form onSubmit={submit}>
         <Field label="Name">
           <Input
@@ -88,6 +93,6 @@ export function ClientFormModal({
           </Button>
         </div>
       </form>
-    </Modal>
+    </Drawer>
   )
 }

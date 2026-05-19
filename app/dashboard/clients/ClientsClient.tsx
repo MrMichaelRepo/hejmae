@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import Link from 'next/link'
 import { api } from '@/lib/api'
+import { useOpenOnQuery } from '@/lib/hooks/useOpenOnQuery'
 import { PageHeader } from '@/components/ui/EmptyState'
 import EmptyState from '@/components/ui/EmptyState'
 import Button from '@/components/ui/Button'
@@ -21,6 +22,11 @@ export default function ClientsClient({ initialClients, initialProjects }: Props
   const [projects, setProjects] = useState<Project[]>(initialProjects)
   const [search, setSearch] = useState('')
   const [openCreate, setOpenCreate] = useState(false)
+
+  useOpenOnQuery(
+    'new',
+    useCallback(() => setOpenCreate(true), []),
+  )
 
   const reload = async () => {
     const [c, p] = await Promise.all([
