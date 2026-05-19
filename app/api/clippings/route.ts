@@ -60,7 +60,16 @@ export async function GET(req: NextRequest) {
       .range(from, to)
 
     if (query.designer_id) q = q.eq('clipper_user_id', query.designer_id)
-    if (query.project_id) q = q.eq('project_id', query.project_id)
+    if (query.project_id) {
+      const { data: proj } = await sb
+        .from('projects')
+        .select('id')
+        .eq('id', query.project_id)
+        .eq('designer_id', ctx.designerId)
+        .maybeSingle()
+      if (!proj) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+      q = q.eq('project_id', query.project_id)
+    }
     if (query.brand) q = q.ilike('brand', query.brand)
     if (query.item_type) q = q.ilike('item_type', query.item_type)
     if (query.week_added) q = q.eq('week_added', query.week_added)
