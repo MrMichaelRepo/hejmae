@@ -17,8 +17,8 @@ export default function CatalogEmpty() {
         Your catalog builds itself.
       </h2>
       <p className="font-garamond text-[1.02rem] leading-[1.65] text-ink-muted mb-6 max-w-md mx-auto">
-        Every product you clip is deduped against everyone else's clippings
-        — the second time you (or anyone) saves the same SKU it's instant.
+        Every product you clip is deduped against everyone else&apos;s clippings
+        — the second time you (or anyone) saves the same SKU it&apos;s instant.
         Start clipping and the library will fill in.
       </p>
       <Link href="/dashboard/clippings">
