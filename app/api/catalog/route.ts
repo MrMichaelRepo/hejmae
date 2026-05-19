@@ -1,9 +1,14 @@
 // /api/catalog — search the master catalog
+//
+// Search uses the `search_tsv` generated tsvector (GIN-indexed). Queries
+// flow through Postgres `websearch_to_tsquery` via the `fts` operator so
+// users get phrase support ("barcelona chair") and OR / negation
+// (-replica). Empty / no-match queries fall through to the top-clipped
+// order so the catalog still feels useful when browsing.
 import { NextResponse, type NextRequest } from 'next/server'
 import { requireDesigner } from '@/lib/auth/designer'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling } from '@/lib/errors'
-import { sanitizePostgrestSearch } from '@/lib/postgrest'
 import { withSignedUrlsList } from '@/lib/storage'
 
 export async function GET(req: NextRequest) {
@@ -24,10 +29,10 @@ export async function GET(req: NextRequest) {
       .limit(limit)
 
     if (q) {
-      // Simple ILIKE search across name + vendor. TODO: switch to full-text
-      // (tsvector) when the catalog grows.
-      const safe = sanitizePostgrestSearch(q)
-      if (safe) query = query.or(`name.ilike.%${safe}%,vendor.ilike.%${safe}%`)
+      query = query.textSearch('search_tsv', q, {
+        type: 'websearch',
+        config: 'simple',
+      })
     }
     if (vendor) query = query.ilike('vendor', vendor)
     if (category) query = query.ilike('category', category)

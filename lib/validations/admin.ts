@@ -33,13 +33,13 @@ export const updateCatalogProductInput = z
   .object({
     name: z.string().trim().min(1).max(500).optional(),
     vendor: z.string().trim().max(200).nullable().optional(),
-    category: z.string().trim().max(200).nullable().optional(),
+    brand: z.string().trim().max(200).nullable().optional(),
     item_type: z.string().trim().max(200).nullable().optional(),
+    style_tag: z.string().trim().max(60).nullable().optional(),
     retail_price_cents: z.number().int().min(0).nullable().optional(),
     description: z.string().trim().max(5000).nullable().optional(),
     image_url: z.string().trim().max(2000).nullable().optional(),
     source_url: z.string().trim().max(2000).nullable().optional(),
-    style_tags: z.array(z.string().trim().min(1).max(60)).max(40).optional(),
   })
   .strict()
 

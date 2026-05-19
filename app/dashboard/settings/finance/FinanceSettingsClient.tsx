@@ -7,7 +7,10 @@ import Button from '@/components/ui/Button'
 import { Field, Input, Select } from '@/components/ui/Input'
 import { toast } from '@/components/ui/Toast'
 import type { StudioFinanceSettings } from '@/lib/finances/studio_settings'
-import type { AccountingBasis } from '@/lib/supabase/types'
+import type {
+  AccountingBasis,
+  DefaultInvoiceEmailMode,
+} from '@/lib/supabase/types'
 
 const MONTHS = [
   ['1', 'January'],
@@ -47,6 +50,7 @@ export default function FinanceSettingsClient({
         estimated_state_tax_pct: s.estimated_state_tax_pct,
         estimated_self_employment_tax_pct: s.estimated_self_employment_tax_pct,
         tax_state_code: s.tax_state_code || null,
+        default_invoice_email_mode: s.default_invoice_email_mode,
       })
       toast.success('Finance settings saved')
     } catch (e) {
@@ -158,6 +162,32 @@ export default function FinanceSettingsClient({
         </div>
       </Section>
 
+      <Section title="Invoice emails">
+        <p className="font-garamond text-[0.95rem] text-hm-nav mb-4 leading-[1.6]">
+          When you hit Send on an invoice, hejmae pre-fills the email body.
+          Choose the default — you can always switch on a per-invoice basis,
+          and the ✨ Rewrite-with-AI button is available either way.
+        </p>
+        <div className="grid grid-cols-1 gap-3">
+          <EmailModeOption
+            value="template"
+            current={s.default_invoice_email_mode}
+            title="Template prefill"
+            body="Deterministic, fast, no AI call. The same friendly opener every time."
+            onPick={(v) => update({ default_invoice_email_mode: v })}
+            disabled={!canEdit}
+          />
+          <EmailModeOption
+            value="ai"
+            current={s.default_invoice_email_mode}
+            title="AI-drafted (Claude Haiku)"
+            body="Personalized per invoice from client + project context. Costs one Claude call per Send-modal open."
+            onPick={(v) => update({ default_invoice_email_mode: v })}
+            disabled={!canEdit}
+          />
+        </div>
+      </Section>
+
       <div className="flex justify-end">
         <Button variant="primary" onClick={save} loading={saving} disabled={!canEdit}>
           {canEdit ? 'Save settings' : 'Read-only'}
@@ -202,6 +232,40 @@ function PercentInput({
         %
       </span>
     </div>
+  )
+}
+
+function EmailModeOption({
+  value,
+  current,
+  title,
+  body,
+  onPick,
+  disabled,
+}: {
+  value: DefaultInvoiceEmailMode
+  current: DefaultInvoiceEmailMode
+  title: string
+  body: string
+  onPick: (v: DefaultInvoiceEmailMode) => void
+  disabled?: boolean
+}) {
+  const active = value === current
+  return (
+    <button
+      type="button"
+      onClick={() => !disabled && onPick(value)}
+      disabled={disabled}
+      className={`text-left border px-4 py-3 ${active ? 'border-hm-text bg-hm-text/[0.04]' : 'border-hm-text/15 hover:border-hm-text/40'} ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+    >
+      <div className="flex items-center gap-2">
+        <span
+          className={`inline-block h-3 w-3 rounded-full border ${active ? 'border-hm-text bg-hm-text' : 'border-hm-text/30'}`}
+        />
+        <div className="font-serif text-[1.05rem]">{title}</div>
+      </div>
+      <div className="mt-1 font-garamond text-[0.9rem] text-hm-nav">{body}</div>
+    </button>
   )
 }
 

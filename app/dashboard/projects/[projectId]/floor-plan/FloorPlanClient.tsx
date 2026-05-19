@@ -4,11 +4,11 @@
 //
 // Single coordinate system: every position (rooms, pins, in-progress drag)
 // is a 0..1 fraction of the visible media element's CSS box. We measure
-// clicks against the same `<div ref={mediaRef}>` that wraps the image (or
-// VectorView), and we render every overlay as an absolutely-positioned
-// `<div>` inside that same wrapper using `left/top: ${pct}%`. No SVG
-// overlay, no aspect-ratio juggling — what you click on is what gets
-// stored, and what gets stored is what gets rendered.
+// clicks against the same `<div ref={mediaRef}>` that wraps the image,
+// and we render every overlay as an absolutely-positioned `<div>` inside
+// that same wrapper using `left/top: ${pct}%`. No SVG overlay, no
+// aspect-ratio juggling — what you click on is what gets stored, and
+// what gets stored is what gets rendered.
 //
 // Rooms are rectangles with {floor_plan_x, _y, _width, _height} (0..1).
 // Legacy polygon rooms render as their bounding box so they don't
@@ -24,13 +24,7 @@ import Modal from '@/components/ui/Modal'
 import { ManageRoomsButton } from '@/components/ui/RoomManager'
 import { toast } from '@/components/ui/Toast'
 import { titleCase } from '@/lib/format'
-import VectorView from '@/components/floor-plan/VectorView'
-import type {
-  Project,
-  Room,
-  Item,
-  FloorPlanVector,
-} from '@/lib/types-ui'
+import type { Project, Room, Item } from '@/lib/types-ui'
 
 const PIN_COLOR: Record<string, string> = {
   sourcing: '#9ca3af',
@@ -125,14 +119,11 @@ export default function FloorPlanClient({
   )
 
   const [openUpload, setOpenUpload] = useState(false)
-  const [view, setView] = useState<'photo' | 'vector'>('photo')
-  const [vectorizing, setVectorizing] = useState(false)
+  const [rotating, setRotating] = useState(false)
   // Click coords are measured against this wrapper, and every overlay is
   // an absolute child of it. The wrapper's height is established by the
-  // image (or VectorView) inside, so its bounds always match what the
-  // user is looking at.
+  // image inside, so its bounds always match what the user is looking at.
   const mediaRef = useRef<HTMLDivElement>(null)
-  const initializedRef = useRef(false)
 
   const load = async () => {
     const [p, i, r] = await Promise.all([
@@ -146,13 +137,6 @@ export default function FloorPlanClient({
     setRooms((r.data as Room[]) ?? [])
   }
 
-  useEffect(() => {
-    if (initializedRef.current) return
-    initializedRef.current = true
-    if (initialProject.floor_plan_vector) setView('vector')
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
   const fractionFromEvent = (e: { clientX: number; clientY: number }) => {
     const rect = mediaRef.current?.getBoundingClientRect()
     if (!rect || rect.width === 0 || rect.height === 0) return null
@@ -162,35 +146,17 @@ export default function FloorPlanClient({
     }
   }
 
-  const vectorize = async () => {
-    if (vectorizing) return
-    setVectorizing(true)
+  const rotate = async () => {
+    if (rotating) return
+    setRotating(true)
     try {
-      const res = await api.post<FloorPlanVector>(
-        `/api/projects/${projectId}/floor-plan/vectorize`,
-        {},
-      )
-      setProject((p) =>
-        p ? { ...p, floor_plan_vector: res.data as FloorPlanVector } : p,
-      )
-      setView('vector')
-      toast.success('Floor plan vectorized')
+      await api.post(`/api/projects/${projectId}/floor-plan/rotate`, {})
+      await load()
+      toast.success('Rotated 90°')
     } catch (e) {
       toast.error((e as Error).message)
     } finally {
-      setVectorizing(false)
-    }
-  }
-
-  const removeVector = async () => {
-    if (!confirm('Remove the generated vector floor plan? You can regenerate it later.')) return
-    try {
-      await api.del(`/api/projects/${projectId}/floor-plan/vectorize`)
-      setProject((p) => (p ? { ...p, floor_plan_vector: null } : p))
-      setView('photo')
-      toast.success('Vector floor plan removed')
-    } catch (e) {
-      toast.error((e as Error).message)
+      setRotating(false)
     }
   }
 
@@ -381,7 +347,6 @@ export default function FloorPlanClient({
     .map((r) => ({ room: r, rect: roomRect(r) }))
     .filter((x): x is { room: Room; rect: Rect } => x.rect != null)
 
-  const showVector = view === 'vector' && project.floor_plan_vector
   const cursor =
     mode === 'place' || mode === 'draw'
       ? 'cursor-crosshair'
@@ -402,20 +367,14 @@ export default function FloorPlanClient({
             if (pinDrag) handleMouseUp()
           }}
         >
-          {showVector ? (
-            <VectorView
-              spec={project.floor_plan_vector as FloorPlanVector}
-              className={['w-full block', cursor].join(' ')}
-            />
-          ) : (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={project.floor_plan_url}
-              alt="Floor plan"
-              draggable={false}
-              className={['w-full h-auto block', cursor].join(' ')}
-            />
-          )}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={project.floor_plan_url}
+            alt="Floor plan"
+            draggable={false}
+            className={['w-full h-auto block', cursor].join(' ')}
+          />
+
 
           {/* Existing rooms — pure CSS rectangles. */}
           {visibleRooms.map(({ room, rect }) => (
@@ -613,70 +572,19 @@ export default function FloorPlanClient({
 
         <div className="pt-4 border-t border-hm-text/10">
           <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
-            View
+            Image
           </div>
-          <div className="flex border border-hm-text/15 rounded-sm overflow-hidden mb-2">
-            {(
-              [
-                ['photo', 'Photo'],
-                ['vector', 'Vector'],
-              ] as Array<['photo' | 'vector', string]>
-            ).map(([k, label]) => {
-              const disabled = k === 'vector' && !project.floor_plan_vector
-              return (
-                <button
-                  key={k}
-                  onClick={() => !disabled && setView(k)}
-                  disabled={disabled}
-                  className={[
-                    'flex-1 font-sans text-[10px] uppercase tracking-[0.22em] py-2 transition-colors',
-                    view === k
-                      ? 'bg-hm-text text-bg'
-                      : disabled
-                      ? 'bg-bg text-hm-nav/40 cursor-not-allowed'
-                      : 'bg-bg text-hm-nav hover:text-hm-text',
-                  ].join(' ')}
-                >
-                  {label}
-                </button>
-              )
-            })}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={rotate}
+            loading={rotating}
+          >
+            Rotate 90°
+          </Button>
+          <div className="font-garamond text-[0.85rem] text-hm-nav leading-[1.55] mt-2">
+            Rotates the image clockwise. Rooms and item pins move with it.
           </div>
-          {project.floor_plan_vector ? (
-            <div className="flex flex-col items-start gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={vectorize}
-                loading={vectorizing}
-              >
-                Regenerate vector
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={removeVector}
-                className="text-red-700 hover:text-red-800"
-              >
-                Remove vector
-              </Button>
-            </div>
-          ) : (
-            <>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={vectorize}
-                loading={vectorizing}
-                className="w-full"
-              >
-                Generate clean version
-              </Button>
-              <div className="font-garamond text-[0.85rem] text-hm-nav leading-[1.55] mt-2">
-                Uses a vision model to extract walls, doors, and windows from the photo and renders them in the Hejmae style.
-              </div>
-            </>
-          )}
         </div>
 
         <div className="pt-4 border-t border-hm-text/10">

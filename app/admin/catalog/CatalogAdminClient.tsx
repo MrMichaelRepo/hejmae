@@ -22,7 +22,7 @@ export default function CatalogAdminClient({
 }) {
   const [q, setQ] = useState('')
   const [vendor, setVendor] = useState('')
-  const [category, setCategory] = useState('')
+  const [itemType, setItemType] = useState('')
   const [hasImage, setHasImage] = useState<Trinary>('')
   const [hasPrice, setHasPrice] = useState<Trinary>('')
   const [flagged, setFlagged] = useState<Trinary>('')
@@ -46,7 +46,7 @@ export default function CatalogAdminClient({
       const params = new URLSearchParams()
       if (q.trim()) params.set('q', q.trim())
       if (vendor.trim()) params.set('vendor', vendor.trim())
-      if (category.trim()) params.set('category', category.trim())
+      if (itemType.trim()) params.set('item_type', itemType.trim())
       if (hasImage) params.set('has_image', hasImage)
       if (hasPrice) params.set('has_price', hasPrice)
       if (flagged) params.set('flagged', flagged)
@@ -62,7 +62,7 @@ export default function CatalogAdminClient({
     } finally {
       setLoading(false)
     }
-  }, [q, vendor, category, hasImage, hasPrice, flagged, includeMerged, page])
+  }, [q, vendor, itemType, hasImage, hasPrice, flagged, includeMerged, page])
 
   useEffect(() => {
     if (skipInitial.current) {
@@ -111,12 +111,12 @@ export default function CatalogAdminClient({
       {/* ── Filters ──────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-2 mb-6">
         <FilterInput
-          value={category}
+          value={itemType}
           onChange={(v) => {
-            setCategory(v)
+            setItemType(v)
             setPage(1)
           }}
-          placeholder="Category"
+          placeholder="Type"
         />
         <FilterInput
           value={vendor}
@@ -183,7 +183,7 @@ export default function CatalogAdminClient({
                 <th className="px-3 py-2.5 w-12"></th>
                 <th className="px-3 py-2.5">Name</th>
                 <th className="px-3 py-2.5">Vendor</th>
-                <th className="px-3 py-2.5">Category</th>
+                <th className="px-3 py-2.5">Type</th>
                 <th className="px-3 py-2.5">Price</th>
                 <th className="px-3 py-2.5">Clips</th>
                 <th className="px-3 py-2.5">Created</th>
@@ -234,7 +234,7 @@ export default function CatalogAdminClient({
                     {row.vendor ?? '—'}
                   </td>
                   <td className="px-3 py-2.5 text-hm-nav">
-                    {row.item_type ?? row.category ?? '—'}
+                    {row.item_type ?? '—'}
                   </td>
                   <td className="px-3 py-2.5 text-hm-nav">
                     {row.retail_price_cents != null

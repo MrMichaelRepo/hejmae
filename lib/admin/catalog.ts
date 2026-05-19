@@ -5,12 +5,13 @@
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { sanitizePostgrestSearch } from '@/lib/postgrest'
 import { withSignedUrlsList } from '@/lib/storage'
+import { CATALOG_PRODUCT_ADMIN_COLUMNS } from '@/lib/catalog/columns'
 import type { CatalogProductRow } from '@/lib/supabase/types'
 
 export interface AdminCatalogParams {
   q?: string | null
   vendor?: string | null
-  category?: string | null
+  item_type?: string | null
   has_image?: 'yes' | 'no' | null
   has_price?: 'yes' | 'no' | null
   include_merged?: boolean
@@ -33,9 +34,6 @@ export interface AdminCatalogResult {
   limit: number
 }
 
-const ADMIN_SELECT =
-  'id, name, vendor, category, retail_price_cents, retail_price_last_seen_at, source_url, image_url, style_tags, clipped_count, created_by, description, item_type, deleted_at, merged_into_id, merged_at, created_at, updated_at, embedding_updated_at'
-
 export async function listAdminCatalog(
   params: AdminCatalogParams,
 ): Promise<AdminCatalogResult> {
@@ -47,7 +45,7 @@ export async function listAdminCatalog(
 
   let query = sb
     .from('catalog_products')
-    .select(ADMIN_SELECT, { count: 'exact' })
+    .select(CATALOG_PRODUCT_ADMIN_COLUMNS, { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(from, to)
     .is('deleted_at', null)
@@ -71,7 +69,7 @@ export async function listAdminCatalog(
     }
   }
   if (params.vendor) query = query.ilike('vendor', params.vendor)
-  if (params.category) query = query.ilike('category', params.category)
+  if (params.item_type) query = query.ilike('item_type', params.item_type)
   if (params.has_image === 'yes') query = query.not('image_url', 'is', null)
   if (params.has_image === 'no') query = query.is('image_url', null)
   if (params.has_price === 'yes')

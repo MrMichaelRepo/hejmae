@@ -1,10 +1,14 @@
 // /api/catalog/library — designer's own library (catalog products they've
-// touched via items in any project). Distinct over catalog_product_id.
+// touched via items in any project).
+//
+// Backed by the `designer_catalog_library` view, which collapses the
+// two-step "fetch item ids → fetch catalog rows" dance into one indexed
+// query. Search uses the catalog_products full-text vector — the view
+// re-exposes every catalog_products column including `search_tsv`.
 import { NextResponse, type NextRequest } from 'next/server'
 import { requireDesigner } from '@/lib/auth/designer'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling } from '@/lib/errors'
-import { sanitizePostgrestSearch } from '@/lib/postgrest'
 import { withSignedUrlsList } from '@/lib/storage'
 
 export async function GET(req: NextRequest) {
@@ -13,36 +17,21 @@ export async function GET(req: NextRequest) {
     const sp = req.nextUrl.searchParams
     const q = sp.get('q')?.trim() ?? null
 
-    // Pull distinct catalog_product_ids from this designer's items, then
-    // fetch the catalog rows. TODO: replace with a SQL view + index for
-    // efficiency once we have meaningful library sizes.
-    const { data: itemIds, error } = await supabaseAdmin()
-      .from('items')
-      .select('catalog_product_id')
-      .eq('designer_id', designerId)
-      .not('catalog_product_id', 'is', null)
-    if (error) throw error
-
-    const ids = Array.from(
-      new Set((itemIds ?? []).map((r) => r.catalog_product_id).filter(Boolean)),
-    ) as string[]
-    if (!ids.length) return NextResponse.json({ data: [] })
-
     let query = supabaseAdmin()
-      .from('catalog_products')
+      .from('designer_catalog_library')
       .select('*')
-      .in('id', ids)
-      .is('merged_into_id', null)
-      .is('deleted_at', null)
-      .order('updated_at', { ascending: false })
+      .eq('designer_id', designerId)
+      .order('last_used_at', { ascending: false })
 
     if (q) {
-      const safe = sanitizePostgrestSearch(q)
-      if (safe) query = query.or(`name.ilike.%${safe}%,vendor.ilike.%${safe}%`)
+      query = query.textSearch('search_tsv', q, {
+        type: 'websearch',
+        config: 'simple',
+      })
     }
 
-    const { data, error: e2 } = await query
-    if (e2) throw e2
+    const { data, error } = await query
+    if (error) throw error
     return NextResponse.json({
       data: await withSignedUrlsList(data ?? [], 'image_url'),
     })

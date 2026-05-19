@@ -4,16 +4,14 @@ import { requirePermission } from '@/lib/auth/permissions'
 import { loadOwnedProject } from '@/lib/auth/ownership'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, notFound, badRequest } from '@/lib/errors'
-import { generateMagicToken, hashToken, magicLinkExpiresAt } from '@/lib/tokens'
+import {
+  generateMagicToken,
+  hashToken,
+  magicLinkExpiresAt,
+} from '@/lib/tokens'
 import { logActivity } from '@/lib/activity'
 import { env } from '@/lib/env'
-import { sendEmail } from '@/lib/email/send'
-import { renderInvoiceEmail } from '@/lib/email/templates'
-import { resolveAssetUrl } from '@/lib/storage'
-
-// Logos embedded in emails need to outlive normal browsing TTLs — recipients
-// may open the email days later. 30 days balances freshness vs. expiry.
-const EMAIL_ASSET_TTL_SEC = 60 * 60 * 24 * 30
+import { updateInvoice as updateInvoiceSchema } from '@/lib/validations/invoice'
 
 interface Ctx {
   params: Promise<{ projectId: string; invoiceId: string }>
@@ -43,56 +41,141 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
   })
 }
 
-// PATCH supports either a status transition (e.g. mark sent) or a notes
-// update. Editing line items requires a separate flow — TODO.
+// PATCH actions:
+//   * 'mark_paid'    — manual mark as paid (e.g. paid by check).
+//   * 'rotate_link'  — issue a fresh magic-link URL without re-emailing.
+//   * 'edit_lines'   — replace line items on a draft invoice. Body shape
+//                      matches updateInvoice (type/notes/lines).
+//
+// The previous 'send' action has been replaced by
+// POST /api/projects/[projectId]/invoices/[invoiceId]/email/send, which
+// supports user-edited subject + body and recipient overrides. The old
+// path is gone — callers should use the new endpoint.
 export async function PATCH(req: NextRequest, { params }: Ctx) {
   return withErrorHandling(async () => {
     const { projectId, invoiceId } = await params
-    const { designerId, user, role, permissions } = await requireDesigner()
-    if ((await req.clone().json() as { action?: string }).action === 'mark_paid') {
-      requirePermission({ role, permissions }, 'finances:record_payments')
-    } else {
-      requirePermission({ role, permissions }, 'finances:manage_invoices')
+    const { designerId, role, permissions } = await requireDesigner()
+
+    const raw = (await req.json()) as {
+      action?: 'mark_paid' | 'rotate_link' | 'edit_lines' | 'send'
+      notes?: string | null
+      type?: 'deposit' | 'progress' | 'final'
+      lines?: Array<{
+        item_id?: string | null
+        description: string
+        quantity: number
+        unit_price_cents: number
+      }>
     }
-    const project = await loadOwnedProject(designerId, projectId)
+
+    if (raw.action === 'send') {
+      throw badRequest(
+        "The 'send' action has moved. POST /api/projects/[projectId]/invoices/[invoiceId]/email/send",
+      )
+    }
+
+    const permKey =
+      raw.action === 'mark_paid'
+        ? 'finances:record_payments'
+        : 'finances:manage_invoices'
+    requirePermission({ role, permissions }, permKey)
+    await loadOwnedProject(designerId, projectId)
     const existing = await loadInvoice(designerId, projectId, invoiceId)
 
-    const body = (await req.json()) as {
-      action?: 'send' | 'mark_paid' | 'rotate_link'
-      notes?: string | null
+    // ----- edit_lines -----
+    if (raw.action === 'edit_lines') {
+      if (existing.status !== 'draft') {
+        throw badRequest('Only draft invoices can be edited')
+      }
+      const parsed = updateInvoiceSchema.safeParse({
+        type: raw.type,
+        notes: raw.notes,
+        lines: raw.lines,
+      })
+      if (!parsed.success) {
+        throw badRequest(
+          'Invalid edit payload',
+          parsed.error.flatten().fieldErrors,
+        )
+      }
+      const lines = parsed.data.lines ?? []
+      if (!lines.length) throw badRequest('Invoice must have at least one line')
+
+      const total = lines.reduce(
+        (acc, l) => acc + l.unit_price_cents * l.quantity,
+        0,
+      )
+
+      const sb = supabaseAdmin()
+      const updates: Record<string, unknown> = { total_cents: total }
+      if (parsed.data.type !== undefined) updates.type = parsed.data.type
+      if (parsed.data.notes !== undefined) updates.notes = parsed.data.notes
+
+      const { error: invErr } = await sb
+        .from('invoices')
+        .update(updates)
+        .eq('id', invoiceId)
+        .eq('designer_id', designerId)
+      if (invErr) throw invErr
+
+      const { error: delErr } = await sb
+        .from('invoice_line_items')
+        .delete()
+        .eq('invoice_id', invoiceId)
+        .eq('designer_id', designerId)
+      if (delErr) throw delErr
+
+      const { error: insErr } = await sb
+        .from('invoice_line_items')
+        .insert(
+          lines.map((l, i) => ({
+            designer_id: designerId,
+            invoice_id: invoiceId,
+            item_id: l.item_id ?? null,
+            description: l.description,
+            quantity: l.quantity,
+            unit_price_cents: l.unit_price_cents,
+            total_price_cents: l.unit_price_cents * l.quantity,
+            position: i,
+          })),
+        )
+      if (insErr) throw insErr
+
+      await logActivity({
+        designerId,
+        projectId,
+        actorType: 'designer',
+        actorId: designerId,
+        eventType: 'invoice.edited',
+        description: 'Invoice draft edited',
+        metadata: { invoice_id: invoiceId, line_count: lines.length, total_cents: total },
+      })
+
+      const refreshed = await loadInvoice(designerId, projectId, invoiceId)
+      return NextResponse.json({ data: refreshed })
     }
 
+    // ----- status / link actions -----
     const updates: Record<string, unknown> = {}
-    if (body.notes !== undefined) updates.notes = body.notes
+    if (raw.notes !== undefined) updates.notes = raw.notes
 
-    // Raw token is held in this closure (for URL construction in the
-    // response). Only the hash goes to the DB.
     let rawToken: string | null = null
 
-    if (body.action === 'send' || body.action === 'rotate_link') {
-      if (existing.status === 'paid') {
-        throw badRequest('Invoice is already paid')
+    if (raw.action === 'rotate_link') {
+      if (existing.status === 'paid' || existing.status === 'void') {
+        throw badRequest(`Cannot rotate link on ${existing.status} invoice`)
       }
-      // Always rotate. For 'send', this also flips status; for 'rotate_link'
-      // we just reissue the URL (e.g. designer wants to copy a fresh link
-      // without re-emailing). Either way the previous link stops working.
       rawToken = generateMagicToken()
       updates.magic_link_token = hashToken(rawToken)
       updates.magic_link_expires_at = magicLinkExpiresAt()
       updates.magic_link_revoked_at = null
-      if (body.action === 'send') {
-        updates.status = 'sent'
-        updates.sent_at = new Date().toISOString()
-      }
-    } else if (body.action === 'mark_paid') {
-      if (existing.status === 'paid') {
-        throw badRequest('Invoice is already paid')
-      }
-      // Manual mark-paid (e.g. paid by check). Stripe-driven payments are
-      // recorded by the webhook handler. TODO: reconcile any over-payment.
+    } else if (raw.action === 'mark_paid') {
+      if (existing.status === 'paid') throw badRequest('Invoice is already paid')
+      if (existing.status === 'void') throw badRequest('Cannot mark a void invoice as paid')
       updates.status = 'paid'
       updates.paid_at = new Date().toISOString()
     }
+
     if (!Object.keys(updates).length) {
       throw badRequest('No valid fields to update')
     }
@@ -106,7 +189,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       .single()
     if (error) throw error
 
-    if (body.action === 'mark_paid') {
+    if (raw.action === 'mark_paid') {
       const paidAlready = (existing.payments ?? []).reduce(
         (a: number, p: { amount_cents: number }) => a + p.amount_cents,
         0,
@@ -125,55 +208,9 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       }
     }
 
-    let emailResult: { ok: boolean; reason?: string } | null = null
-    if (body.action === 'send' && rawToken) {
-      const url = `${env.appUrl()}/portal/invoices/${rawToken}`
-
-      if (project.client_id) {
-        const { data: client } = await supabaseAdmin()
-          .from('clients')
-          .select('name, email')
-          .eq('id', project.client_id)
-          .maybeSingle()
-        if (client?.email) {
-          const tpl = renderInvoiceEmail({
-            brand: {
-              studio_name: user.studio_name,
-              name: user.name,
-              logo_url: await resolveAssetUrl(user.logo_url, EMAIL_ASSET_TTL_SEC),
-              brand_color: user.brand_color,
-            },
-            clientName: client.name,
-            projectName: project.name,
-            invoiceType: data.type,
-            totalCents: data.total_cents,
-            invoiceUrl: url,
-            notes: data.notes,
-          })
-          emailResult = await sendEmail({
-            to: client.email,
-            subject: tpl.subject,
-            html: tpl.html,
-            text: tpl.text,
-            replyTo: user.email,
-          })
-        }
-      }
-
-      await logActivity({
-        designerId,
-        projectId,
-        actorType: 'designer',
-        actorId: designerId,
-        eventType: 'invoice.sent',
-        description: `Invoice sent${emailResult?.ok ? ' (email delivered)' : ''}`,
-        metadata: { invoice_id: invoiceId, email: emailResult },
-      })
-    }
-
     // Strip the hashed token from the response — clients shouldn't see it.
     const { magic_link_token: _scrub, ...safeData } = data
-    const out: Record<string, unknown> = { data: safeData, email: emailResult }
+    const out: Record<string, unknown> = { data: safeData }
     if (rawToken) {
       out.magic_link_url = `${env.appUrl()}/portal/invoices/${rawToken}`
     }

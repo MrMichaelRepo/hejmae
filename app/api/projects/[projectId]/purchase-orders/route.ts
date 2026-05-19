@@ -37,10 +37,9 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
   })
 }
 
-// Create one PO. To split approved items by vendor automatically, the FE
-// can call this once per vendor after pre-grouping, or hit the auto path
-// (`from_approved_items: true`) which creates ONE PO per call for the
-// vendor specified. TODO: server-side multi-PO grouping endpoint.
+// Create one PO. `from_approved_items: true` pulls every approved item
+// matching `vendor_name` and lines them. To split approved items by
+// vendor automatically in one call, use POST .../purchase-orders/auto-group.
 export async function POST(req: NextRequest, { params }: Ctx) {
   return withErrorHandling(async () => {
     const { projectId } = await params

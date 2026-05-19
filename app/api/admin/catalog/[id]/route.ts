@@ -1,8 +1,8 @@
 // PATCH /api/admin/catalog/:id
 //
 // Updates a CatalogProduct's editable fields. If a field that participates
-// in the embedding (name / vendor / description / item_type / category /
-// style_tags) changes, we re-queue embedding generation asynchronously.
+// in the embedding (name / vendor / brand / item_type / style_tag /
+// description) changes, we re-queue embedding generation asynchronously.
 
 import { NextResponse, type NextRequest } from 'next/server'
 import { requireAdmin } from '@/lib/auth/admin'
@@ -14,15 +14,16 @@ import {
 } from '@/lib/errors'
 import { updateCatalogProductInput } from '@/lib/validations/admin'
 import { generateCatalogEmbedding } from '@/lib/catalog/embed'
+import { CATALOG_PRODUCT_ADMIN_COLUMNS } from '@/lib/catalog/columns'
 import type { CatalogProductRow } from '@/lib/supabase/types'
 
 const EMBEDDING_FIELDS = new Set([
   'name',
   'vendor',
-  'category',
+  'brand',
   'item_type',
+  'style_tag',
   'description',
-  'style_tags',
 ])
 
 export async function PATCH(
@@ -58,9 +59,7 @@ export async function PATCH(
       .from('catalog_products')
       .update(patch)
       .eq('id', id)
-      .select(
-        'id, name, vendor, category, retail_price_cents, retail_price_last_seen_at, source_url, image_url, style_tags, clipped_count, created_by, description, item_type, deleted_at, merged_into_id, merged_at, created_at, updated_at, embedding_updated_at',
-      )
+      .select(CATALOG_PRODUCT_ADMIN_COLUMNS)
       .single()
     if (error) throw error
 

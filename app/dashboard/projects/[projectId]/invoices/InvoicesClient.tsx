@@ -9,7 +9,17 @@ import Button from '@/components/ui/Button'
 import { Field, Input, Select, Textarea } from '@/components/ui/Input'
 import Modal from '@/components/ui/Modal'
 import { toast } from '@/components/ui/Toast'
-import type { Invoice, InvoiceLine, Payment, InvoiceType } from '@/lib/types-ui'
+import type {
+  Invoice,
+  InvoiceLine,
+  Payment,
+  InvoiceType,
+  DefaultInvoiceEmailMode,
+} from '@/lib/types-ui'
+import SendInvoiceModal from './SendInvoiceModal'
+import EditInvoiceModal from './EditInvoiceModal'
+import RefundModal from './RefundModal'
+import VoidModal from './VoidModal'
 
 export interface InvoiceWith extends Invoice {
   invoice_line_items?: InvoiceLine[]
@@ -25,34 +35,37 @@ interface NewLine {
 interface Props {
   projectId: string
   initialInvoices: InvoiceWith[]
+  clientName: string | null
+  clientEmail: string | null
+  studioEmail: string
+  studioName: string
+  brandColor: string | null
+  defaultEmailMode: DefaultInvoiceEmailMode
 }
 
-export default function InvoicesClient({ projectId, initialInvoices }: Props) {
+type ActionModal =
+  | { kind: 'send'; invoice: InvoiceWith; flavor: 'initial' | 'reminder' }
+  | { kind: 'edit'; invoice: InvoiceWith }
+  | { kind: 'refund'; invoice: InvoiceWith }
+  | { kind: 'void'; invoice: InvoiceWith }
+
+export default function InvoicesClient({
+  projectId,
+  initialInvoices,
+  clientName,
+  clientEmail,
+  studioEmail,
+  studioName,
+  brandColor,
+  defaultEmailMode,
+}: Props) {
   const [invoices, setInvoices] = useState<InvoiceWith[]>(initialInvoices)
   const [openCreate, setOpenCreate] = useState(false)
+  const [active, setActive] = useState<ActionModal | null>(null)
 
   const load = async () => {
     const r = await api.get<InvoiceWith[]>(`/api/projects/${projectId}/invoices`)
     setInvoices((r.data as InvoiceWith[]) ?? [])
-  }
-
-  const sendInvoice = async (id: string) => {
-    try {
-      const res = await api.patch<Invoice>(
-        `/api/projects/${projectId}/invoices/${id}`,
-        { action: 'send' },
-      )
-      const url = (res as { magic_link_url?: string }).magic_link_url
-      if (url) {
-        navigator.clipboard.writeText(url)
-        toast.success('Invoice sent — pay link copied')
-      } else {
-        toast.success('Invoice sent')
-      }
-      load()
-    } catch (e) {
-      toast.error((e as Error).message)
-    }
   }
 
   const copyPayLink = async (id: string) => {
@@ -144,28 +157,19 @@ export default function InvoicesClient({ projectId, initialInvoices }: Props) {
                         PDF
                       </Button>
                     </a>
-                    {inv.status === 'draft' ? (
-                      <Button size="sm" variant="primary" onClick={() => sendInvoice(inv.id)}>
-                        Send
-                      </Button>
-                    ) : (
-                      <>
-                        {inv.status !== 'paid' ? (
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => copyPayLink(inv.id)}
-                          >
-                            Copy pay link
-                          </Button>
-                        ) : null}
-                        {inv.status !== 'paid' ? (
-                          <Button size="sm" variant="ghost" onClick={() => markPaid(inv.id)}>
-                            Mark paid
-                          </Button>
-                        ) : null}
-                      </>
-                    )}
+                    {renderRowActions(inv, {
+                      onEdit: () => setActive({ kind: 'edit', invoice: inv }),
+                      onSend: () =>
+                        setActive({ kind: 'send', invoice: inv, flavor: 'initial' }),
+                      onResend: () =>
+                        setActive({ kind: 'send', invoice: inv, flavor: 'initial' }),
+                      onReminder: () =>
+                        setActive({ kind: 'send', invoice: inv, flavor: 'reminder' }),
+                      onCopyLink: () => copyPayLink(inv.id),
+                      onMarkPaid: () => markPaid(inv.id),
+                      onRefund: () => setActive({ kind: 'refund', invoice: inv }),
+                      onVoid: () => setActive({ kind: 'void', invoice: inv }),
+                    })}
                   </div>
                 </div>
                 {(inv.invoice_line_items ?? []).length > 0 ? (
@@ -206,7 +210,144 @@ export default function InvoicesClient({ projectId, initialInvoices }: Props) {
           toast.success('Invoice drafted')
         }}
       />
+
+      {active?.kind === 'send' ? (
+        <SendInvoiceModal
+          open
+          projectId={projectId}
+          invoice={active.invoice}
+          clientEmail={clientEmail}
+          clientName={clientName}
+          studioEmail={studioEmail}
+          studioName={studioName}
+          brandColor={brandColor}
+          defaultMode={defaultEmailMode}
+          kind={active.flavor}
+          onClose={() => setActive(null)}
+          onSent={() => {
+            load()
+          }}
+        />
+      ) : null}
+
+      {active?.kind === 'edit' ? (
+        <EditInvoiceModal
+          open
+          projectId={projectId}
+          invoice={active.invoice}
+          onClose={() => setActive(null)}
+          onSaved={() => {
+            setActive(null)
+            load()
+            toast.success('Invoice updated')
+          }}
+        />
+      ) : null}
+
+      {active?.kind === 'refund' ? (
+        <RefundModal
+          open
+          projectId={projectId}
+          invoice={active.invoice}
+          onClose={() => setActive(null)}
+          onRefunded={() => {
+            setActive(null)
+            load()
+          }}
+        />
+      ) : null}
+
+      {active?.kind === 'void' ? (
+        <VoidModal
+          open
+          projectId={projectId}
+          invoice={active.invoice}
+          onClose={() => setActive(null)}
+          onVoided={() => {
+            setActive(null)
+            load()
+          }}
+        />
+      ) : null}
     </div>
+  )
+}
+
+interface RowActionHandlers {
+  onEdit: () => void
+  onSend: () => void
+  onResend: () => void
+  onReminder: () => void
+  onCopyLink: () => void
+  onMarkPaid: () => void
+  onRefund: () => void
+  onVoid: () => void
+}
+
+function renderRowActions(
+  inv: InvoiceWith,
+  h: RowActionHandlers,
+) {
+  const paid = (inv.payments ?? []).reduce((a, p) => a + p.amount_cents, 0)
+  const refundable = paid - (inv.refunded_cents ?? 0)
+
+  if (inv.status === 'draft') {
+    return (
+      <>
+        <Button size="sm" variant="ghost" onClick={h.onEdit}>
+          Edit
+        </Button>
+        <Button size="sm" variant="ghost" onClick={h.onVoid}>
+          Void
+        </Button>
+        <Button size="sm" variant="primary" onClick={h.onSend}>
+          Send
+        </Button>
+      </>
+    )
+  }
+
+  if (inv.status === 'sent' || inv.status === 'partially_paid') {
+    return (
+      <>
+        <Button size="sm" variant="ghost" onClick={h.onCopyLink}>
+          Copy pay link
+        </Button>
+        <Button size="sm" variant="ghost" onClick={h.onReminder}>
+          Send reminder
+        </Button>
+        <Button size="sm" variant="ghost" onClick={h.onResend}>
+          Resend
+        </Button>
+        <Button size="sm" variant="ghost" onClick={h.onMarkPaid}>
+          Mark paid
+        </Button>
+        {refundable > 0 ? (
+          <Button size="sm" variant="ghost" onClick={h.onRefund}>
+            Refund
+          </Button>
+        ) : (
+          <Button size="sm" variant="ghost" onClick={h.onVoid}>
+            Void
+          </Button>
+        )}
+      </>
+    )
+  }
+
+  if (inv.status === 'paid') {
+    return refundable > 0 ? (
+      <Button size="sm" variant="ghost" onClick={h.onRefund}>
+        Refund
+      </Button>
+    ) : null
+  }
+
+  // status === 'void'
+  return (
+    <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav">
+      Voided
+    </span>
   )
 }
 

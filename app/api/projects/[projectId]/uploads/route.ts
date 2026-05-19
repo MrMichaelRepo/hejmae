@@ -34,7 +34,7 @@ const VALID_KINDS = new Set<UploadKind>(['floor-plan', 'item-image', 'doc'])
 export async function POST(req: NextRequest, { params }: Ctx) {
   return withErrorHandling(async () => {
     const { projectId } = await params
-    const { designerId } = await requireDesigner()
+    const { designerId, user } = await requireDesigner()
     const rl = await checkRateLimit('upload', `designer:${designerId}`)
     if (!rl.ok) throw tooManyRequests()
     await loadOwnedProject(designerId, projectId)
@@ -58,6 +58,7 @@ export async function POST(req: NextRequest, { params }: Ctx) {
       projectId,
       file,
       ownerId: typeof ownerId === 'string' && ownerId ? ownerId : undefined,
+      autoStraighten: user.auto_straighten_floor_plans,
     })
 
     return NextResponse.json({ data: result }, { status: 201 })

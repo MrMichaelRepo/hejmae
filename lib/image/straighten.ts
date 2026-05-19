@@ -252,7 +252,7 @@ export async function straightenFloorPlan(
   width: number,
   height: number,
 ): Promise<StraightenResult> {
-  if (!env.floorPlanAutoStraighten() || !env.anthropicApiKey()) {
+  if (!env.anthropicApiKey()) {
     return { buffer: input, width, height, applied: false }
   }
   try {

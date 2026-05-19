@@ -72,24 +72,63 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
         }
       }
 
-      // Replace the room set entirely. TODO: smarter diff that preserves
-      // approval state on rooms that are still present.
-      await supabaseAdmin()
+      // Merge-aware diff: keep existing proposal_rooms rows when their
+      // room_id is still in the new set so client-side state
+      // (approved_at, client_comment) survives a re-save. Only positions
+      // get patched for kept rooms.
+      const sb = supabaseAdmin()
+      const { data: existing, error: existingErr } = await sb
         .from('proposal_rooms')
-        .delete()
+        .select('id, room_id, position')
         .eq('proposal_id', proposalId)
         .eq('designer_id', designerId)
-      const { error } = await supabaseAdmin()
-        .from('proposal_rooms')
-        .insert(
-          body.room_ids.map((room_id, i) => ({
+      if (existingErr) throw existingErr
+
+      const existingByRoomId = new Map(
+        (existing ?? []).map((r) => [r.room_id, r]),
+      )
+      const desiredPositionByRoomId = new Map(
+        body.room_ids.map((roomId, i) => [roomId, i]),
+      )
+
+      const toDelete = (existing ?? [])
+        .filter((r) => !desiredPositionByRoomId.has(r.room_id))
+        .map((r) => r.id)
+      const toInsert = body.room_ids
+        .map((roomId, i) => ({ roomId, position: i }))
+        .filter(({ roomId }) => !existingByRoomId.has(roomId))
+      const toReposition = (existing ?? []).filter((r) => {
+        const desired = desiredPositionByRoomId.get(r.room_id)
+        return desired !== undefined && desired !== r.position
+      })
+
+      if (toDelete.length) {
+        const { error } = await sb
+          .from('proposal_rooms')
+          .delete()
+          .in('id', toDelete)
+          .eq('designer_id', designerId)
+        if (error) throw error
+      }
+      if (toInsert.length) {
+        const { error } = await sb.from('proposal_rooms').insert(
+          toInsert.map(({ roomId, position }) => ({
             designer_id: designerId,
             proposal_id: proposalId,
-            room_id,
-            position: i,
+            room_id: roomId,
+            position,
           })),
         )
-      if (error) throw error
+        if (error) throw error
+      }
+      for (const r of toReposition) {
+        const { error } = await sb
+          .from('proposal_rooms')
+          .update({ position: desiredPositionByRoomId.get(r.room_id) })
+          .eq('id', r.id)
+          .eq('designer_id', designerId)
+        if (error) throw error
+      }
     }
 
     const fresh = await loadProposal(designerId, projectId, proposalId)

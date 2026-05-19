@@ -15,7 +15,7 @@ export async function GET() {
     const { data, error } = await supabaseAdmin()
       .from('studios')
       .select(
-        'id, name, owner_user_id, accounting_basis, fiscal_year_start_month, estimated_federal_tax_pct, estimated_state_tax_pct, estimated_self_employment_tax_pct, tax_state_code',
+        'id, name, owner_user_id, accounting_basis, fiscal_year_start_month, estimated_federal_tax_pct, estimated_state_tax_pct, estimated_self_employment_tax_pct, tax_state_code, default_invoice_email_mode',
       )
       .eq('id', ctx.studioId)
       .maybeSingle()
@@ -35,7 +35,7 @@ export async function PATCH(req: NextRequest) {
       .update(body)
       .eq('id', ctx.studioId)
       .select(
-        'id, name, owner_user_id, accounting_basis, fiscal_year_start_month, estimated_federal_tax_pct, estimated_state_tax_pct, estimated_self_employment_tax_pct, tax_state_code',
+        'id, name, owner_user_id, accounting_basis, fiscal_year_start_month, estimated_federal_tax_pct, estimated_state_tax_pct, estimated_self_employment_tax_pct, tax_state_code, default_invoice_email_mode',
       )
       .single()
     if (error) throw error

@@ -5,6 +5,7 @@
 
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withSignedUrlsList } from '@/lib/storage'
+import { CATALOG_PRODUCT_COLUMNS as CATALOG_PRODUCT_COLUMNS_LOCAL } from '@/lib/catalog/columns'
 import type {
   CatalogDuplicateFlagRow,
   CatalogProductRow,
@@ -99,9 +100,7 @@ async function hydrateFlags(
     await Promise.all([
       sb
         .from('catalog_products')
-        .select(
-          'id, name, vendor, category, retail_price_cents, retail_price_last_seen_at, source_url, image_url, style_tags, clipped_count, created_by, description, item_type, deleted_at, merged_into_id, merged_at, created_at, updated_at',
-        )
+        .select(CATALOG_PRODUCT_COLUMNS_LOCAL)
         .in('id', productIds),
       resolverIds.length > 0
         ? sb.from('users').select('id, name, email').in('id', resolverIds)

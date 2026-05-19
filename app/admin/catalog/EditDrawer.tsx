@@ -10,13 +10,13 @@ import type { AdminCatalogRow } from '@/lib/admin/catalog'
 type EditableField =
   | 'name'
   | 'vendor'
-  | 'category'
+  | 'brand'
   | 'item_type'
+  | 'style_tag'
   | 'description'
   | 'image_url'
   | 'source_url'
   | 'retail_price_dollars'
-  | 'style_tags_csv'
 
 export default function EditDrawer({
   open,
@@ -32,13 +32,13 @@ export default function EditDrawer({
   const [form, setForm] = useState<Record<EditableField, string>>({
     name: '',
     vendor: '',
-    category: '',
+    brand: '',
     item_type: '',
+    style_tag: '',
     description: '',
     image_url: '',
     source_url: '',
     retail_price_dollars: '',
-    style_tags_csv: '',
   })
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -49,8 +49,9 @@ export default function EditDrawer({
       setForm({
         name: row.name ?? '',
         vendor: row.vendor ?? '',
-        category: row.category ?? '',
+        brand: row.brand ?? '',
         item_type: row.item_type ?? '',
+        style_tag: row.style_tag ?? '',
         description: row.description ?? '',
         image_url: row.image_url ?? '',
         source_url: row.source_url ?? '',
@@ -58,7 +59,6 @@ export default function EditDrawer({
           row.retail_price_cents != null
             ? (row.retail_price_cents / 100).toFixed(2)
             : '',
-        style_tags_csv: (row.style_tags ?? []).join(', '),
       })
       setDirty(false)
     }
@@ -84,15 +84,12 @@ export default function EditDrawer({
       const patch: Record<string, unknown> = {
         name: form.name.trim(),
         vendor: form.vendor.trim() || null,
-        category: form.category.trim() || null,
+        brand: form.brand.trim() || null,
         item_type: form.item_type.trim() || null,
+        style_tag: form.style_tag.trim() || null,
         description: form.description.trim() || null,
         image_url: form.image_url.trim() || null,
         source_url: form.source_url.trim() || null,
-        style_tags: form.style_tags_csv
-          .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean),
       }
       const priceRaw = form.retail_price_dollars.trim()
       if (priceRaw === '') {
@@ -169,10 +166,10 @@ export default function EditDrawer({
           </FormField>
         </div>
         <div className="grid grid-cols-2 gap-4">
-          <FormField label="Category">
+          <FormField label="Brand">
             <Input
-              value={form.category}
-              onChange={(e) => set('category', e.target.value)}
+              value={form.brand}
+              onChange={(e) => set('brand', e.target.value)}
             />
           </FormField>
           <FormField label="Item type">
@@ -189,11 +186,11 @@ export default function EditDrawer({
             rows={4}
           />
         </FormField>
-        <FormField label="Style tags (comma separated)">
+        <FormField label="Style tag">
           <Input
-            value={form.style_tags_csv}
-            onChange={(e) => set('style_tags_csv', e.target.value)}
-            placeholder="modern, brass, ceiling-mount"
+            value={form.style_tag}
+            onChange={(e) => set('style_tag', e.target.value)}
+            placeholder="Mid-century modern"
           />
         </FormField>
         <FormField label="Image URL or storage path">

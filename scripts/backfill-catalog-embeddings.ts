@@ -33,7 +33,7 @@ async function main() {
   while (true) {
     const { data: rows, error } = await sb
       .from('catalog_products')
-      .select('id, name, vendor, category, style_tags, description, item_type')
+      .select('id, name, vendor, brand, item_type, style_tag, description')
       .is('embedding', null)
       .is('merged_into_id', null)
       .is('deleted_at', null)

@@ -43,6 +43,34 @@ export async function createOnboardingLink(opts: {
   })
 }
 
+// Refund a charge on the designer's connected account. Partial refunds are
+// supported via `amountCents`; omit to refund the full remaining amount.
+// The platform application fee is refunded proportionally by default —
+// `refundApplicationFee=false` keeps the fee on the platform side.
+export async function refundConnectedCharge(opts: {
+  chargeId: string
+  connectedAccountId: string
+  amountCents?: number
+  reason?: string
+  refundApplicationFee?: boolean
+  metadata?: Record<string, string>
+}): Promise<Stripe.Refund> {
+  const params: Stripe.RefundCreateParams = {
+    charge: opts.chargeId,
+    refund_application_fee: opts.refundApplicationFee ?? true,
+    metadata: opts.metadata ?? {},
+  }
+  if (typeof opts.amountCents === 'number') {
+    params.amount = opts.amountCents
+  }
+  if (opts.reason && ['duplicate', 'fraudulent', 'requested_by_customer'].includes(opts.reason)) {
+    params.reason = opts.reason as Stripe.RefundCreateParams.Reason
+  }
+  return stripe().refunds.create(params, {
+    stripeAccount: opts.connectedAccountId,
+  })
+}
+
 // Compute the platform application fee. Default = 10 bps (0.1%) per spec.
 // Floors at 0 cents. Never returns more than the charge total.
 export function applicationFeeCents(totalCents: number): number {

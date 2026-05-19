@@ -1,8 +1,12 @@
 // Loads the studio-level finance settings (accounting basis, fiscal year
-// start, estimated tax rates). Used by every report page.
+// start, estimated tax rates, default invoice email mode). Used by every
+// report page and by the invoice Send modal to choose its default prefill.
 
 import { supabaseAdmin } from '@/lib/supabase/server'
-import type { AccountingBasis } from '@/lib/supabase/types'
+import type {
+  AccountingBasis,
+  DefaultInvoiceEmailMode,
+} from '@/lib/supabase/types'
 
 export interface StudioFinanceSettings {
   studio_id: string
@@ -12,6 +16,7 @@ export interface StudioFinanceSettings {
   estimated_state_tax_pct: number
   estimated_self_employment_tax_pct: number
   tax_state_code: string | null
+  default_invoice_email_mode: DefaultInvoiceEmailMode
 }
 
 export async function getStudioFinanceSettings(
@@ -20,7 +25,7 @@ export async function getStudioFinanceSettings(
   const { data, error } = await supabaseAdmin()
     .from('studios')
     .select(
-      'id, accounting_basis, fiscal_year_start_month, estimated_federal_tax_pct, estimated_state_tax_pct, estimated_self_employment_tax_pct, tax_state_code',
+      'id, accounting_basis, fiscal_year_start_month, estimated_federal_tax_pct, estimated_state_tax_pct, estimated_self_employment_tax_pct, tax_state_code, default_invoice_email_mode',
     )
     .eq('id', studioId)
     .single()
@@ -35,5 +40,8 @@ export async function getStudioFinanceSettings(
       data.estimated_self_employment_tax_pct,
     ),
     tax_state_code: data.tax_state_code,
+    default_invoice_email_mode:
+      (data.default_invoice_email_mode as DefaultInvoiceEmailMode | null) ??
+      'template',
   }
 }

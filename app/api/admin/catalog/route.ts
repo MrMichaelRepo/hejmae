@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     const result = await listAdminCatalog({
       q: sp.get('q'),
       vendor: sp.get('vendor'),
-      category: sp.get('category'),
+      item_type: sp.get('item_type'),
       has_image: trinary('has_image'),
       has_price: trinary('has_price'),
       include_merged: sp.get('include_merged') === 'true',

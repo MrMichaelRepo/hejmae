@@ -55,12 +55,6 @@ export const env = {
   // clean 503 and embedding generation is a no-op, so the rest of the
   // app keeps working.
   openaiApiKey: () => optional('OPENAI_API_KEY'),
-  // Default on; set to '0' / 'false' to disable per-deployment.
-  floorPlanAutoStraighten: () => {
-    const v = optional('FLOOR_PLAN_AUTO_STRAIGHTEN')
-    if (v == null) return true
-    return !['0', 'false', 'no', 'off'].includes(v.toLowerCase())
-  },
 
   // Platform config
   appUrl: () => required('NEXT_PUBLIC_APP_URL'),

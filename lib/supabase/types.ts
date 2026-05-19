@@ -16,7 +16,21 @@ export type ProposalStatus =
   | 'partially_approved'
   | 'fully_approved'
 export type InvoiceType = 'deposit' | 'progress' | 'final'
-export type InvoiceStatus = 'draft' | 'sent' | 'partially_paid' | 'paid'
+export type InvoiceStatus = 'draft' | 'sent' | 'partially_paid' | 'paid' | 'void'
+export type DefaultInvoiceEmailMode = 'template' | 'ai'
+
+// Shape of one entry appended to invoices.email_drafts on each send.
+export interface InvoiceEmailDraftLog {
+  kind: 'initial' | 'reminder'
+  subject: string
+  body_html: string
+  recipients: string[]
+  cc: string[]
+  reply_to: string | null
+  sent_at: string
+  sent_by: string
+  email_id: string | null
+}
 export type PoStatus =
   | 'draft'
   | 'sent'
@@ -45,6 +59,7 @@ export interface UserRow {
   timezone: string | null
   default_hourly_rate_cents: number
   weekly_capacity_minutes: number
+  auto_straighten_floor_plans: boolean
   role: UserRole
   created_at: string
   updated_at: string
@@ -63,6 +78,7 @@ export interface StudioRow {
   estimated_state_tax_pct: number
   estimated_self_employment_tax_pct: number
   tax_state_code: string | null
+  default_invoice_email_mode: DefaultInvoiceEmailMode
   created_at: string
   updated_at: string
 }
@@ -88,7 +104,6 @@ export interface ProjectRow {
   location: string | null
   notes: string | null
   floor_plan_url: string | null
-  floor_plan_vector: FloorPlanVector | null
   pricing_mode: PricingMode
   markup_percent: number
   created_at: string
@@ -98,55 +113,6 @@ export interface ProjectRow {
 export interface PolygonPoint {
   x: number
   y: number
-}
-
-// Vectorized floor plan: walls + door/window glyphs in 0..1 fractional
-// coords. Rendered as SVG (instead of, or alongside, the photo upload).
-//
-// All coordinates are 0..1 fractions of the *original image's* width and
-// height — so the spec is interoperable with the existing room polygons
-// and pin positions, which use the same convention.
-export interface FloorPlanVectorWall {
-  a: PolygonPoint
-  b: PolygonPoint
-  // Exterior walls render thicker; interior walls thinner. Defaults to
-  // 'interior' if omitted.
-  kind?: 'exterior' | 'interior'
-}
-
-export interface FloorPlanVectorDoor {
-  // The wall opening segment (the gap in the wall the door sits in).
-  a: PolygonPoint
-  b: PolygonPoint
-  // Which endpoint the door pivots from, and which side it swings to.
-  // Used to render the conventional 90° arc. Defaults: pivot 'a',
-  // swing 'cw' if omitted.
-  pivot?: 'a' | 'b'
-  swing?: 'cw' | 'ccw'
-}
-
-export interface FloorPlanVectorWindow {
-  a: PolygonPoint
-  b: PolygonPoint
-}
-
-export interface FloorPlanVectorRoomLabel {
-  name: string
-  // Where to place the label.
-  at: PolygonPoint
-}
-
-export interface FloorPlanVector {
-  version: 1
-  // width / height of the source image. The renderer uses this so the
-  // standalone vector view has the same proportions as the photo would.
-  aspect_ratio: number
-  walls: FloorPlanVectorWall[]
-  doors: FloorPlanVectorDoor[]
-  windows: FloorPlanVectorWindow[]
-  // Optional auto-detected room labels — purely cosmetic. Authoritative
-  // rooms live in the `rooms` table.
-  room_labels?: FloorPlanVectorRoomLabel[]
 }
 
 export interface RoomRow {
@@ -168,16 +134,16 @@ export interface CatalogProductRow {
   id: string
   name: string
   vendor: string | null
-  category: string | null
+  brand: string | null
+  item_type: string | null
+  style_tag: string | null
   retail_price_cents: number | null
   retail_price_last_seen_at: string | null
   source_url: string | null
   image_url: string | null
-  style_tags: string[]
   clipped_count: number
   created_by: string | null
   description: string | null
-  item_type: string | null
   deleted_at: string | null
   merged_into_id: string | null
   merged_at: string | null
@@ -300,8 +266,26 @@ export interface InvoiceRow {
   sent_at: string | null
   paid_at: string | null
   notes: string | null
+  email_drafts: InvoiceEmailDraftLog[]
+  email_send_count: number
+  last_email_subject: string | null
+  last_email_body_html: string | null
+  voided_at: string | null
+  void_reason: string | null
+  refunded_cents: number
   created_at: string
   updated_at: string
+}
+
+export interface PaymentRefundRow {
+  id: string
+  designer_id: string
+  invoice_id: string
+  payment_id: string
+  amount_cents: number
+  stripe_refund_id: string | null
+  reason: string | null
+  created_at: string
 }
 
 export interface InvoiceLineItemRow {

@@ -63,6 +63,9 @@ export interface UploadInput {
   file: File
   // Optional sub-key (e.g. itemId or expenseId) for nested grouping.
   ownerId?: string
+  // Floor-plan only: skip the AI corner-detect + deskew + crop pass.
+  // Defaults to true.
+  autoStraighten?: boolean
 }
 
 export interface UploadResult {
@@ -94,7 +97,9 @@ export async function uploadAsset(input: UploadInput): Promise<UploadResult> {
   }
 
   const sourceBuf = Buffer.from(await file.arrayBuffer())
-  const processed = await processForKind(sourceBuf, file.type, input.kind)
+  const processed = await processForKind(sourceBuf, file.type, input.kind, {
+    autoStraighten: input.autoStraighten ?? true,
+  })
 
   const segments: string[] = [
     input.kind,
@@ -264,6 +269,7 @@ async function processForKind(
   source: Buffer,
   contentType: string,
   kind: UploadKind,
+  opts: { autoStraighten: boolean },
 ): Promise<ProcessedFile> {
   if (kind === 'doc' || kind === 'receipt') {
     return {
@@ -295,8 +301,12 @@ async function processForKind(
     return { buffer: norm.buffer, contentType: norm.contentType, ext: norm.ext }
   }
 
-  const { straightenFloorPlan } = await import('@/lib/image/straighten')
-  const straightened = await straightenFloorPlan(norm.buffer, norm.width, norm.height)
+  const straightened = opts.autoStraighten
+    ? await (async () => {
+        const { straightenFloorPlan } = await import('@/lib/image/straighten')
+        return straightenFloorPlan(norm.buffer, norm.width, norm.height)
+      })()
+    : { buffer: norm.buffer, width: norm.width, height: norm.height, applied: false }
 
   const { postprocessFloorPlan } = await import('@/lib/image/postprocess')
   const finalImg = await postprocessFloorPlan(

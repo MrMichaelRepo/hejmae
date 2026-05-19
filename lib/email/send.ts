@@ -18,6 +18,7 @@ function client(): Resend | null {
 
 export interface EmailMessage {
   to: string | string[]
+  cc?: string | string[]
   subject: string
   html: string
   text?: string
@@ -37,6 +38,7 @@ export async function sendEmail(msg: EmailMessage): Promise<{ ok: boolean; id?: 
     const res = await c.emails.send({
       from: env.resendFromEmail(),
       to: msg.to,
+      cc: msg.cc,
       subject: msg.subject,
       html: msg.html,
       text: msg.text,

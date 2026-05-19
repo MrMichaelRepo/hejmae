@@ -28,6 +28,9 @@ export default function SettingsClient({ initialUser }: { initialUser: DesignerU
         brand_color: user.brand_color,
         pricing_mode: user.pricing_mode,
         default_markup_percent: Number(user.default_markup_percent),
+        default_hourly_rate_cents: user.default_hourly_rate_cents,
+        weekly_capacity_minutes: user.weekly_capacity_minutes,
+        auto_straighten_floor_plans: user.auto_straighten_floor_plans,
       })
       toast.success('Settings saved')
     } catch (e) {
@@ -126,6 +129,70 @@ export default function SettingsClient({ initialUser }: { initialUser: DesignerU
             />
           </Field>
         </div>
+      </Section>
+
+      <Section title="Time tracking">
+        <div className="grid grid-cols-2 gap-4">
+          <Field
+            label="Default hourly rate ($)"
+            hint="Used as the default for new time entries. Each entry can override."
+          >
+            <Input
+              value={(user.default_hourly_rate_cents / 100).toString()}
+              onChange={(e) => {
+                const v = Number(e.target.value)
+                update({
+                  default_hourly_rate_cents: Number.isFinite(v)
+                    ? Math.max(0, Math.round(v * 100))
+                    : 0,
+                })
+              }}
+              inputMode="decimal"
+              placeholder="0"
+            />
+          </Field>
+          <Field
+            label="Weekly capacity (hours)"
+            hint="Billable target per week — drives utilization reports."
+          >
+            <Input
+              value={(user.weekly_capacity_minutes / 60).toString()}
+              onChange={(e) => {
+                const v = Number(e.target.value)
+                update({
+                  weekly_capacity_minutes: Number.isFinite(v)
+                    ? Math.min(168, Math.max(0, Math.round(v * 60)))
+                    : 0,
+                })
+              }}
+              inputMode="decimal"
+              placeholder="40"
+            />
+          </Field>
+        </div>
+      </Section>
+
+      <Section title="Floor plans">
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            className="mt-1"
+            checked={user.auto_straighten_floor_plans}
+            onChange={(e) =>
+              update({ auto_straighten_floor_plans: e.target.checked })
+            }
+          />
+          <div>
+            <div className="font-garamond text-[0.95rem] text-hm-text">
+              Auto-crop and straighten on upload
+            </div>
+            <div className="font-garamond text-[0.85rem] text-hm-nav leading-[1.55] mt-0.5">
+              Uses a vision model to find the floor plan in the image and
+              deskew it to a clean rectangle. Turn off if your scans are
+              already clean.
+            </div>
+          </div>
+        </label>
       </Section>
 
       <div className="flex justify-end mb-12">

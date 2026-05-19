@@ -18,7 +18,7 @@ import type { CatalogProductRow } from '@/lib/supabase/types'
 
 type EmbedInput = Pick<
   CatalogProductRow,
-  'name' | 'vendor' | 'category' | 'style_tags' | 'description' | 'item_type'
+  'name' | 'vendor' | 'brand' | 'item_type' | 'style_tag' | 'description'
 >
 
 export function buildEmbeddingText(row: EmbedInput): string {
@@ -29,16 +29,14 @@ export function buildEmbeddingText(row: EmbedInput): string {
   else if (name) parts.push(`${name}.`)
   else if (vendor) parts.push(`Product from ${vendor}.`)
 
+  const brand = row.brand?.trim()
+  if (brand && brand !== vendor) parts.push(`Brand: ${brand}.`)
+
   const itemType = row.item_type?.trim()
   if (itemType) parts.push(`Type: ${itemType}.`)
 
-  const category = row.category?.trim()
-  if (category) parts.push(`Category: ${category}.`)
-
-  const tags = (row.style_tags ?? [])
-    .map((t) => t.trim())
-    .filter((t) => t.length > 0)
-  if (tags.length > 0) parts.push(`Style: ${tags.join(', ')}.`)
+  const style = row.style_tag?.trim()
+  if (style) parts.push(`Style: ${style}.`)
 
   const description = row.description?.trim()
   if (description) parts.push(description.slice(0, 800))
@@ -65,7 +63,7 @@ async function runInner(catalogProductId: string): Promise<void> {
   const sb = supabaseAdmin()
   const { data: row, error } = await sb
     .from('catalog_products')
-    .select('id, name, vendor, category, style_tags, description, item_type')
+    .select('id, name, vendor, brand, item_type, style_tag, description')
     .eq('id', catalogProductId)
     .maybeSingle()
   if (error) throw error
