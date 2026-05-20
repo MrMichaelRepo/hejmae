@@ -177,9 +177,11 @@ grant execute on function public.latest_period_lock(uuid)
   to authenticated, service_role;
 
 -- Enforcement trigger: refuse INSERT/UPDATE/DELETE on journal_entries whose
--- entry_date is on or before the latest lock. Auto-posted entries (from
--- expenses, mileage, payments) are exempt at the JE level — the source
--- entity's own writes block at the API layer.
+-- entry_date is on or before the latest lock. Fires on EVERY JE write,
+-- including auto-posts from expense / mileage / payment triggers — the
+-- parent transaction rolls back when the JE write raises, which is
+-- exactly what we want (an expense back-dated into a closed period
+-- gets refused as a whole).
 create or replace function public.enforce_period_lock_je()
 returns trigger
 language plpgsql

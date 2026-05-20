@@ -11,6 +11,7 @@ import { withErrorHandling, notFound } from '@/lib/errors'
 import { updateExpense } from '@/lib/validations/expense'
 import { resolveAssetUrl } from '@/lib/storage'
 import { trySyncExpense } from '@/lib/qbo/sync'
+import { assertOwnsAccounts } from '@/lib/auth/ownership-accounts'
 
 async function withSignedReceipt<T extends { receipt_path: string | null; receipt_url: string | null }>(
   row: T,
@@ -52,6 +53,12 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     const { designerId } = await requireDesigner()
     await loadExpense(designerId, expenseId)
     const body = updateExpense.parse(await req.json())
+    if (body.category_account_id || body.payment_account_id) {
+      await assertOwnsAccounts(designerId, [
+        body.category_account_id,
+        body.payment_account_id,
+      ])
+    }
     // Drop receipt_url from writes — we always re-derive it from receipt_path.
     const { receipt_url: _ignore, ...persistable } = body
     const { data, error } = await supabaseAdmin()

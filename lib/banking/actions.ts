@@ -7,6 +7,7 @@
 // status.
 
 import { supabaseAdmin } from '@/lib/supabase/server'
+import { assertOwnsAccounts } from '@/lib/auth/ownership-accounts'
 import type { BankTransactionRow } from '@/lib/supabase/types'
 
 async function loadTxn(
@@ -117,6 +118,26 @@ export async function createExpenseFromTxn(
   const txn = await loadTxn(designerId, txnId)
   if (txn.amount_cents >= 0) {
     throw new Error('Only outflow (negative) transactions can become expenses.')
+  }
+  await assertOwnsAccounts(designerId, [
+    input.category_account_id,
+    input.payment_account_id,
+  ])
+  // vendor_id, if supplied, is FK to vendors which already RLS-scope to
+  // designer. A foreign vendor_id would fail the FK check at insert time
+  // because vendors.designer_id is the tenant key; we still gate at the
+  // app layer for clearer errors.
+  if (input.vendor_id) {
+    const { data: v, error } = await supabaseAdmin()
+      .from('vendors')
+      .select('id')
+      .eq('id', input.vendor_id)
+      .eq('designer_id', designerId)
+      .maybeSingle()
+    if (error) throw error
+    if (!v) {
+      throw new Error(`Vendor ${input.vendor_id} not found`)
+    }
   }
   const sb = supabaseAdmin()
   const { data: expense, error: insErr } = await sb

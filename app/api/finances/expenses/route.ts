@@ -10,6 +10,7 @@ import { withErrorHandling } from '@/lib/errors'
 import { createExpense } from '@/lib/validations/expense'
 import { resolveAssetUrl, resolveAssetUrls } from '@/lib/storage'
 import { trySyncExpense } from '@/lib/qbo/sync'
+import { assertOwnsAccounts } from '@/lib/auth/ownership-accounts'
 
 export async function GET(req: NextRequest) {
   return withErrorHandling(async () => {
@@ -48,6 +49,10 @@ export async function POST(req: NextRequest) {
   return withErrorHandling(async () => {
     const { designerId } = await requireDesigner()
     const body = createExpense.parse(await req.json())
+    await assertOwnsAccounts(designerId, [
+      body.category_account_id,
+      body.payment_account_id,
+    ])
     // Don't persist a stale signed/public URL into receipt_url; we always
     // re-sign from receipt_path on read.
     const { receipt_url: _ignore, ...persistable } = body

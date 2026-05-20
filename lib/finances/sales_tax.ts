@@ -78,25 +78,52 @@ export async function buildSalesTaxReport(
 ): Promise<SalesTaxReport> {
   const sb = supabaseAdmin()
 
-  // 1. Invoices whose effective date falls in the window. We pull a wider
-  //    candidate set (anything with non-zero tax or marked taxable) and
-  //    filter in-process so we can use effectiveDate() (sent_at OR
-  //    created_at). Drafts and voided invoices are excluded — they aren't
-  //    "sales" yet / anymore.
-  const { data: invoices, error: invErr } = await sb
-    .from('invoices')
-    .select(
-      'id, tax_rate_bps, tax_total_cents, tax_state_code, sent_at, created_at, status',
-    )
-    .eq('designer_id', designerId)
-    .not('status', 'eq', 'draft')
-    .not('status', 'eq', 'void')
-  if (invErr) throw invErr
+  // 1. Invoices whose effective date falls in the window. Sent invoices
+  //    are filtered by sent_at; ones that somehow never had sent_at set
+  //    (legacy / manual mark-paid) fall through to created_at. Drafts and
+  //    voided invoices are excluded — they aren't "sales" yet / anymore.
+  //
+  //    We split into two indexed queries (sent_at range + created_at range
+  //    for the sent_at-null tail) and dedupe, so big invoice tables don't
+  //    table-scan.
+  const fromTs = from + 'T00:00:00'
+  const toTs = to + 'T23:59:59'
+  const [withSent, withoutSent] = await Promise.all([
+    sb
+      .from('invoices')
+      .select(
+        'id, tax_rate_bps, tax_total_cents, tax_state_code, sent_at, created_at, status',
+      )
+      .eq('designer_id', designerId)
+      .not('status', 'eq', 'draft')
+      .not('status', 'eq', 'void')
+      .gte('sent_at', fromTs)
+      .lte('sent_at', toTs),
+    sb
+      .from('invoices')
+      .select(
+        'id, tax_rate_bps, tax_total_cents, tax_state_code, sent_at, created_at, status',
+      )
+      .eq('designer_id', designerId)
+      .not('status', 'eq', 'draft')
+      .not('status', 'eq', 'void')
+      .is('sent_at', null)
+      .gte('created_at', fromTs)
+      .lte('created_at', toTs),
+  ])
+  if (withSent.error) throw withSent.error
+  if (withoutSent.error) throw withoutSent.error
 
+  const seen = new Set<string>()
   const inWindow: InvoiceRowForTax[] = []
-  for (const i of (invoices ?? []) as Array<InvoiceRowForTax & { status: string }>) {
-    const d = effectiveDate(i)
-    if (d >= from && d <= to) inWindow.push(i)
+  for (const row of [...(withSent.data ?? []), ...(withoutSent.data ?? [])]) {
+    const inv = row as InvoiceRowForTax & { status: string }
+    if (seen.has(inv.id)) continue
+    seen.add(inv.id)
+    // Double-check the in-window status (paranoia in case Supabase / PostgREST
+    // returns timezone-shifted timestamps that the SQL range missed).
+    const d = effectiveDate(inv)
+    if (d >= from && d <= to) inWindow.push(inv)
   }
 
   // 2. Their lines (for taxable/exempt split).

@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
     const ctx = await requireDesigner()
     requireRole(ctx, 'owner')
     const body = bodySchema.parse(await req.json())
-    const result = await applyTrialBalance(ctx.designerId, body.cutover_date)
+    const result = await applyTrialBalance(ctx.designerId, body.cutover_date, ctx.userId)
     return NextResponse.json({ data: result })
   })
 }

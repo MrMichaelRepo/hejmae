@@ -14,7 +14,7 @@ import { trySyncJournalEntry } from '@/lib/qbo/sync'
 
 export async function POST(req: NextRequest) {
   return withErrorHandling(async () => {
-    const { designerId } = await requireDesigner()
+    const { designerId, userId } = await requireDesigner()
     const body = createManualJournalEntry.parse(await req.json())
 
     const { data, error } = await supabaseAdmin().rpc(
@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
           project_id: l.project_id ?? null,
           memo: l.memo ?? null,
         })),
+        p_actor_user_id: userId,
       },
     )
     if (error) {

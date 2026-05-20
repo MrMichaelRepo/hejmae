@@ -50,6 +50,11 @@ const limiters = {
   // embedding round-trip, so this is the one route where a single
   // designer can ring up real spend in seconds if they bash it.
   imageSearch: () => buildLimiter('image_search', 30, '1 m'),
+  // Bank-statement parsing + AI matching. Each upload kicks a Haiku
+  // call per ~30 transactions; a 5k-row CSV (the hard cap) is ~170
+  // calls. 10 uploads/hour is generous for honest use, painful for
+  // abuse.
+  bankImport: () => buildLimiter('bank_import', 10, '1 h'),
 }
 
 const cache = new Map<string, Ratelimit>()

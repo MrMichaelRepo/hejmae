@@ -97,7 +97,6 @@ interface TaxRow {
 }
 
 interface AccountBalanceRow {
-  id: string
   amount_cents: number
   account_id: string
 }
@@ -108,7 +107,10 @@ interface AccountKeyRow {
   type: string
 }
 
-async function computeStartingBalance(designerId: string): Promise<number> {
+async function computeStartingBalance(
+  designerId: string,
+  asOf: string,
+): Promise<number> {
   const sb = supabaseAdmin()
   const { data: accts, error } = await sb
     .from('accounts')
@@ -123,11 +125,16 @@ async function computeStartingBalance(designerId: string): Promise<number> {
     })
     .map((a) => (a as AccountKeyRow).id)
   if (cashAccountIds.length === 0) return 0
+  // Only sum entries dated today or earlier. Otherwise a future-dated
+  // estimated tax JE would pre-deduct itself from the starting balance.
   const { data: lines, error: lineErr } = await sb
     .from('journal_lines')
-    .select('amount_cents, account_id')
+    .select(
+      'amount_cents, account_id, journal_entries!inner(entry_date, designer_id)',
+    )
     .eq('designer_id', designerId)
     .in('account_id', cashAccountIds)
+    .lte('journal_entries.entry_date', asOf)
   if (lineErr) throw lineErr
   return ((lines ?? []) as AccountBalanceRow[]).reduce(
     (a, r) => a + r.amount_cents,
@@ -202,7 +209,7 @@ export async function buildCashFlowForecast(
   if (poErr) throw poErr
 
   const openPoIds = (poRows ?? []).map((r) => (r as PoRow).id)
-  let poTotalsById = new Map<string, number>()
+  const poTotalsById = new Map<string, number>()
   if (openPoIds.length > 0) {
     const { data: poLines, error: poLineErr } = await sb
       .from('purchase_order_line_items')
@@ -273,7 +280,7 @@ export async function buildCashFlowForecast(
   }
 
   // ---------- Roll up week totals + running balance ----------
-  const startingBalance = await computeStartingBalance(designerId)
+  const startingBalance = await computeStartingBalance(designerId, todayIso)
   let running = startingBalance
   for (const w of weeks) {
     w.lines.sort((a, b) => a.date.localeCompare(b.date))

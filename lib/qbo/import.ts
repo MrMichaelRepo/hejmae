@@ -135,9 +135,22 @@ export async function previewAccountImport(
       usedCodes.add(acctNum)
       return acctNum
     }
-    // Otherwise generate from the type prefix.
-    while (true) {
+    // Otherwise generate from the type prefix. Walk the per-type counter
+    // forward, and stop walking at 9999 — beyond that, the synthetic code
+    // (e.g. "110000") would visually collide with the next type's range.
+    // Fall back to a short hex suffix on the prefix so collisions across
+    // types stay impossible.
+    while (nextSeqByType[type] <= 9999) {
       const code = `${typePrefix[type]}${nextSeqByType[type]++}`
+      if (!usedCodes.has(code)) {
+        usedCodes.add(code)
+        return code
+      }
+    }
+    // Pathological: more than 1000 unmapped accounts of one type. Use a
+    // short random suffix on the type prefix.
+    while (true) {
+      const code = `${typePrefix[type]}-${Math.random().toString(36).slice(2, 6)}`
       if (!usedCodes.has(code)) {
         usedCodes.add(code)
         return code

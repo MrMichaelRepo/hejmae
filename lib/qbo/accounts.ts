@@ -11,6 +11,7 @@
 
 import { qboFetch, QboNotConnectedError } from '@/lib/qbo/client'
 import { getRef, upsertRef, deleteRef } from '@/lib/qbo/refs'
+import { assertOwnsAccounts } from '@/lib/auth/ownership-accounts'
 
 export interface QboAccount {
   id: string
@@ -59,6 +60,11 @@ export async function setAccountMapping(
   hejmaeAccountId: string,
   qboAccountId: string,
 ): Promise<void> {
+  // Refuse to register a mapping for an account the caller doesn't own —
+  // the ref table is tenant-scoped, but accepting foreign hejmae_ids would
+  // let an attacker pollute their own sync with another studio's account
+  // ids (low impact, but no reason to allow it).
+  await assertOwnsAccounts(designerId, [hejmaeAccountId])
   await upsertRef({
     designerId,
     entityType: 'account',
@@ -71,6 +77,8 @@ export async function clearAccountMapping(
   designerId: string,
   hejmaeAccountId: string,
 ): Promise<void> {
+  // No ownership check needed: deleteRef is already scoped by designer_id,
+  // so a foreign hejmae_id just no-ops against the ref table.
   await deleteRef(designerId, 'account', hejmaeAccountId)
 }
 

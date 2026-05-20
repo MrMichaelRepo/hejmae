@@ -158,6 +158,23 @@ export async function markStatus(
 
 // ---------------------------------------------------------------------------
 // Access-token accessor with auto-refresh.
+//
+// Two concurrency hazards we have to deal with:
+//   1. In-process: dozens of fire-and-forget sync calls fire from a single
+//      API request (e.g. saving an invoice → syncs customer, invoice,
+//      payment, etc.). All can race the same refresh.
+//   2. Multi-instance: two Node processes both think the access token is
+//      stale and both call Intuit's refresh endpoint. Intuit rotates the
+//      refresh token on every refresh — one of the two ends up with a
+//      token Intuit has already invalidated.
+//
+// Defense:
+//   * In-process single-flight: keep one Promise per designer_id in a Map
+//     so concurrent callers await the same refresh.
+//   * Multi-instance retry: if Intuit returns invalid_grant, re-read the
+//     row once. If another instance just refreshed it (access expiry
+//     advanced), use that token. Only if the re-read is still stale do we
+//     mark the connection expired.
 // ---------------------------------------------------------------------------
 
 export interface ActiveToken {
@@ -166,9 +183,25 @@ export interface ActiveToken {
   environment: QboEnvironment
 }
 
-export async function getActiveAccessToken(
+const inFlight = new Map<string, Promise<ActiveToken | null>>()
+
+export function getActiveAccessToken(
   designerId: string,
 ): Promise<ActiveToken | null> {
+  const existing = inFlight.get(designerId)
+  if (existing) return existing
+  const p = doGetActiveAccessToken(designerId)
+  inFlight.set(designerId, p)
+  // Clear the cache slot once the promise settles, win or lose.
+  p.finally(() => {
+    if (inFlight.get(designerId) === p) inFlight.delete(designerId)
+  })
+  return p
+}
+
+async function readConnectionRow(
+  designerId: string,
+): Promise<FullConnectionRow | null> {
   const sb = supabaseAdmin()
   const { data, error } = await sb
     .from('qbo_connections')
@@ -176,23 +209,36 @@ export async function getActiveAccessToken(
     .eq('designer_id', designerId)
     .maybeSingle()
   if (error) throw error
-  if (!data) return null
-  const row = data as FullConnectionRow
+  return (data as FullConnectionRow | null) ?? null
+}
+
+function tokenFromRow(row: FullConnectionRow): ActiveToken {
+  const accessToken = decryptToken(
+    blob(row.access_token_ct, row.access_token_iv, row.access_token_tag),
+  )
+  return {
+    accessToken,
+    realmId: row.realm_id,
+    environment: row.environment,
+  }
+}
+
+function rowIsFresh(row: FullConnectionRow): boolean {
+  if (!row.access_token_ct) return false
+  if (!row.access_token_expires_at) return false
+  const exp = new Date(row.access_token_expires_at).getTime()
+  return exp - REFRESH_LEEWAY_MS >= Date.now()
+}
+
+async function doGetActiveAccessToken(
+  designerId: string,
+): Promise<ActiveToken | null> {
+  const row = await readConnectionRow(designerId)
+  if (!row) return null
   if (row.status !== 'active') return null
 
-  const accessExpiry = row.access_token_expires_at
-    ? new Date(row.access_token_expires_at).getTime()
-    : 0
-  const needsRefresh = !row.access_token_ct || accessExpiry - REFRESH_LEEWAY_MS < Date.now()
+  if (rowIsFresh(row)) return tokenFromRow(row)
 
-  if (!needsRefresh && row.access_token_ct) {
-    const accessToken = decryptToken(
-      blob(row.access_token_ct, row.access_token_iv, row.access_token_tag),
-    )
-    return { accessToken, realmId: row.realm_id, environment: row.environment }
-  }
-
-  // Refresh.
   const refreshToken = decryptToken(
     blob(row.refresh_token_ct, row.refresh_token_iv, row.refresh_token_tag),
   )
@@ -200,8 +246,14 @@ export async function getActiveAccessToken(
   try {
     tokens = await refreshAccessToken(refreshToken)
   } catch (e) {
-    // Intuit returns invalid_grant once the refresh token is dead — mark
-    // the connection so the UI can prompt for reconnect.
+    // Possibly invalid_grant. Re-read: another instance may have just
+    // rotated the refresh token, in which case the row's expiry is fresh
+    // and we should use whatever they wrote.
+    const reread = await readConnectionRow(designerId)
+    if (reread && reread.status === 'active' && rowIsFresh(reread)) {
+      return tokenFromRow(reread)
+    }
+    // Genuine death: mark expired so the UI prompts for reconnect.
     await markStatus(designerId, 'expired')
     throw e
   }
@@ -211,6 +263,7 @@ export async function getActiveAccessToken(
   const newRefreshExpiry = new Date(now + tokens.refreshTokenExpiresInSec * 1000)
   const rtEnc = encryptToken(tokens.refreshToken)
   const atEnc = encryptToken(tokens.accessToken)
+  const sb = supabaseAdmin()
   const { error: upErr } = await sb
     .from('qbo_connections')
     .update({

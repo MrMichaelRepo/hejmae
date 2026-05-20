@@ -158,6 +158,7 @@ export interface TrialBalanceApplyResult {
 export async function applyTrialBalance(
   designerId: string,
   cutoverDate: string,
+  actorUserId: string,
 ): Promise<TrialBalanceApplyResult> {
   const preview = await previewTrialBalance(designerId, cutoverDate)
   if (!preview.balanced) {
@@ -193,6 +194,7 @@ export async function applyTrialBalance(
     p_entry_date: cutoverDate,
     p_memo: `Opening balances imported from QuickBooks as of ${cutoverDate}`,
     p_lines: lines,
+    p_actor_user_id: actorUserId,
   })
   if (error) throw error
   return { journalEntryId: data, lineCount: lines.length }
