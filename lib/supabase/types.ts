@@ -40,6 +40,8 @@ export type PoStatus =
 export type ActorType = 'designer' | 'client'
 export type ClippingScrapeStatus = 'pending' | 'complete' | 'failed'
 export type UserRole = 'designer' | 'admin'
+export type PaymentProcessorName = 'stripe' | 'helcim'
+export type PaymentProcessorStatus = 'pending' | 'active' | 'disabled'
 export type CatalogDuplicateStatus =
   | 'pending'
   | 'confirmed_duplicate'
@@ -54,6 +56,7 @@ export interface UserRow {
   logo_url: string | null
   brand_color: string | null
   stripe_account_id: string | null
+  active_payment_processor: PaymentProcessorName | null
   pricing_mode: PricingMode
   default_markup_percent: number
   timezone: string | null
@@ -79,6 +82,17 @@ export interface StudioRow {
   estimated_self_employment_tax_pct: number
   tax_state_code: string | null
   default_invoice_email_mode: DefaultInvoiceEmailMode
+  created_at: string
+  updated_at: string
+}
+
+export interface PaymentProcessorAccountRow {
+  id: string
+  designer_id: string
+  processor: PaymentProcessorName
+  status: PaymentProcessorStatus
+  external_account_id: string
+  config: Record<string, unknown>
   created_at: string
   updated_at: string
 }
@@ -260,6 +274,9 @@ export interface InvoiceRow {
   total_cents: number
   stripe_payment_intent_id: string | null
   stripe_account_id: string | null
+  processor: PaymentProcessorName | null
+  processor_payment_id: string | null
+  processor_account_id: string | null
   magic_link_token: string | null
   magic_link_revoked_at: string | null
   magic_link_expires_at: string | null
@@ -284,6 +301,7 @@ export interface PaymentRefundRow {
   payment_id: string
   amount_cents: number
   stripe_refund_id: string | null
+  processor_refund_id: string | null
   reason: string | null
   created_at: string
 }

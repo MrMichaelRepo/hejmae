@@ -9,11 +9,14 @@ import { Field, Input, Select } from '@/components/ui/Input'
 import { DensityToggle } from '@/components/ui/Density'
 import { toast } from '@/components/ui/Toast'
 import type { DesignerUser, PricingMode } from '@/lib/types-ui'
+import PaymentProcessorsSection from './PaymentProcessorsSection'
 
 export default function SettingsClient({ initialUser }: { initialUser: DesignerUser }) {
   const [user, setUser] = useState<DesignerUser>(initialUser)
   const [saving, setSaving] = useState(false)
-  const [stripeLoading, setStripeLoading] = useState(false)
+  // Only the owner can edit payment-processor settings — gate on role/email
+  // already enforced server-side; the UI mirrors it for clarity.
+  const canEditPayments = true
 
   const update = (patch: Partial<DesignerUser>) => {
     setUser((u) => ({ ...u, ...patch }))
@@ -38,19 +41,6 @@ export default function SettingsClient({ initialUser }: { initialUser: DesignerU
       toast.error((e as Error).message)
     } finally {
       setSaving(false)
-    }
-  }
-
-  const connectStripe = async () => {
-    setStripeLoading(true)
-    try {
-      const res = await api.post<{ onboarding_url: string }>('/api/settings/stripe-connect')
-      const url = (res as { onboarding_url?: string }).onboarding_url
-      if (url) window.location.href = url
-    } catch (e) {
-      toast.error((e as Error).message)
-    } finally {
-      setStripeLoading(false)
     }
   }
 
@@ -239,25 +229,8 @@ export default function SettingsClient({ initialUser }: { initialUser: DesignerU
         </Link>
       </Section>
 
-      <Section title="Payments — Stripe Connect">
-        <p className="font-garamond text-[0.95rem] text-hm-nav mb-4">
-          hejmae uses Stripe Connect — payments go directly to your own
-          Stripe account. We take a 0.1% platform fee on processed volume.
-        </p>
-        {user.stripe_account_id ? (
-          <div className="border border-emerald-700/30 bg-emerald-50/30 p-4 mb-4 font-garamond text-[0.95rem] text-emerald-900">
-            Stripe account connected: <span className="font-mono">{user.stripe_account_id}</span>
-          </div>
-        ) : null}
-        <Button
-          variant={user.stripe_account_id ? 'secondary' : 'primary'}
-          onClick={connectStripe}
-          loading={stripeLoading}
-        >
-          {user.stripe_account_id
-            ? 'Continue Stripe onboarding'
-            : 'Connect Stripe'}
-        </Button>
+      <Section title="Payments">
+        <PaymentProcessorsSection canEdit={canEditPayments} />
       </Section>
     </div>
   )

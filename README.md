@@ -9,59 +9,38 @@ npm install
 npm run dev
 ```
 
-Required env: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `CLERK_SECRET_KEY`, `CLERK_WEBHOOK_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CONNECT_WEBHOOK_SECRET`, `NEXT_PUBLIC_APP_URL`. Optional: `RESEND_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `CRON_SECRET`, `ADMIN_ALERT_EMAIL`.
+Required env: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY`, `CLERK_SECRET_KEY`, `CLERK_WEBHOOK_SECRET`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_CONNECT_WEBHOOK_SECRET`, `NEXT_PUBLIC_APP_URL`. Optional: `RESEND_API_KEY`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN`, `CRON_SECRET`, `ADMIN_ALERT_EMAIL`, `PAYMENT_SECRET_KEY` (required to connect Helcim — see below).
 
 ---
 
-## TODO — catalog admin & duplicate detection (shipped 2026-05-14)
+## TODO — multi-processor payments (shipped 2026-05-19)
 
-The feature is code-complete and typechecks clean. Open work before it's live:
+Stripe is live. Helcim is code-complete and typechecks clean but has not been exercised against a Helcim sandbox — the REST shapes, webhook signature scheme, and HelcimPay.js postMessage shapes were coded from documentation rather than verified end-to-end. Open work before Helcim goes live:
 
 ### Deployment / wiring
-- [ ] **Apply the migration**: `supabase/migrations/20260514000003_catalog_admin_and_duplicates.sql` (push via `supabase db push` or your usual migration path).
-- [ ] **Set env vars in prod**: `CRON_SECRET` (required, any high-entropy string) and `ADMIN_ALERT_EMAIL` (optional, defaults to the Resend From address).
-- [ ] **Promote the first admin** — there is no self-serve. Run in Supabase SQL:
-  ```sql
-  update public.users set role = 'admin' where email = 'you@hejmae.com';
-  ```
-- [ ] **Schedule the weekly scan via Supabase `pg_cron` + `pg_net`** (enable the extensions if you haven't). The URL varies per environment so it's not in a migration:
-  ```sql
-  -- one-time: stash the secret so the cron job doesn't carry it in plaintext.
-  alter database postgres set "app.cron_secret" to '<your CRON_SECRET>';
-
-  select cron.schedule(
-    'catalog-duplicate-scan',
-    '0 6 * * 1',   -- every Monday 06:00 UTC
-    $$ select net.http_post(
-      url := 'https://app.hejmae.com/api/cron/catalog-duplicate-scan',
-      headers := jsonb_build_object(
-        'Authorization',
-        'Bearer ' || current_setting('app.cron_secret')
-      )
-    ) $$
-  );
-  ```
-  Smoke-test by running `select cron.schedule(...);` then `select net.http_post(...);` manually.
-- [ ] **Verify the admin gate** end-to-end: a non-admin Clerk session hitting `/admin/duplicates` should see a 404, and `/api/admin/*` should 403.
-
-### Data hygiene
-- [ ] **Backfill embeddings** for any rows that pre-date the description/item_type fields:
+- [ ] **Apply the three migrations**: `20260519000001_payment_processors.sql`, `20260519000002_payment_secrets_and_columns.sql`, `20260519000003_payment_refunds_processor.sql` (push via `supabase db push` or your usual migration path).
+- [ ] **Generate and set `PAYMENT_SECRET_KEY` in prod**. Master key for encrypting Helcim API tokens + webhook verifier tokens at rest (AES-256-GCM). Must decode to 32 bytes:
   ```bash
-  npm run backfill:embeddings
+  openssl rand -base64 32
   ```
-  The script now selects `description` + `item_type` and skips merged/deleted rows.
-- [ ] **First-run scan**: trigger the cron endpoint once manually before Monday to populate `last_seen_at` for the existing catalog. Browser-friendly:
-  ```
-  curl -H "Authorization: Bearer $CRON_SECRET" https://app.hejmae.com/api/cron/catalog-duplicate-scan
-  ```
+  Helcim onboarding refuses with a clear error if missing. Stripe still works without it.
+- [ ] **Designer onboarding flow** once live:
+  1. Sign up at helcim.com → wait for approval (1–2 business days).
+  2. In Helcim dashboard → Settings → API Access, copy the API token + account id.
+  3. In Helcim dashboard → Integrations → Webhooks, create a subscription pointing to `{appUrl}/api/webhooks/helcim`. Copy the webhook verifier token.
+  4. In hejmae Settings → Payments → Helcim card: paste API token, account id, verifier. Click "Use this for payments".
 
-### Tuning / follow-ups
-- [ ] **Similarity threshold (0.8)** and the ±10% price tolerance are hardcoded in [lib/admin/duplicate-scan.ts](lib/admin/duplicate-scan.ts). Revisit after a few weeks of real flag review — too noisy → raise to 0.85; too quiet → drop to 0.75.
-- [ ] **Activity log on merge** — the merge transaction doesn't currently insert into `activity_logs`. If we want an audit trail beyond the flag row itself, add an insert at the end of `merge_catalog_duplicate(...)`.
-- [ ] **CompareModal "Merge now"** uses a 2-step API call (flag → merge). The flag step is idempotent, so it's safe, but it's not atomic. If we ever see partial failures in the wild, fold both into a single `/api/admin/duplicates/merge-or-flag-and-merge` route.
-- [ ] **Rate-limit admin search** — `/api/admin/catalog` and `/api/admin/catalog/:id/regenerate-embedding` are uncapped. Low risk (admin-only) but the regenerate route burns an OpenAI call per click. Add an `adminWrite` bucket if it becomes a thing.
-- [ ] **Surface an "Admin" link** in the regular dashboard nav for users where `role === 'admin'`, so admins don't have to type `/admin` by hand.
-- [ ] **Test the merge transaction** against a real `items` + `clipping_items` re-point with non-trivial volumes. Verify nothing else holds an FK to `catalog_products.id` that we forgot to re-point.
+### Sandbox verification (BEFORE turning Helcim on for real customers)
+Three spots in code marked `NEEDS SANDBOX VERIFICATION`. Run a full purchase + refund cycle in Helcim's sandbox and confirm:
+- [ ] **REST shapes** in [lib/payments/helcim-client.ts](lib/payments/helcim-client.ts) — `/helcim-pay/initialize`, `/payment/refund`, `/card-transactions/{id}` request + response field names. Helcim has shifted between camelCase and snake_case across versions.
+- [ ] **Webhook signature** in [app/api/webhooks/helcim/route.ts](app/api/webhooks/helcim/route.ts) — assumed header `webhook-signature` + scheme `hex(HMAC_SHA256(verifier, raw_body))`. May actually be Stripe-style `t=…,v1=…`. Adjust `verifySignature()` once confirmed.
+- [ ] **HelcimPay.js integration** in [app/portal/invoices/[token]/HelcimPaymentForm.tsx](app/portal/invoices/[token]/HelcimPaymentForm.tsx) — loader script URL `https://secure.helcim.app/helcim-pay/services/start.js` and the `eventStatus` values HelcimPay's postMessage emits (`SUCCESS` / `APPROVED` / `ABORTED` / `ERROR` assumed).
+
+### Follow-ups
+- [ ] **Drop legacy Stripe-specific columns** once the dual-write window closes: `users.stripe_account_id`, `invoices.stripe_account_id`, `invoices.stripe_payment_intent_id`, `payment_refunds.stripe_refund_id`. The Stripe-Connect webhook + `recordInvoicePaymentInit` write both old + new today; remove the legacy writes first, then a follow-up migration drops the columns.
+- [ ] **Helcim refund webhook** — refunds currently decrement `payments.amount_cents` synchronously in the refund route because we don't subscribe to Helcim's refund events. If we ever add a subscription, mirror the Stripe `charge.refunded` flow and remove the sync decrement to avoid double-counting.
+- [ ] **Per-merchant secret rotation** — `PAYMENT_SECRET_KEY` rotation requires re-encrypting every row in `payment_processor_secrets`. Document a rotation script before the first time we need to do it.
+- [ ] **Surface Helcim onboarding readiness in the UI** — today the Helcim card silently accepts the API token even if `PAYMENT_SECRET_KEY` is missing on the server; the failure surfaces as a generic error. Pre-check the env via `GET /api/settings/payment-processors` and disable the Helcim form with a clear message when the key isn't set.
 
 ---
 

@@ -39,6 +39,14 @@ export const env = {
   stripeWebhookSecret: () => required('STRIPE_WEBHOOK_SECRET'),
   stripeConnectWebhookSecret: () => required('STRIPE_CONNECT_WEBHOOK_SECRET'),
 
+  // Master key for encrypting payment-processor secrets at rest (Helcim API
+  // tokens, per-merchant webhook verifier tokens). MUST be a 32-byte value
+  // encoded as base64. Generate with: `openssl rand -base64 32`.
+  // Required only when a designer connects Helcim — Stripe Connect doesn't
+  // store long-lived credentials in our DB. If missing, Helcim onboarding
+  // will return a clear error.
+  paymentSecretKey: () => optional('PAYMENT_SECRET_KEY'),
+
   // Resend (transactional email). Optional — sends are no-ops if missing.
   resendApiKey: () => optional('RESEND_API_KEY'),
   resendFromEmail: () =>
@@ -58,7 +66,12 @@ export const env = {
 
   // Platform config
   appUrl: () => required('NEXT_PUBLIC_APP_URL'),
-  platformFeeBps: () => Number(optional('PLATFORM_FEE_BPS') ?? '10'), // 0.1% = 10 bps
+  // Per-transaction platform fee on Stripe payments, in basis points.
+  // Defaults to 0 — hejmae is priced as a flat-subscription SaaS, so we do
+  // not take a cut of designer payment volume. The env var stays in place
+  // so a deployment can opt into a fee (e.g. for an enterprise tier) without
+  // a code change.
+  platformFeeBps: () => Number(optional('PLATFORM_FEE_BPS') ?? '0'),
 
   // Upstash Redis for rate limiting. Optional — limiter no-ops without
   // these set, which is fine for local dev. Required in production.

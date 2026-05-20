@@ -1,9 +1,11 @@
 // Stripe Connect helpers.
 //
 // Architecture: each designer connects their OWN Stripe account (Connect
-// "Standard" or "Express") and is the merchant of record. The platform takes
-// a small application fee (0.1% by default — env-configurable). Funds flow
-// directly to the designer's Stripe account; the platform never holds money.
+// "Standard" or "Express") and is the merchant of record. Funds flow
+// directly to the designer's Stripe account; the platform never holds money
+// and (by default) does not take an application fee — hejmae is priced as
+// a flat-subscription SaaS. The platformFeeBps env var is the escape hatch
+// if that ever changes.
 //
 // We use "direct charges" — the PaymentIntent is created on the connected
 // account using `stripeAccount`. This keeps the platform out of the
@@ -71,10 +73,12 @@ export async function refundConnectedCharge(opts: {
   })
 }
 
-// Compute the platform application fee. Default = 10 bps (0.1%) per spec.
-// Floors at 0 cents. Never returns more than the charge total.
+// Compute the platform application fee. Defaults to 0 bps — hejmae does
+// not take a cut of designer payment volume. Floors at 0 cents, never
+// exceeds the charge total.
 export function applicationFeeCents(totalCents: number): number {
   const bps = env.platformFeeBps()
+  if (bps <= 0) return 0
   const fee = Math.floor((totalCents * bps) / 10_000)
   return Math.max(0, Math.min(fee, totalCents))
 }
@@ -88,20 +92,21 @@ export async function createInvoicePaymentIntent(opts: {
   connectedAccountId: string
   customerEmail?: string | null
 }): Promise<Stripe.PaymentIntent> {
-  return stripe().paymentIntents.create(
-    {
-      amount: opts.totalCents,
-      currency: 'usd',
-      automatic_payment_methods: { enabled: true },
-      application_fee_amount: applicationFeeCents(opts.totalCents),
-      metadata: {
-        invoice_id: opts.invoiceId,
-        designer_id: opts.designerId,
-      },
-      receipt_email: opts.customerEmail ?? undefined,
+  const fee = applicationFeeCents(opts.totalCents)
+  const params: Stripe.PaymentIntentCreateParams = {
+    amount: opts.totalCents,
+    currency: 'usd',
+    automatic_payment_methods: { enabled: true },
+    metadata: {
+      invoice_id: opts.invoiceId,
+      designer_id: opts.designerId,
     },
-    { stripeAccount: opts.connectedAccountId },
-  )
+    receipt_email: opts.customerEmail ?? undefined,
+  }
+  if (fee > 0) params.application_fee_amount = fee
+  return stripe().paymentIntents.create(params, {
+    stripeAccount: opts.connectedAccountId,
+  })
 }
 
 // Reuse an existing PaymentIntent when possible so repeated calls don't create
@@ -131,20 +136,20 @@ export async function ensureInvoicePaymentIntent(opts: {
         return existing
       }
       if (existing.status !== 'canceled') {
-        return s.paymentIntents.update(
-          existing.id,
-          {
-            amount: opts.totalCents,
-            currency: 'usd',
-            application_fee_amount: applicationFeeCents(opts.totalCents),
-            metadata: {
-              invoice_id: opts.invoiceId,
-              designer_id: opts.designerId,
-            },
-            receipt_email: opts.customerEmail ?? undefined,
+        const fee = applicationFeeCents(opts.totalCents)
+        const update: Stripe.PaymentIntentUpdateParams = {
+          amount: opts.totalCents,
+          currency: 'usd',
+          metadata: {
+            invoice_id: opts.invoiceId,
+            designer_id: opts.designerId,
           },
-          { stripeAccount: opts.connectedAccountId },
-        )
+          receipt_email: opts.customerEmail ?? undefined,
+        }
+        if (fee > 0) update.application_fee_amount = fee
+        return s.paymentIntents.update(existing.id, update, {
+          stripeAccount: opts.connectedAccountId,
+        })
       }
     } catch {
       // Fall through to create when the stored PI id is stale/invalid.

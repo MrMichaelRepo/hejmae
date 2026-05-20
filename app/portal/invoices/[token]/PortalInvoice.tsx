@@ -9,6 +9,7 @@ import { PageSpinner } from '@/components/ui/Spinner'
 import Button from '@/components/ui/Button'
 import { toast } from '@/components/ui/Toast'
 import PaymentForm from './PaymentForm'
+import HelcimPaymentForm from './HelcimPaymentForm'
 
 interface PortalInvoicePayload {
   invoice: {
@@ -38,8 +39,10 @@ interface PortalInvoicePayload {
 }
 
 interface PaymentInit {
-  client_secret: string
-  connected_account_id: string
+  processor: 'stripe' | 'helcim'
+  client_token: string
+  external_account_id: string
+  payment_ref: string
 }
 
 export default function PortalInvoice({ token }: { token: string }) {
@@ -84,13 +87,18 @@ export default function PortalInvoice({ token }: { token: string }) {
   const initPayment = async () => {
     setLoadingPay(true)
     try {
-      const res = await api.post<PaymentInit>(
+      const res = (await api.post<PaymentInit>(
         `/api/portal/invoices/${token}/payment-intent`,
-      )
-      const cs = (res as { client_secret?: string }).client_secret
-      const acct = (res as { connected_account_id?: string }).connected_account_id
-      if (!cs || !acct) throw new Error('Stripe payment is not set up yet')
-      setPay({ client_secret: cs, connected_account_id: acct })
+      )) as Partial<PaymentInit>
+      if (!res.processor || !res.client_token || !res.external_account_id || !res.payment_ref) {
+        throw new Error('Payment is not set up for this studio yet')
+      }
+      setPay({
+        processor: res.processor,
+        client_token: res.client_token,
+        external_account_id: res.external_account_id,
+        payment_ref: res.payment_ref,
+      })
     } catch (e) {
       toast.error((e as Error).message)
     } finally {
@@ -218,12 +226,20 @@ export default function PortalInvoice({ token }: { token: string }) {
           <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-4">
             Pay {formatCents(data.invoice.total_cents)}
           </div>
-          <PaymentForm
-            clientSecret={pay.client_secret}
-            connectedAccountId={pay.connected_account_id}
-            brandColor={brand}
-            returnUrl={`${window.location.origin}/portal/invoices/${token}?paid=1`}
-          />
+          {pay.processor === 'stripe' ? (
+            <PaymentForm
+              clientSecret={pay.client_token}
+              connectedAccountId={pay.external_account_id}
+              brandColor={brand}
+              returnUrl={`${window.location.origin}/portal/invoices/${token}?paid=1`}
+            />
+          ) : (
+            <HelcimPaymentForm
+              checkoutToken={pay.client_token}
+              brandColor={brand}
+              returnUrl={`${window.location.origin}/portal/invoices/${token}?paid=1`}
+            />
+          )}
         </div>
       ) : (
         <div className="border border-hm-text/15 p-5 flex items-center justify-between gap-4 flex-wrap">
@@ -232,7 +248,7 @@ export default function PortalInvoice({ token }: { token: string }) {
               {formatCents(data.invoice.total_cents)} due
             </div>
             <div className="font-garamond text-[0.9rem] text-hm-nav mt-1">
-              Pay securely via Stripe.
+              Pay securely.
             </div>
           </div>
           <Button

@@ -1,11 +1,13 @@
-// Initiate Stripe Connect onboarding. Creates an Express account if the
-// designer doesn't have one yet and returns a one-time onboarding URL.
+// Initiate Stripe Connect onboarding for the current studio. Returns a
+// one-time onboarding URL. Routes through the multi-processor abstraction
+// so the new payment_processor_accounts row stays in sync with whatever
+// account Stripe assigns.
 import { NextResponse } from 'next/server'
 import { requireDesigner } from '@/lib/auth/designer'
 import { requireRole } from '@/lib/auth/permissions'
 import { supabaseAdmin } from '@/lib/supabase/server'
-import { withErrorHandling } from '@/lib/errors'
-import { createConnectAccount, createOnboardingLink } from '@/lib/stripe/connect'
+import { withErrorHandling, serverError } from '@/lib/errors'
+import { stripeProvider } from '@/lib/payments/stripe'
 
 export async function POST() {
   return withErrorHandling(async () => {
@@ -17,28 +19,18 @@ export async function POST() {
     const sb = supabaseAdmin()
     const { data: ownerRow, error: ownerErr } = await sb
       .from('users')
-      .select('stripe_account_id, email')
+      .select('email')
       .eq('id', designerId)
       .single()
     if (ownerErr) throw ownerErr
 
-    let accountId = ownerRow.stripe_account_id
-    if (!accountId) {
-      const account = await createConnectAccount({
-        email: ownerRow.email,
-        designerId,
-      })
-      accountId = account.id
-      await sb
-        .from('users')
-        .update({ stripe_account_id: accountId })
-        .eq('id', designerId)
-    }
-
-    const link = await createOnboardingLink({ accountId })
-    return NextResponse.json({
-      onboarding_url: link.url,
-      account_id: accountId,
+    const result = await stripeProvider.initOnboarding({
+      designerId,
+      email: ownerRow.email,
     })
+    if (result.kind !== 'redirect' || !result.url) {
+      throw serverError('Stripe onboarding did not return a redirect URL')
+    }
+    return NextResponse.json({ onboarding_url: result.url })
   })
 }

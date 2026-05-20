@@ -1,14 +1,17 @@
-// Client portal: create / refresh the Stripe PaymentIntent so the client
-// can complete payment via Stripe.js.
+// Client portal: create / refresh the payment session so the client can
+// complete payment via the active processor's SDK.
 //
-// The PaymentIntent lives on the designer's connected account. We return
-// the `client_secret` and the `connected_account_id` — the FE must
-// initialize Stripe.js with `stripeAccount: connected_account_id`.
+// Routes through lib/payments/provider — the studio's active processor
+// (Stripe or Helcim) determines which backend is invoked. The response
+// shape is generic; the client uses `processor` to decide which SDK
+// (Stripe.js or HelcimPay.js) to mount.
 import { NextResponse, type NextRequest } from 'next/server'
 import { loadInvoiceByToken } from '@/lib/portal/auth'
-import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, badRequest, tooManyRequests } from '@/lib/errors'
-import { ensureInvoicePaymentIntent } from '@/lib/stripe/connect'
+import {
+  getActiveProcessor,
+  recordInvoicePaymentInit,
+} from '@/lib/payments/provider'
 import { checkRateLimit, callerIp } from '@/lib/ratelimit'
 import { hashToken } from '@/lib/tokens'
 
@@ -27,37 +30,41 @@ export async function POST(req: NextRequest, { params }: Ctx) {
     const { invoice } = await loadInvoiceByToken(token)
     if (invoice.status === 'paid') throw badRequest('Invoice already paid')
 
-    const sb = supabaseAdmin()
-    const { data: designer, error } = await sb
-      .from('users')
-      .select('stripe_account_id')
-      .eq('id', invoice.designer_id)
-      .maybeSingle()
-    if (error) throw error
-    if (!designer?.stripe_account_id) {
-      throw badRequest('Designer has not finished Stripe onboarding')
+    const active = await getActiveProcessor(invoice.designer_id)
+    if (!active) {
+      throw badRequest(
+        'Designer has not finished payment processor onboarding',
+      )
     }
 
-    const pi = await ensureInvoicePaymentIntent({
-      totalCents: invoice.total_cents,
+    // Reuse the in-flight payment ref only if it was issued by the same
+    // processor we're about to use; switching processors invalidates it.
+    const existingRef =
+      invoice.processor === active.provider.name
+        ? invoice.processor_payment_id ?? null
+        : null
+
+    const result = await active.provider.initInvoicePayment({
       invoiceId: invoice.id,
       designerId: invoice.designer_id,
-      connectedAccountId: designer.stripe_account_id,
-      existingPaymentIntentId: invoice.stripe_payment_intent_id,
+      totalCents: invoice.total_cents,
+      account: active.account,
+      existingPaymentRef: existingRef,
     })
 
-    await sb
-      .from('invoices')
-      .update({
-        stripe_payment_intent_id: pi.id,
-        stripe_account_id: designer.stripe_account_id,
-      })
-      .eq('id', invoice.id)
+    await recordInvoicePaymentInit({
+      invoiceId: invoice.id,
+      designerId: invoice.designer_id,
+      processor: result.processor,
+      paymentRef: result.paymentRef,
+      externalAccountId: result.externalAccountId,
+    })
 
     return NextResponse.json({
-      payment_intent_id: pi.id,
-      client_secret: pi.client_secret,
-      connected_account_id: designer.stripe_account_id,
+      processor: result.processor,
+      payment_ref: result.paymentRef,
+      client_token: result.clientToken,
+      external_account_id: result.externalAccountId,
     })
   })
 }
