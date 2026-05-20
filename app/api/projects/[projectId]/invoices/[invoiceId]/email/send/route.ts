@@ -25,6 +25,7 @@ import { withErrorHandling, badRequest } from '@/lib/errors'
 import { sendEmail } from '@/lib/email/send'
 import { renderInvoiceShell } from '@/lib/email/render-invoice'
 import { logActivity } from '@/lib/activity'
+import { trySyncInvoice } from '@/lib/qbo/sync'
 import {
   loadEmailContext,
   mintMagicLink,
@@ -176,6 +177,10 @@ export async function POST(req: NextRequest, { params }: Ctx) {
         email_result: emailResult,
       },
     })
+
+    if (data.status !== 'draft' && data.status !== 'void') {
+      trySyncInvoice(designerId, invoiceId)
+    }
 
     return NextResponse.json({
       data,

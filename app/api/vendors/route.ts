@@ -11,6 +11,7 @@ import { withErrorHandling, conflict } from '@/lib/errors'
 import { createVendor } from '@/lib/validations/vendor'
 import { redactVendor, withDerivedTaxIdLast4 } from '@/lib/finances/vendor_redact'
 import type { VendorRow } from '@/lib/supabase/types'
+import { trySyncVendor } from '@/lib/qbo/sync'
 
 export async function GET() {
   return withErrorHandling(async () => {
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest) {
       }
       throw error
     }
+    trySyncVendor(designerId, data.id)
     return NextResponse.json({ data: redactVendor(data as VendorRow) }, { status: 201 })
   })
 }

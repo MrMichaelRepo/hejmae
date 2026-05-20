@@ -85,4 +85,23 @@ export const env = {
   // Address that the catalog-duplicate-scan summary email is sent to.
   // Falls back to the From address if unset.
   adminAlertEmail: () => optional('ADMIN_ALERT_EMAIL'),
+
+  // QuickBooks Online integration. All optional — if missing, the QBO
+  // routes return a clean 503 and the settings card surfaces "not
+  // configured" instead of a connect button.
+  //   * QBO_ENVIRONMENT — 'sandbox' (default) or 'production'.
+  //   * QBO_CLIENT_ID / QBO_CLIENT_SECRET — from the Intuit developer
+  //     portal for the corresponding environment.
+  //   * QBO_REDIRECT_URI — overrides the default `${appUrl}/api/integrations/qbo/callback`.
+  //     Must match the redirect URI registered with Intuit for the app.
+  // Refresh tokens are encrypted at rest using PAYMENT_SECRET_KEY (same
+  // master key as Helcim secrets), so that var is also required to
+  // connect — surfaced as a clear error in lib/qbo/secrets.ts.
+  qboEnvironment: () => {
+    const v = optional('QBO_ENVIRONMENT')
+    return v === 'production' ? 'production' : 'sandbox'
+  },
+  qboClientId: () => optional('QBO_CLIENT_ID'),
+  qboClientSecret: () => optional('QBO_CLIENT_SECRET'),
+  qboRedirectUri: () => optional('QBO_REDIRECT_URI'),
 }

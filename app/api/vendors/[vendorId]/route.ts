@@ -7,6 +7,7 @@ import { withErrorHandling, notFound, conflict } from '@/lib/errors'
 import { updateVendor } from '@/lib/validations/vendor'
 import { redactVendor, withDerivedTaxIdLast4 } from '@/lib/finances/vendor_redact'
 import type { VendorRow } from '@/lib/supabase/types'
+import { trySyncVendor } from '@/lib/qbo/sync'
 
 interface Ctx {
   params: Promise<{ vendorId: string }>
@@ -53,6 +54,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       }
       throw error
     }
+    trySyncVendor(designerId, vendorId)
     return NextResponse.json({ data: redactVendor(data as VendorRow) })
   })
 }

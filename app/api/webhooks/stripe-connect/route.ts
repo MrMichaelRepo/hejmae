@@ -7,6 +7,7 @@ import { stripe } from '@/lib/stripe/server'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { env } from '@/lib/env'
 import { logActivity } from '@/lib/activity'
+import { trySyncInvoice, trySyncPayment } from '@/lib/qbo/sync'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -133,6 +134,7 @@ async function handlePaymentIntentSucceeded(event: Stripe.Event) {
 
   // Record the payment idempotently — charge id is unique.
   let paymentWasInserted = false
+  let insertedPaymentId: string | null = null
   if (chargeId) {
     const { data: existing } = await sb
       .from('payments')
@@ -140,15 +142,20 @@ async function handlePaymentIntentSucceeded(event: Stripe.Event) {
       .eq('stripe_charge_id', chargeId)
       .maybeSingle()
     if (!existing) {
-      await sb.from('payments').insert({
-        designer_id: designerId,
-        invoice_id: invoiceId,
-        amount_cents: amount,
-        stripe_charge_id: chargeId,
-        stripe_payment_intent_id: pi.id,
-        platform_fee_cents: platformFee,
-      })
+      const { data: inserted } = await sb
+        .from('payments')
+        .insert({
+          designer_id: designerId,
+          invoice_id: invoiceId,
+          amount_cents: amount,
+          stripe_charge_id: chargeId,
+          stripe_payment_intent_id: pi.id,
+          platform_fee_cents: platformFee,
+        })
+        .select('id')
+        .single()
       paymentWasInserted = true
+      insertedPaymentId = inserted?.id ?? null
     }
   } else {
     const { data: existingByPi } = await sb
@@ -157,15 +164,20 @@ async function handlePaymentIntentSucceeded(event: Stripe.Event) {
       .eq('stripe_payment_intent_id', pi.id)
       .maybeSingle()
     if (!existingByPi) {
-      await sb.from('payments').insert({
-        designer_id: designerId,
-        invoice_id: invoiceId,
-        amount_cents: amount,
-        stripe_charge_id: null,
-        stripe_payment_intent_id: pi.id,
-        platform_fee_cents: platformFee,
-      })
+      const { data: inserted } = await sb
+        .from('payments')
+        .insert({
+          designer_id: designerId,
+          invoice_id: invoiceId,
+          amount_cents: amount,
+          stripe_charge_id: null,
+          stripe_payment_intent_id: pi.id,
+          platform_fee_cents: platformFee,
+        })
+        .select('id')
+        .single()
       paymentWasInserted = true
+      insertedPaymentId = inserted?.id ?? null
     }
   }
 
@@ -198,6 +210,8 @@ async function handlePaymentIntentSucceeded(event: Stripe.Event) {
         platform_fee_cents: platformFee,
       },
     })
+    trySyncInvoice(designerId, invoiceId)
+    if (insertedPaymentId) trySyncPayment(designerId, insertedPaymentId)
   }
 }
 

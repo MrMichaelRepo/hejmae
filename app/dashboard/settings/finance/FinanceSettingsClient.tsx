@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api, ApiError } from '@/lib/api'
 import { PageHeader } from '@/components/ui/EmptyState'
 import Button from '@/components/ui/Button'
@@ -51,6 +51,8 @@ export default function FinanceSettingsClient({
         estimated_self_employment_tax_pct: s.estimated_self_employment_tax_pct,
         tax_state_code: s.tax_state_code || null,
         default_invoice_email_mode: s.default_invoice_email_mode,
+        default_sales_tax_rate_bps: s.default_sales_tax_rate_bps,
+        default_sales_tax_state_code: s.default_sales_tax_state_code || null,
       })
       toast.success('Finance settings saved')
     } catch (e) {
@@ -162,6 +164,54 @@ export default function FinanceSettingsClient({
         </div>
       </Section>
 
+      <Section title="Sales tax">
+        <p className="font-garamond text-[0.95rem] text-hm-nav mb-4 leading-[1.6]">
+          Default rate and jurisdiction applied to new invoices. Per-line
+          taxability and the per-invoice rate are still editable when you
+          draft an invoice — this is just the starting point. Leave the rate
+          at 0% if you don&rsquo;t collect sales tax.
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+          <Field
+            label="Default sales tax rate (%)"
+            hint="Stored to 2 decimals (basis points). 8.25 → 825 bps."
+          >
+            <Input
+              value={(s.default_sales_tax_rate_bps / 100).toString()}
+              onChange={(e) => {
+                const v = Number(e.target.value)
+                update({
+                  default_sales_tax_rate_bps: Number.isFinite(v)
+                    ? Math.max(0, Math.min(10_000, Math.round(v * 100)))
+                    : 0,
+                })
+              }}
+              inputMode="decimal"
+              placeholder="0"
+              disabled={!canEdit}
+            />
+          </Field>
+          <Field
+            label="Default tax state"
+            hint="2-letter US state code. Drives jurisdiction grouping on the sales-tax liability report."
+          >
+            <Input
+              value={s.default_sales_tax_state_code ?? ''}
+              onChange={(e) =>
+                update({
+                  default_sales_tax_state_code: e.target.value
+                    .toUpperCase()
+                    .slice(0, 2),
+                })
+              }
+              maxLength={2}
+              placeholder="CA"
+              disabled={!canEdit}
+            />
+          </Field>
+        </div>
+      </Section>
+
       <Section title="Invoice emails">
         <p className="font-garamond text-[0.95rem] text-hm-nav mb-4 leading-[1.6]">
           When you hit Send on an invoice, hejmae pre-fills the email body.
@@ -186,6 +236,10 @@ export default function FinanceSettingsClient({
             disabled={!canEdit}
           />
         </div>
+      </Section>
+
+      <Section title="Books close (period locks)">
+        <PeriodLockSection canEdit={canEdit} />
       </Section>
 
       <div className="flex justify-end">
@@ -266,6 +320,136 @@ function EmailModeOption({
       </div>
       <div className="mt-1 font-garamond text-[0.9rem] text-hm-nav">{body}</div>
     </button>
+  )
+}
+
+interface PeriodLockRow {
+  id: string
+  locked_through_date: string
+  locked_at: string
+  reason: string | null
+}
+
+function PeriodLockSection({ canEdit }: { canEdit: boolean }) {
+  const [locks, setLocks] = useState<PeriodLockRow[] | null>(null)
+  const [date, setDate] = useState<string>(
+    new Date().toISOString().slice(0, 10),
+  )
+  const [reason, setReason] = useState('')
+  const [adding, setAdding] = useState(false)
+
+  const load = async () => {
+    try {
+      const res = await api.get<PeriodLockRow[]>('/api/finances/period-locks')
+      setLocks(((res as { data?: PeriodLockRow[] }).data ?? []) as PeriodLockRow[])
+    } catch (e) {
+      toast.error((e as Error).message)
+    }
+  }
+  useEffect(() => {
+    void load()
+  }, [])
+
+  const addLock = async () => {
+    if (!canEdit) return
+    if (!confirm(`Lock all journal entries on or before ${date}? You can unlock later.`)) return
+    setAdding(true)
+    try {
+      await api.post('/api/finances/period-locks', {
+        locked_through_date: date,
+        reason: reason || null,
+      })
+      toast.success('Period locked')
+      setReason('')
+      await load()
+    } catch (e) {
+      toast.error((e as Error).message)
+    } finally {
+      setAdding(false)
+    }
+  }
+
+  const removeLock = async (id: string) => {
+    if (!canEdit) return
+    if (!confirm('Remove this lock?')) return
+    try {
+      await api.del(`/api/finances/period-locks/${id}`)
+      toast.success('Lock removed')
+      await load()
+    } catch (e) {
+      toast.error((e as Error).message)
+    }
+  }
+
+  return (
+    <div>
+      <p className="font-garamond text-[0.95rem] text-hm-nav mb-4 leading-[1.6]">
+        Lock a fiscal period to prevent edits or deletions of journal entries
+        dated on or before the chosen date. Useful at year-end or after
+        sending out tax filings. The latest lock wins; remove the row to
+        unlock.
+      </p>
+      <div className="flex flex-wrap items-end gap-3 mb-4">
+        <Field label="Lock through">
+          <Input
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            disabled={!canEdit}
+          />
+        </Field>
+        <Field label="Reason (optional)">
+          <Input
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="e.g. 2025 books closed"
+            disabled={!canEdit}
+          />
+        </Field>
+        <Button variant="primary" onClick={addLock} loading={adding} disabled={!canEdit}>
+          Lock period
+        </Button>
+      </div>
+      {locks === null ? (
+        <div className="font-garamond text-[0.9rem] text-hm-nav">Loading…</div>
+      ) : locks.length === 0 ? (
+        <div className="font-garamond text-[0.9rem] text-hm-nav italic">
+          No locks. All journal entries are editable.
+        </div>
+      ) : (
+        <table className="w-full font-garamond text-[0.92rem]">
+          <thead>
+            <tr className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav text-left">
+              <th className="py-2">Locked through</th>
+              <th className="py-2">When</th>
+              <th className="py-2">Reason</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
+            {locks.map((l) => (
+              <tr key={l.id} className="border-t border-hm-text/10">
+                <td className="py-2">{l.locked_through_date}</td>
+                <td className="py-2 text-hm-nav">
+                  {new Date(l.locked_at).toLocaleString()}
+                </td>
+                <td className="py-2 text-hm-nav">{l.reason ?? '—'}</td>
+                <td className="py-2 text-right">
+                  <button
+                    type="button"
+                    onClick={() => removeLock(l.id)}
+                    className="font-sans text-[10px] uppercase tracking-[0.18em] underline disabled:opacity-50"
+                    disabled={!canEdit}
+                  >
+                    Unlock
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
   )
 }
 

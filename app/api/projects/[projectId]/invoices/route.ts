@@ -10,6 +10,8 @@ import { loadOwnedProject } from '@/lib/auth/ownership'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, badRequest } from '@/lib/errors'
 import { createInvoice } from '@/lib/validations/invoice'
+import { computeInvoiceTotals } from '@/lib/finances/invoice_tax'
+import { getStudioFinanceSettings } from '@/lib/finances/studio_settings'
 
 interface Ctx {
   params: Promise<{ projectId: string }>
@@ -20,6 +22,7 @@ interface InvoiceLineInput {
   description: string
   quantity: number
   unit_price_cents: number
+  taxable?: boolean
 }
 
 export async function GET(_req: NextRequest, { params }: Ctx) {
@@ -43,10 +46,18 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
 export async function POST(req: NextRequest, { params }: Ctx) {
   return withErrorHandling(async () => {
     const { projectId } = await params
-    const { designerId, role, permissions } = await requireDesigner()
+    const ctx = await requireDesigner()
+    const { designerId, role, permissions, studioId } = ctx
     requirePermission({ role, permissions }, 'finances:manage_invoices')
     await loadOwnedProject(designerId, projectId)
     const body = createInvoice.parse(await req.json())
+    const studio = await getStudioFinanceSettings(studioId)
+    const taxRateBps =
+      body.tax_rate_bps !== undefined ? body.tax_rate_bps : studio.default_sales_tax_rate_bps
+    const taxStateCode =
+      body.tax_state_code !== undefined
+        ? body.tax_state_code
+        : studio.default_sales_tax_state_code
 
     let lines: InvoiceLineInput[] = body.lines ?? []
     if (body.from_approved_items) {
@@ -69,9 +80,13 @@ export async function POST(req: NextRequest, { params }: Ctx) {
 
     if (!lines.length) throw badRequest('Invoice has no lines')
 
-    const total = lines.reduce(
-      (acc, l) => acc + l.unit_price_cents * l.quantity,
-      0,
+    const totals = computeInvoiceTotals(
+      lines.map((l) => ({
+        unit_price_cents: l.unit_price_cents,
+        quantity: l.quantity,
+        taxable: !!l.taxable,
+      })),
+      taxRateBps,
     )
 
     const { data: invoice, error: invErr } = await supabaseAdmin()
@@ -81,7 +96,10 @@ export async function POST(req: NextRequest, { params }: Ctx) {
         project_id: projectId,
         type: body.type,
         status: 'draft',
-        total_cents: total,
+        total_cents: totals.total_cents,
+        tax_rate_bps: taxRateBps,
+        tax_total_cents: totals.tax_total_cents,
+        tax_state_code: taxStateCode ?? null,
         notes: body.notes ?? null,
       })
       .select()
@@ -98,7 +116,9 @@ export async function POST(req: NextRequest, { params }: Ctx) {
           description: l.description,
           quantity: l.quantity,
           unit_price_cents: l.unit_price_cents,
-          total_price_cents: l.unit_price_cents * l.quantity,
+          total_price_cents: totals.lines[i].total_price_cents,
+          taxable: !!l.taxable,
+          tax_cents: totals.lines[i].tax_cents,
           position: i,
         })),
       )

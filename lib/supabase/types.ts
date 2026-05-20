@@ -82,8 +82,134 @@ export interface StudioRow {
   estimated_self_employment_tax_pct: number
   tax_state_code: string | null
   default_invoice_email_mode: DefaultInvoiceEmailMode
+  default_sales_tax_rate_bps: number
+  default_sales_tax_state_code: string | null
   created_at: string
   updated_at: string
+}
+
+export type QboEnvironment = 'sandbox' | 'production'
+export type QboConnectionStatus = 'active' | 'revoked' | 'expired'
+export type QboEntityType =
+  | 'account'
+  | 'customer'
+  | 'vendor'
+  | 'item'
+  | 'invoice'
+  | 'payment'
+  | 'expense'
+  | 'journal_entry'
+export type QboSyncDirection = 'push' | 'pull'
+export type QboSyncStatus = 'success' | 'error'
+
+export interface QboConnectionRow {
+  id: string
+  designer_id: string
+  realm_id: string
+  environment: QboEnvironment
+  status: QboConnectionStatus
+  refresh_token_expires_at: string | null
+  access_token_expires_at: string | null
+  scopes: string | null
+  connected_at: string
+  last_refreshed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface QboExternalRefRow {
+  id: string
+  designer_id: string
+  entity_type: QboEntityType
+  hejmae_id: string
+  qbo_id: string
+  qbo_sync_token: string | null
+  last_synced_at: string
+  created_at: string
+  updated_at: string
+}
+
+export interface QboSyncLogRow {
+  id: string
+  designer_id: string
+  entity_type: QboEntityType
+  hejmae_id: string | null
+  qbo_id: string | null
+  direction: QboSyncDirection
+  status: QboSyncStatus
+  error_code: string | null
+  error_message: string | null
+  created_at: string
+}
+
+export type BankImportSource = 'chase' | 'bofa' | 'amex' | 'generic'
+export type BankImportStatus = 'parsed' | 'matching' | 'matched' | 'completed' | 'failed'
+export type BankTxnStatus =
+  | 'pending'
+  | 'matched'
+  | 'created_expense'
+  | 'created_payment'
+  | 'ignored'
+  | 'split'
+
+export interface BankStatementImportRow {
+  id: string
+  designer_id: string
+  account_id: string | null
+  source: BankImportSource
+  filename: string
+  uploaded_at: string
+  period_start: string | null
+  period_end: string | null
+  row_count: number
+  matched_count: number
+  status: BankImportStatus
+  ai_error: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface BankTransactionRow {
+  id: string
+  designer_id: string
+  import_id: string
+  txn_date: string
+  description: string
+  amount_cents: number
+  balance_cents: number | null
+  status: BankTxnStatus
+  proposed_entity_type: 'expense' | 'payment' | null
+  proposed_entity_id: string | null
+  proposed_confidence: number | null
+  proposed_reasoning: string | null
+  matched_entity_type: 'expense' | 'payment' | null
+  matched_entity_id: string | null
+  acted_at: string | null
+  acted_by_user_id: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface PeriodLockRow {
+  id: string
+  designer_id: string
+  locked_through_date: string
+  locked_at: string
+  locked_by_user_id: string | null
+  reason: string | null
+  created_at: string
+}
+
+export interface JournalEntryHistoryRow {
+  id: string
+  designer_id: string
+  entry_id: string
+  operation: 'INSERT' | 'UPDATE' | 'DELETE'
+  changed_at: string
+  changed_by_user_id: string | null
+  table_name: 'journal_entries' | 'journal_lines'
+  prior_state: Record<string, unknown> | null
+  new_state: Record<string, unknown> | null
 }
 
 export interface PaymentProcessorAccountRow {
@@ -272,6 +398,9 @@ export interface InvoiceRow {
   type: InvoiceType
   status: InvoiceStatus
   total_cents: number
+  tax_rate_bps: number
+  tax_total_cents: number
+  tax_state_code: string | null
   stripe_payment_intent_id: string | null
   stripe_account_id: string | null
   processor: PaymentProcessorName | null
@@ -315,6 +444,8 @@ export interface InvoiceLineItemRow {
   quantity: number
   unit_price_cents: number
   total_price_cents: number
+  taxable: boolean
+  tax_cents: number
   position: number
   created_at: string
   updated_at: string

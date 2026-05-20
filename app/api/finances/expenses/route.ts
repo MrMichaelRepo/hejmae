@@ -9,6 +9,7 @@ import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling } from '@/lib/errors'
 import { createExpense } from '@/lib/validations/expense'
 import { resolveAssetUrl, resolveAssetUrls } from '@/lib/storage'
+import { trySyncExpense } from '@/lib/qbo/sync'
 
 export async function GET(req: NextRequest) {
   return withErrorHandling(async () => {
@@ -56,6 +57,7 @@ export async function POST(req: NextRequest) {
       .select()
       .single()
     if (error) throw error
+    trySyncExpense(designerId, data.id)
     return NextResponse.json(
       {
         data: {

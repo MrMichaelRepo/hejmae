@@ -10,6 +10,7 @@ import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, notFound } from '@/lib/errors'
 import { updateExpense } from '@/lib/validations/expense'
 import { resolveAssetUrl } from '@/lib/storage'
+import { trySyncExpense } from '@/lib/qbo/sync'
 
 async function withSignedReceipt<T extends { receipt_path: string | null; receipt_url: string | null }>(
   row: T,
@@ -61,6 +62,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       .select()
       .single()
     if (error) throw error
+    trySyncExpense(designerId, expenseId)
     return NextResponse.json({ data: await withSignedReceipt(data) })
   })
 }

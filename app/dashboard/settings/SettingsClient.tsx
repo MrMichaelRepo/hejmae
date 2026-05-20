@@ -10,6 +10,7 @@ import { DensityToggle } from '@/components/ui/Density'
 import { toast } from '@/components/ui/Toast'
 import type { DesignerUser, PricingMode } from '@/lib/types-ui'
 import PaymentProcessorsSection from './PaymentProcessorsSection'
+import QuickBooksSection from './QuickBooksSection'
 
 export default function SettingsClient({ initialUser }: { initialUser: DesignerUser }) {
   const [user, setUser] = useState<DesignerUser>(initialUser)
@@ -231,6 +232,10 @@ export default function SettingsClient({ initialUser }: { initialUser: DesignerU
 
       <Section title="Payments">
         <PaymentProcessorsSection canEdit={canEditPayments} />
+      </Section>
+
+      <Section title="Accounting">
+        <QuickBooksSection canEdit={canEditPayments} />
       </Section>
     </div>
   )

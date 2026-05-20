@@ -18,4 +18,13 @@ export const updateStudioFinance = z.object({
     .regex(/^[A-Z]{2}$/)
     .nullish(),
   default_invoice_email_mode: defaultInvoiceEmailMode.optional(),
+  // Sales tax defaults applied to new invoices. Rate in basis points
+  // (825 = 8.25%); cap at 100% (10000 bps) which is overkill but mirrors
+  // the DB check constraint.
+  default_sales_tax_rate_bps: z.number().int().min(0).max(10_000).optional(),
+  default_sales_tax_state_code: z
+    .string()
+    .length(2)
+    .regex(/^[A-Z]{2}$/)
+    .nullish(),
 })

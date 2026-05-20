@@ -3,6 +3,7 @@ import { requireDesigner } from '@/lib/auth/designer'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling } from '@/lib/errors'
 import { createClient } from '@/lib/validations/client'
+import { trySyncCustomer } from '@/lib/qbo/sync'
 
 export async function GET() {
   return withErrorHandling(async () => {
@@ -27,6 +28,7 @@ export async function POST(req: NextRequest) {
       .select()
       .single()
     if (error) throw error
+    trySyncCustomer(designerId, data.id)
     return NextResponse.json({ data }, { status: 201 })
   })
 }

@@ -10,6 +10,7 @@ import { requireDesigner } from '@/lib/auth/designer'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, badRequest } from '@/lib/errors'
 import { createManualJournalEntry } from '@/lib/validations/journal'
+import { trySyncJournalEntry } from '@/lib/qbo/sync'
 
 export async function POST(req: NextRequest) {
   return withErrorHandling(async () => {
@@ -45,6 +46,7 @@ export async function POST(req: NextRequest) {
       }
       throw error
     }
+    trySyncJournalEntry(designerId, data)
     return NextResponse.json({ data: { id: data } }, { status: 201 })
   })
 }

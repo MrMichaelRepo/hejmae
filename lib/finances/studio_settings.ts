@@ -17,6 +17,8 @@ export interface StudioFinanceSettings {
   estimated_self_employment_tax_pct: number
   tax_state_code: string | null
   default_invoice_email_mode: DefaultInvoiceEmailMode
+  default_sales_tax_rate_bps: number
+  default_sales_tax_state_code: string | null
 }
 
 export async function getStudioFinanceSettings(
@@ -25,7 +27,7 @@ export async function getStudioFinanceSettings(
   const { data, error } = await supabaseAdmin()
     .from('studios')
     .select(
-      'id, accounting_basis, fiscal_year_start_month, estimated_federal_tax_pct, estimated_state_tax_pct, estimated_self_employment_tax_pct, tax_state_code, default_invoice_email_mode',
+      'id, accounting_basis, fiscal_year_start_month, estimated_federal_tax_pct, estimated_state_tax_pct, estimated_self_employment_tax_pct, tax_state_code, default_invoice_email_mode, default_sales_tax_rate_bps, default_sales_tax_state_code',
     )
     .eq('id', studioId)
     .single()
@@ -43,5 +45,7 @@ export async function getStudioFinanceSettings(
     default_invoice_email_mode:
       (data.default_invoice_email_mode as DefaultInvoiceEmailMode | null) ??
       'template',
+    default_sales_tax_rate_bps: Number(data.default_sales_tax_rate_bps ?? 0),
+    default_sales_tax_state_code: data.default_sales_tax_state_code,
   }
 }

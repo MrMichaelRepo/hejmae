@@ -12,6 +12,8 @@ import {
 import { logActivity } from '@/lib/activity'
 import { env } from '@/lib/env'
 import { updateInvoice as updateInvoiceSchema } from '@/lib/validations/invoice'
+import { trySyncInvoice, trySyncPayment } from '@/lib/qbo/sync'
+import { computeInvoiceTotals } from '@/lib/finances/invoice_tax'
 
 interface Ctx {
   params: Promise<{ projectId: string; invoiceId: string }>
@@ -65,7 +67,10 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
         description: string
         quantity: number
         unit_price_cents: number
+        taxable?: boolean
       }>
+      tax_rate_bps?: number
+      tax_state_code?: string | null
     }
 
     if (raw.action === 'send') {
@@ -91,6 +96,8 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
         type: raw.type,
         notes: raw.notes,
         lines: raw.lines,
+        tax_rate_bps: raw.tax_rate_bps,
+        tax_state_code: raw.tax_state_code,
       })
       if (!parsed.success) {
         throw badRequest(
@@ -101,15 +108,33 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       const lines = parsed.data.lines ?? []
       if (!lines.length) throw badRequest('Invoice must have at least one line')
 
-      const total = lines.reduce(
-        (acc, l) => acc + l.unit_price_cents * l.quantity,
-        0,
+      // Tax rate priority: explicit body value → existing invoice rate.
+      // (No fallback to studio default here — once an invoice is created,
+      // edits keep its own rate unless the user changes it.)
+      const taxRateBps =
+        parsed.data.tax_rate_bps !== undefined
+          ? parsed.data.tax_rate_bps
+          : existing.tax_rate_bps ?? 0
+      const totals = computeInvoiceTotals(
+        lines.map((l) => ({
+          unit_price_cents: l.unit_price_cents,
+          quantity: l.quantity,
+          taxable: !!l.taxable,
+        })),
+        taxRateBps,
       )
 
       const sb = supabaseAdmin()
-      const updates: Record<string, unknown> = { total_cents: total }
+      const updates: Record<string, unknown> = {
+        total_cents: totals.total_cents,
+        tax_rate_bps: taxRateBps,
+        tax_total_cents: totals.tax_total_cents,
+      }
       if (parsed.data.type !== undefined) updates.type = parsed.data.type
       if (parsed.data.notes !== undefined) updates.notes = parsed.data.notes
+      if (parsed.data.tax_state_code !== undefined) {
+        updates.tax_state_code = parsed.data.tax_state_code
+      }
 
       const { error: invErr } = await sb
         .from('invoices')
@@ -135,7 +160,9 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
             description: l.description,
             quantity: l.quantity,
             unit_price_cents: l.unit_price_cents,
-            total_price_cents: l.unit_price_cents * l.quantity,
+            total_price_cents: totals.lines[i].total_price_cents,
+            taxable: !!l.taxable,
+            tax_cents: totals.lines[i].tax_cents,
             position: i,
           })),
         )
@@ -148,7 +175,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
         actorId: designerId,
         eventType: 'invoice.edited',
         description: 'Invoice draft edited',
-        metadata: { invoice_id: invoiceId, line_count: lines.length, total_cents: total },
+        metadata: { invoice_id: invoiceId, line_count: lines.length, total_cents: totals.total_cents, tax_total_cents: totals.tax_total_cents },
       })
 
       const refreshed = await loadInvoice(designerId, projectId, invoiceId)
@@ -195,17 +222,25 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
         0,
       )
       const manualAmount = Math.max(0, existing.total_cents - paidAlready)
+      let newPaymentId: string | null = null
       if (manualAmount > 0) {
-        const { error: payErr } = await supabaseAdmin().from('payments').insert({
-          designer_id: designerId,
-          invoice_id: invoiceId,
-          amount_cents: manualAmount,
-          stripe_charge_id: null,
-          stripe_payment_intent_id: null,
-          platform_fee_cents: 0,
-        })
+        const { data: newPayment, error: payErr } = await supabaseAdmin()
+          .from('payments')
+          .insert({
+            designer_id: designerId,
+            invoice_id: invoiceId,
+            amount_cents: manualAmount,
+            stripe_charge_id: null,
+            stripe_payment_intent_id: null,
+            platform_fee_cents: 0,
+          })
+          .select('id')
+          .single()
         if (payErr) throw payErr
+        newPaymentId = newPayment.id
       }
+      trySyncInvoice(designerId, invoiceId)
+      if (newPaymentId) trySyncPayment(designerId, newPaymentId)
     }
 
     // Strip the hashed token from the response — clients shouldn't see it.

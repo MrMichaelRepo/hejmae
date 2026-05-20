@@ -3,6 +3,7 @@ import { requireDesigner } from '@/lib/auth/designer'
 import { supabaseAdmin } from '@/lib/supabase/server'
 import { withErrorHandling, notFound } from '@/lib/errors'
 import { updateClient } from '@/lib/validations/client'
+import { trySyncCustomer } from '@/lib/qbo/sync'
 
 interface Ctx {
   params: Promise<{ clientId: string }>
@@ -43,6 +44,7 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       .select()
       .single()
     if (error) throw error
+    trySyncCustomer(designerId, clientId)
     return NextResponse.json({ data })
   })
 }

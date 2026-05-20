@@ -21,6 +21,7 @@ import { supabaseAdmin } from '@/lib/supabase/server'
 import { getProcessorSecret } from '@/lib/payments/secrets'
 import { getHelcimTransaction } from '@/lib/payments/helcim-client'
 import { logActivity } from '@/lib/activity'
+import { trySyncInvoice, trySyncPayment } from '@/lib/qbo/sync'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -202,19 +203,25 @@ async function settleInvoiceFromTransaction(opts: {
     .eq('processor_charge_id', chargeId)
     .maybeSingle()
   let inserted = false
+  let insertedPaymentId: string | null = null
   if (!existing) {
-    const { error: payErr } = await sb.from('payments').insert({
-      designer_id: opts.designerId,
-      invoice_id: invoiceId,
-      amount_cents: amountCents,
-      stripe_charge_id: null,
-      stripe_payment_intent_id: null,
-      platform_fee_cents: 0,
-      processor: 'helcim',
-      processor_charge_id: chargeId,
-    })
+    const { data: ins, error: payErr } = await sb
+      .from('payments')
+      .insert({
+        designer_id: opts.designerId,
+        invoice_id: invoiceId,
+        amount_cents: amountCents,
+        stripe_charge_id: null,
+        stripe_payment_intent_id: null,
+        platform_fee_cents: 0,
+        processor: 'helcim',
+        processor_charge_id: chargeId,
+      })
+      .select('id')
+      .single()
     if (payErr) throw payErr
     inserted = true
+    insertedPaymentId = ins?.id ?? null
   }
 
   // Stamp the invoice with the real Helcim transaction id so refunds know
@@ -259,5 +266,7 @@ async function settleInvoiceFromTransaction(opts: {
         processor: 'helcim',
       },
     })
+    trySyncInvoice(opts.designerId, invoiceId)
+    if (insertedPaymentId) trySyncPayment(opts.designerId, insertedPaymentId)
   }
 }

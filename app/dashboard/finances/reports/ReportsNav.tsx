@@ -5,8 +5,12 @@ import { usePathname } from 'next/navigation'
 
 const TABS: Array<[string, string]> = [
   ['Profit & Loss', '/dashboard/finances/reports/profit-loss'],
+  ['Balance sheet', '/dashboard/finances/reports/balance-sheet'],
   ['Trial balance', '/dashboard/finances/reports/trial-balance'],
+  ['Cash flow forecast', '/dashboard/finances/reports/cash-flow'],
+  ['Cash flow statement', '/dashboard/finances/reports/cash-flow-statement'],
   ['AR aging', '/dashboard/finances/reports/aging'],
+  ['Sales tax', '/dashboard/finances/reports/sales-tax'],
   ['Schedule C', '/dashboard/finances/reports/schedule-c'],
   ['1099 vendors', '/dashboard/finances/reports/1099'],
 ]
