@@ -111,35 +111,9 @@ body {
 .ProseMirror p { margin: 0 0 0.75em; }
 .ProseMirror a { color: var(--text, #1e2128); text-decoration: underline; }
 
-/* ── Clerk <UserProfile /> embed (Settings → Account) ────────────────── */
-/* Belt-and-suspenders: the appearance API in AccountSection.tsx covers the
-   visual styling, but Clerk's branding ("Secured by Clerk", logo badge, dev
-   pill, etc.) is sometimes rendered through elements that don't have a
-   stable appearance key. Scope these rules to .hm-userprofile so we never
-   touch sign-in / sign-up where the branding is already hidden via the
-   shared appearance. */
-.hm-userprofile .cl-footer,
-.hm-userprofile .cl-footerAction,
-.hm-userprofile .cl-footerActionText,
-.hm-userprofile .cl-footerActionLink,
-.hm-userprofile .cl-footerPages,
-.hm-userprofile .cl-footerPagesLink,
-.hm-userprofile .cl-logoBox,
-.hm-userprofile .cl-logoImage,
-.hm-userprofile .cl-badge,
-.hm-userprofile .cl-developmentMode,
-.hm-userprofile .cl-userPreviewFooter,
-.hm-userprofile .cl-poweredByClerkText,
-.hm-userprofile [data-localization-key*="footer"],
-.hm-userprofile [data-localization-key*="badge"],
-.hm-userprofile [data-clerk-component] [aria-label*="Clerk" i],
-.hm-userprofile a[href*="clerk.com"],
-.hm-userprofile a[href*="go.clerk.com"] {
-  display: none !important;
-}
-
-/* The same belt-and-suspenders for the UserButton popover (which uses its
-   own subset of these classes). */
+/* Hide Clerk branding inside the UserButton popover. The popover itself
+   uses Clerk's built-in styling (we only customize its menu items), but we
+   don't want the "Secured by Clerk" badge or logo. */
 .cl-userButtonPopoverFooter,
 .cl-userButtonPopoverFooterPages,
 .cl-userButtonPopoverFooterPagesLink,

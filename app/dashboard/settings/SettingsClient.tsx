@@ -229,7 +229,7 @@ export default function SettingsClient({ initialUser }: { initialUser: DesignerU
         <QuickBooksSection canEdit={canEditPayments} />
       </Section>
 
-      <Section title="Account">
+      <Section id="account" title="Account">
         <AccountSection />
       </Section>
     </div>
@@ -237,14 +237,16 @@ export default function SettingsClient({ initialUser }: { initialUser: DesignerU
 }
 
 function Section({
+  id,
   title,
   children,
 }: {
+  id?: string
   title: string
   children: React.ReactNode
 }) {
   return (
-    <section className="mb-10">
+    <section id={id} className="mb-10 scroll-mt-20">
       <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-4">
         {title}
       </div>

@@ -59,9 +59,9 @@ export default async function DashboardLayout({
               >
                 <UserButton.MenuItems>
                   <UserButton.Link
-                    label="Studio settings"
+                    label="Manage account"
                     labelIcon={<SettingsIcon />}
-                    href="/dashboard/settings"
+                    href="/dashboard/settings#account"
                   />
                   <UserButton.Action label="signOut" />
                 </UserButton.MenuItems>
