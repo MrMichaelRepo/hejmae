@@ -13,8 +13,9 @@
 //      exhibit when the browser scales a 12 MP source down.
 //   4. Strip metadata (no EXIF, no embedded color profiles beyond sRGB).
 //
-// SVG is passed through untouched — vectors don't need rasterization, and
-// running them through sharp would discard the scalability benefit.
+// SVG uploads are rejected upstream in lib/storage.ts: vector images can
+// embed scripts/event handlers that execute when served via signed URL.
+// PDF (rasterized to PNG on the floor-plan path) covers the vector use case.
 
 import sharp from 'sharp'
 
@@ -45,18 +46,6 @@ export async function normalizeImage(
   contentType: string,
   kind: NormalizeKind,
 ): Promise<NormalizeResult> {
-  // SVG: pass through. Sharp can rasterize SVG but we explicitly want to
-  // preserve vector resolution.
-  if (contentType === 'image/svg+xml') {
-    return {
-      buffer: input,
-      contentType,
-      ext: 'svg',
-      width: 0,
-      height: 0,
-    }
-  }
-
   const preset = PRESETS[kind]
   const pipeline = sharp(input, { failOn: 'error' })
     .rotate() // auto-orient via EXIF, then strips the EXIF orientation tag

@@ -9,11 +9,13 @@ const isProtectedRoute = createRouteMatcher([
   '/clients(.*)',
   '/finances(.*)',
   '/settings(.*)',
+  '/admin(.*)',
   '/api/projects(.*)',
   '/api/clients(.*)',
   '/api/catalog(.*)',
   '/api/finances(.*)',
   '/api/settings(.*)',
+  '/api/admin(.*)',
 ])
 
 const isPublicApi = createRouteMatcher([

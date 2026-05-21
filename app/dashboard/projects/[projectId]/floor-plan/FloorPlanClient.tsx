@@ -870,7 +870,7 @@ function UploadFloorPlanModal({
         <input
           ref={inputRef}
           type="file"
-          accept="image/jpeg,image/png,image/webp,image/svg+xml,application/pdf"
+          accept="image/jpeg,image/png,image/webp,application/pdf"
           className="hidden"
           onChange={(e) => {
             const f = e.target.files?.[0]

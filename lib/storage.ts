@@ -30,11 +30,13 @@ export { normalizeStoredAsset } from '@/lib/storage-utils'
 
 export const STORAGE_BUCKET = 'hejmae'
 
+// SVG is intentionally excluded: it can carry <script> and event handlers
+// that execute when the asset is viewed via a signed URL. PDF covers the
+// vector use case (floor plans get rasterized).
 const ALLOWED_IMAGE_TYPES = new Set([
   'image/jpeg',
   'image/png',
   'image/webp',
-  'image/svg+xml',
 ])
 
 const ALLOWED_DOC_TYPES = new Set([
@@ -297,10 +299,6 @@ async function processForKind(
 
   const norm = await normalizeImage(imageBuf, imageType, 'floor-plan')
 
-  if (norm.contentType === 'image/svg+xml') {
-    return { buffer: norm.buffer, contentType: norm.contentType, ext: norm.ext }
-  }
-
   const straightened = opts.autoStraighten
     ? await (async () => {
         const { straightenFloorPlan } = await import('@/lib/image/straighten')
@@ -331,8 +329,6 @@ function extFromContentType(ct: string): string {
       return 'png'
     case 'image/webp':
       return 'webp'
-    case 'image/svg+xml':
-      return 'svg'
     case 'application/pdf':
       return 'pdf'
     default:
