@@ -18,7 +18,7 @@ export default function ProjectTabs({ projectId }: { projectId: string }) {
   const base = `/dashboard/projects/${projectId}`
 
   return (
-    <div className="border-b border-hm-text/10 mb-8 -mx-6 md:-mx-10 px-6 md:px-10">
+    <div className="border-b border-line mb-8 -mx-6 md:-mx-10 px-6 md:px-10">
       <nav className="flex gap-6 overflow-x-auto">
         {TABS.map(([label, sub]) => {
           const href = base + sub
@@ -30,8 +30,8 @@ export default function ProjectTabs({ projectId }: { projectId: string }) {
               className={[
                 'shrink-0 font-sans text-[10px] uppercase tracking-[0.22em] py-4 border-b-2 transition-colors',
                 active
-                  ? 'text-hm-text border-hm-text'
-                  : 'text-hm-nav hover:text-hm-text border-transparent',
+                  ? 'text-ink border-ink'
+                  : 'text-ink-muted hover:text-ink border-transparent',
               ].join(' ')}
             >
               {label}

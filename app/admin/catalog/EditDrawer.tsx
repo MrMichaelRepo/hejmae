@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Drawer } from '@/components/ui/Modal'
 import { Input, Textarea, Label } from '@/components/ui/Input'
 import { api, ApiError } from '@/lib/api'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { toast } from '@/components/ui/Toast'
 import type { AdminCatalogRow } from '@/lib/admin/catalog'
 
@@ -43,6 +44,7 @@ export default function EditDrawer({
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
   const [regenerating, setRegenerating] = useState(false)
+  const confirm = useConfirm()
 
   useEffect(() => {
     if (open && row) {
@@ -69,9 +71,13 @@ export default function EditDrawer({
     setDirty(true)
   }
 
-  const tryClose = () => {
+  const tryClose = async () => {
     if (dirty) {
-      const ok = window.confirm('Discard unsaved changes?')
+      const ok = await confirm({
+        title: 'Discard unsaved changes?',
+        confirmLabel: 'Discard',
+        tone: 'danger',
+      })
       if (!ok) return
     }
     onClose()
@@ -206,7 +212,7 @@ export default function EditDrawer({
           />
         </FormField>
 
-        <div className="pt-4 border-t border-hm-text/10 space-y-2">
+        <div className="pt-4 border-t border-line space-y-2">
           <Meta label="ID" value={row.id} />
           <Meta
             label="Created"
@@ -233,14 +239,14 @@ export default function EditDrawer({
           <button
             onClick={onSave}
             disabled={saving || !dirty}
-            className="font-sans text-[10px] uppercase tracking-[0.22em] bg-hm-text text-bg hover:bg-hm-text/90 px-4 py-2 disabled:opacity-50"
+            className="font-sans text-[10px] uppercase tracking-[0.22em] bg-ink text-bg hover:bg-ink/90 px-4 py-2 disabled:opacity-50"
           >
             {saving ? 'Saving…' : 'Save changes'}
           </button>
           <button
             onClick={onRegenerate}
             disabled={regenerating}
-            className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav hover:text-hm-text border border-hm-text/15 hover:border-hm-text/40 px-4 py-2"
+            className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted hover:text-ink border border-line hover:border-line-strong px-4 py-2"
           >
             {regenerating ? 'Queuing…' : 'Regenerate embedding'}
           </button>
@@ -249,7 +255,7 @@ export default function EditDrawer({
               href={row.source_url}
               target="_blank"
               rel="noreferrer"
-              className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav hover:text-hm-text ml-auto"
+              className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted hover:text-ink ml-auto"
             >
               View source ↗
             </a>
@@ -278,8 +284,8 @@ function FormField({
 function Meta({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex justify-between gap-3 font-sans text-[10px] uppercase tracking-[0.2em]">
-      <span className="text-hm-nav">{label}</span>
-      <span className="text-hm-text truncate max-w-[60%]">{value}</span>
+      <span className="text-ink-muted">{label}</span>
+      <span className="text-ink truncate max-w-[60%]">{value}</span>
     </div>
   )
 }

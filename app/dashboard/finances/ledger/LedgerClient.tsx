@@ -7,6 +7,8 @@ import { PageHeader } from '@/components/ui/EmptyState'
 import EmptyState from '@/components/ui/EmptyState'
 import { Input, Label, Select } from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
+import { toast } from '@/components/ui/Toast'
 import ManualEntryModal from './ManualEntryModal'
 import type {
   AccountRow,
@@ -52,6 +54,7 @@ export default function LedgerClient({
   const [expanded, setExpanded] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
   const isInitial = useRef(true)
+  const confirm = useConfirm()
 
   const refresh = useCallback(async () => {
     const params = new URLSearchParams()
@@ -74,12 +77,18 @@ export default function LedgerClient({
   }, [refresh])
 
   async function handleDelete(entryId: string) {
-    if (!confirm('Delete this manual entry? This cannot be undone.')) return
+    const ok = await confirm({
+      title: 'Delete this manual entry?',
+      body: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    })
+    if (!ok) return
     try {
       await api.del(`/api/finances/journal-entries/${entryId}`)
       await refresh()
     } catch (e) {
-      alert(e instanceof ApiError ? e.message : 'Delete failed')
+      toast.error(e instanceof ApiError ? e.message : 'Delete failed')
     }
   }
 
@@ -138,7 +147,7 @@ export default function LedgerClient({
         }
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 pb-6 border-b border-hm-text/10">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 pb-6 border-b border-line">
         <div>
           <Label htmlFor="f-acct">Account</Label>
           <Select
@@ -198,10 +207,10 @@ export default function LedgerClient({
           small
         />
       ) : (
-        <div className="border border-hm-text/10 overflow-x-auto">
+        <div className="border border-line overflow-x-auto">
           <table className="w-full font-garamond text-[0.95rem]">
             <thead>
-              <tr className="bg-hm-text/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+              <tr className="bg-ink/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
                 <th className="text-left px-4 py-3 w-28">Date</th>
                 <th className="text-left px-4 py-3 w-24">Source</th>
                 <th className="text-left px-4 py-3">Memo / Accounts</th>
@@ -228,26 +237,26 @@ export default function LedgerClient({
                     <tr
                       key={entry.id}
                       onClick={() => setExpanded(isOpen ? null : entry.id)}
-                      className="border-t border-hm-text/10 hover:bg-hm-text/[0.02] cursor-pointer"
+                      className="border-t border-line hover:bg-ink/[0.03] cursor-pointer"
                     >
                       <td className="px-4 py-3 whitespace-nowrap">
                         {formatDate(entry.entry_date)}
                       </td>
-                      <td className="px-4 py-3 text-hm-nav font-sans text-[10px] uppercase tracking-[0.18em]">
+                      <td className="px-4 py-3 text-ink-muted font-sans text-[10px] uppercase tracking-[0.18em]">
                         {SOURCE_LABELS[entry.source_type] ?? entry.source_type}
                       </td>
                       <td className="px-4 py-3">
                         {entry.memo || (
-                          <span className="text-hm-nav italic">No memo</span>
+                          <span className="text-ink-muted italic">No memo</span>
                         )}
-                        <div className="text-hm-nav text-[0.85rem] mt-0.5">
+                        <div className="text-ink-muted text-[0.85rem] mt-0.5">
                           {accountSummary}
                         </div>
                       </td>
                       <td className="text-right px-4 py-3">
                         {formatCents(debits)}
                       </td>
-                      <td className="text-right px-4 py-3 text-hm-nav">
+                      <td className="text-right px-4 py-3 text-ink-muted">
                         {formatCents(debits)}
                       </td>
                       {accountFilter ? (
@@ -257,7 +266,7 @@ export default function LedgerClient({
                             : '—'}
                         </td>
                       ) : null}
-                      <td className="text-right px-4 py-3 text-hm-nav">
+                      <td className="text-right px-4 py-3 text-ink-muted">
                         {isOpen ? '−' : '+'}
                       </td>
                     </tr>
@@ -265,11 +274,11 @@ export default function LedgerClient({
                       <tr key={`${entry.id}-detail`}>
                         <td
                           colSpan={accountFilter ? 7 : 6}
-                          className="bg-hm-text/[0.02] px-4 py-3"
+                          className="bg-ink/[0.02] px-4 py-3"
                         >
                           <table className="w-full font-garamond text-[0.9rem]">
                             <thead>
-                              <tr className="font-sans text-[9px] uppercase tracking-[0.18em] text-hm-nav">
+                              <tr className="font-sans text-[9px] uppercase tracking-[0.18em] text-ink-muted">
                                 <th className="text-left py-1">Account</th>
                                 <th className="text-left py-1">Memo</th>
                                 <th className="text-right py-1">Debit</th>
@@ -284,19 +293,19 @@ export default function LedgerClient({
                                 return (
                                   <tr
                                     key={l.id}
-                                    className="border-t border-hm-text/10"
+                                    className="border-t border-line"
                                   >
                                     <td className="py-1.5">
                                       {a ? (
                                         <>
-                                          <span className="text-hm-nav">{a.code}</span>{' '}
+                                          <span className="text-ink-muted">{a.code}</span>{' '}
                                           {a.name}
                                         </>
                                       ) : (
                                         '—'
                                       )}
                                     </td>
-                                    <td className="py-1.5 text-hm-nav">
+                                    <td className="py-1.5 text-ink-muted">
                                       {l.memo ?? ''}
                                     </td>
                                     <td className="text-right py-1.5">
@@ -318,7 +327,7 @@ export default function LedgerClient({
                                   e.stopPropagation()
                                   handleDelete(entry.id)
                                 }}
-                                className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-red-700"
+                                className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted hover:text-danger"
                               >
                                 Delete entry
                               </button>

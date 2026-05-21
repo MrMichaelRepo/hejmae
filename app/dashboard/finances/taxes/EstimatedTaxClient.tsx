@@ -59,11 +59,11 @@ export default function EstimatedTaxClient({
         }
       />
 
-      <div className="flex items-center gap-3 mb-6 pb-6 border-b border-hm-text/10">
-        <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav">
+      <div className="flex items-center gap-3 mb-6 pb-6 border-b border-line">
+        <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted">
           Tax year
         </span>
-        <div className="inline-flex border border-hm-text/15 rounded-sm overflow-hidden">
+        <div className="inline-flex border border-line rounded-sm overflow-hidden">
           {yearOptions.map((y) => (
             <Link
               key={y}
@@ -71,8 +71,8 @@ export default function EstimatedTaxClient({
               className={[
                 'px-4 py-2 font-sans text-[10px] uppercase tracking-[0.2em] transition-colors',
                 y === taxYear
-                  ? 'bg-hm-text text-bg'
-                  : 'text-hm-nav hover:text-hm-text',
+                  ? 'bg-ink text-bg'
+                  : 'text-ink-muted hover:text-ink',
               ].join(' ')}
             >
               {y}
@@ -81,10 +81,10 @@ export default function EstimatedTaxClient({
         </div>
       </div>
 
-      <p className="font-garamond text-[0.95rem] text-hm-nav mb-4 leading-[1.6] max-w-3xl">
+      <p className="font-garamond text-[0.95rem] text-ink-muted mb-4 leading-[1.6] max-w-3xl">
         These are projections only — not tax advice. Confirm with your CPA
         before sending anything to the IRS or state. Rates pulled from{' '}
-        <Link href={settingsHref} className="underline hover:text-hm-text">
+        <Link href={settingsHref} className="underline hover:text-ink">
           finance settings
         </Link>
         .
@@ -117,25 +117,25 @@ export default function EstimatedTaxClient({
       <h2 className="font-serif text-[1.3rem] leading-tight mb-3">
         Tax breakdown
       </h2>
-      <div className="border border-hm-text/10 mb-10">
+      <div className="border border-line mb-10">
         <table className="w-full font-garamond text-[0.95rem]">
           <tbody>
             <Row label="Federal income tax" value={projection.projected_federal_tax_cents} />
             <Row label="Self-employment tax" value={projection.projected_self_employment_tax_cents} />
             <Row label="State income tax" value={projection.projected_state_tax_cents} />
-            <tr className="border-t border-hm-text/30 font-sans text-[10px] uppercase tracking-[0.18em]">
+            <tr className="border-t border-line-strong font-sans text-[10px] uppercase tracking-[0.18em]">
               <td className="px-4 py-3">Total projected</td>
               <td className="text-right px-4 py-3">
                 {formatCents(projection.projected_total_tax_cents)}
               </td>
             </tr>
-            <tr className="border-t border-hm-text/10">
-              <td className="px-4 py-3 text-hm-nav">Already paid</td>
-              <td className="text-right px-4 py-3 text-hm-nav">
+            <tr className="border-t border-line">
+              <td className="px-4 py-3 text-ink-muted">Already paid</td>
+              <td className="text-right px-4 py-3 text-ink-muted">
                 ({formatCents(projection.total_paid_cents)})
               </td>
             </tr>
-            <tr className="border-t border-hm-text/30 font-sans text-[10px] uppercase tracking-[0.18em]">
+            <tr className="border-t border-line-strong font-sans text-[10px] uppercase tracking-[0.18em]">
               <td className="px-4 py-3">Remaining estimate</td>
               <td className="text-right px-4 py-3">
                 {formatCents(projection.remaining_estimate_cents)}
@@ -148,10 +148,10 @@ export default function EstimatedTaxClient({
       <h2 className="font-serif text-[1.3rem] leading-tight mb-3">
         Quarterly schedule
       </h2>
-      <div className="border border-hm-text/10 overflow-x-auto mb-12">
+      <div className="border border-line overflow-x-auto mb-12">
         <table className="w-full font-garamond text-[0.95rem]">
           <thead>
-            <tr className="bg-hm-text/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+            <tr className="bg-ink/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
               <th className="text-left px-4 py-3">Quarter</th>
               <th className="text-left px-4 py-3">Due</th>
               <th className="text-left px-4 py-3">Federal</th>
@@ -164,9 +164,9 @@ export default function EstimatedTaxClient({
               const fed = byKey.get(`federal:${q}`)
               const state = byKey.get(`state:${q}`)
               return (
-                <tr key={q} className="border-t border-hm-text/10">
+                <tr key={q} className="border-t border-line">
                   <td className="px-4 py-3">Q{q}</td>
-                  <td className="px-4 py-3 text-hm-nav whitespace-nowrap">
+                  <td className="px-4 py-3 text-ink-muted whitespace-nowrap">
                     {formatDate(dueDates[q])}
                   </td>
                   <td className="px-4 py-3">
@@ -227,7 +227,7 @@ export default function EstimatedTaxClient({
 
 function Row({ label, value }: { label: string; value: number }) {
   return (
-    <tr className="border-t border-hm-text/10">
+    <tr className="border-t border-line">
       <td className="px-4 py-3">{label}</td>
       <td className="text-right px-4 py-3">{formatCents(value)}</td>
     </tr>
@@ -252,11 +252,11 @@ function PaymentCell({
         onClick={canEdit ? onEdit : undefined}
         className={[
           'text-left',
-          canEdit ? 'cursor-pointer hover:text-hm-text' : 'cursor-default',
+          canEdit ? 'cursor-pointer hover:text-ink' : 'cursor-default',
         ].join(' ')}
       >
         <div>{formatCents(payment.amount_cents)}</div>
-        <div className="font-sans text-[9px] uppercase tracking-[0.2em] text-emerald-700">
+        <div className="font-sans text-[9px] uppercase tracking-[0.2em] text-success">
           Paid {formatDate(payment.paid_at)}
         </div>
       </button>
@@ -267,13 +267,13 @@ function PaymentCell({
       <button
         type="button"
         onClick={onEdit}
-        className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-hm-text"
+        className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted hover:text-ink"
       >
         Record payment
       </button>
     )
   }
-  return <span className="text-hm-nav/40">—</span>
+  return <span className="text-ink-subtle/70">—</span>
 }
 
 function PaymentForm({
@@ -381,7 +381,7 @@ function PaymentForm({
         />
       </div>
       {err ? (
-        <div className="font-garamond text-[0.95rem] text-red-700">{err}</div>
+        <div className="font-garamond text-[0.95rem] text-danger">{err}</div>
       ) : null}
       <div className="flex justify-end gap-3 pt-2">
         <Button type="button" variant="ghost" onClick={onCancel} disabled={submitting}>

@@ -35,10 +35,6 @@ const config: Config = {
         'warn-soft':     '#f0e1c8',
         danger:          '#8a2e2e',
         'danger-soft':   '#ecd4d0',
-
-        // Back-compat aliases — keep existing class names working
-        'hm-text':       '#1e2128',
-        'hm-nav':        '#4a5068',
       },
       fontFamily: {
         // Editorial display — DM Serif Text, only at 32px+

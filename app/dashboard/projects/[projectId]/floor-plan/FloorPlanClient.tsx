@@ -22,6 +22,7 @@ import Button from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Input'
 import Modal from '@/components/ui/Modal'
 import { ManageRoomsButton } from '@/components/ui/RoomManager'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { toast } from '@/components/ui/Toast'
 import { titleCase } from '@/lib/format'
 import type { Project, Room, Item } from '@/lib/types-ui'
@@ -102,6 +103,7 @@ export default function FloorPlanClient({
   initialItems,
   initialRooms,
 }: Props) {
+  const confirm = useConfirm()
   const [project, setProject] = useState<Project | null>(initialProject)
   const [items, setItems] = useState<Item[]>(initialItems)
   const [rooms, setRooms] = useState<Room[]>(initialRooms)
@@ -420,7 +422,7 @@ export default function FloorPlanClient({
           {visibleRooms.map(({ room, rect }) => (
             <div
               key={room.id}
-              className="absolute pointer-events-none border border-hm-text/30 bg-hm-text/[0.06]"
+              className="absolute pointer-events-none border border-line-strong bg-ink/[0.06]"
               style={{
                 left: `${rect.x * 100}%`,
                 top: `${rect.y * 100}%`,
@@ -428,7 +430,7 @@ export default function FloorPlanClient({
                 height: `${rect.h * 100}%`,
               }}
             >
-              <div className="absolute top-1 left-2 font-sans text-[10px] uppercase tracking-[0.18em] text-hm-text bg-bg/80 px-1.5">
+              <div className="absolute top-1 left-2 font-sans text-[10px] uppercase tracking-[0.18em] text-ink bg-bg/80 px-1.5">
                 {room.name}
               </div>
             </div>
@@ -437,7 +439,7 @@ export default function FloorPlanClient({
           {/* In-progress drag rect. */}
           {rectDrag ? (
             <div
-              className="absolute pointer-events-none border border-dashed border-hm-text/70 bg-hm-text/[0.08]"
+              className="absolute pointer-events-none border border-dashed border-ink/70 bg-ink/[0.08]"
               style={{
                 left: `${Math.min(rectDrag.startX, rectDrag.endX) * 100}%`,
                 top: `${Math.min(rectDrag.startY, rectDrag.endY) * 100}%`,
@@ -488,7 +490,7 @@ export default function FloorPlanClient({
                 if (!it) return null
                 return (
                   <div
-                    className="absolute -translate-y-full -translate-x-1/2 bg-bg border border-hm-text/15 px-3 py-2 shadow-lg z-10 min-w-[180px]"
+                    className="absolute -translate-y-full -translate-x-1/2 bg-bg border border-line px-3 py-2 shadow-lg z-10 min-w-[180px]"
                     style={{
                       left: `${popover.x * 100}%`,
                       top: `calc(${popover.y * 100}% - 14px)`,
@@ -499,20 +501,20 @@ export default function FloorPlanClient({
                     <div className="font-serif text-[1rem] leading-tight mb-0.5">
                       {it.name}
                     </div>
-                    <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav mb-2">
+                    <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted mb-2">
                       {titleCase(it.status)}
                       {it.vendor ? ` · ${it.vendor}` : ''}
                     </div>
                     <div className="flex gap-2 mt-1.5">
                       <button
                         onClick={() => removePin(it.id)}
-                        className="font-sans text-[10px] uppercase tracking-[0.18em] text-red-700 hover:underline"
+                        className="font-sans text-[10px] uppercase tracking-[0.18em] text-danger hover:underline"
                       >
                         Remove pin
                       </button>
                       <button
                         onClick={() => setPopover(null)}
-                        className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav hover:text-hm-text ml-auto"
+                        className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted hover:text-ink ml-auto"
                       >
                         Close
                       </button>
@@ -525,9 +527,9 @@ export default function FloorPlanClient({
 
         {rotating ? (
           <div className="absolute inset-0 flex items-center justify-center bg-bg/30 backdrop-blur-[1px] pointer-events-none">
-            <div className="flex items-center gap-3 bg-bg border border-hm-text/15 px-4 py-2.5 shadow-sm">
+            <div className="flex items-center gap-3 bg-bg border border-line px-4 py-2.5 shadow-sm">
               <Spinner size={16} />
-              <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav">
+              <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted">
                 Rotating
               </span>
             </div>
@@ -538,11 +540,11 @@ export default function FloorPlanClient({
       <aside className="space-y-4">
         <div className="space-y-2">
           {mode === 'draw' ? (
-            <div className="border border-hm-text/15 bg-hm-text/[0.02] px-3 py-3">
-              <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-1.5">
+            <div className="border border-line bg-ink/[0.02] px-3 py-3">
+              <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-1.5">
                 Draw a room
               </div>
-              <div className="font-garamond text-[0.9rem] leading-[1.6] text-hm-nav mb-3">
+              <div className="font-garamond text-[0.9rem] leading-[1.6] text-ink-muted mb-3">
                 Click and drag on the floor plan to define the room. Release
                 to name it. <KeyHint>Esc</KeyHint> cancels.
               </div>
@@ -570,13 +572,13 @@ export default function FloorPlanClient({
           />
         </div>
 
-        <div className="pt-3 border-t border-hm-text/10">
-          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
+        <div className="pt-3 border-t border-line">
+          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-2">
             Place an item
           </div>
           <div className="space-y-1 max-h-[40vh] overflow-y-auto">
             {unplacedItems.length === 0 ? (
-              <div className="font-garamond text-[0.9rem] text-hm-nav py-3">
+              <div className="font-garamond text-[0.9rem] text-ink-muted py-3">
                 Every item is placed.
               </div>
             ) : (
@@ -590,8 +592,8 @@ export default function FloorPlanClient({
                   className={[
                     'w-full text-left flex items-center gap-2 px-2 py-2 border transition-colors',
                     selectedItem === it.id
-                      ? 'border-hm-text bg-hm-text/[0.06]'
-                      : 'border-hm-text/10 hover:bg-hm-text/[0.03]',
+                      ? 'border-ink bg-ink/[0.06]'
+                      : 'border-line hover:bg-ink/[0.03]',
                   ].join(' ')}
                 >
                   <div
@@ -606,23 +608,23 @@ export default function FloorPlanClient({
             )}
           </div>
           {mode === 'place' ? (
-            <div className="mt-3 font-garamond text-[0.85rem] text-hm-nav">
+            <div className="mt-3 font-garamond text-[0.85rem] text-ink-muted">
               Click anywhere on the floor plan to drop the pin.
             </div>
           ) : null}
         </div>
 
-        <div className="pt-4 border-t border-hm-text/10">
-          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
+        <div className="pt-4 border-t border-line">
+          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-2">
             Pins
           </div>
-          <div className="font-garamond text-[0.85rem] text-hm-nav leading-[1.7]">
+          <div className="font-garamond text-[0.85rem] text-ink-muted leading-[1.7]">
             Drag a pin to move it. Click for options.
           </div>
         </div>
 
-        <div className="pt-4 border-t border-hm-text/10">
-          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
+        <div className="pt-4 border-t border-line">
+          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-2">
             Image
           </div>
           <Button
@@ -633,13 +635,13 @@ export default function FloorPlanClient({
           >
             Rotate 90°
           </Button>
-          <div className="font-garamond text-[0.85rem] text-hm-nav leading-[1.55] mt-2">
+          <div className="font-garamond text-[0.85rem] text-ink-muted leading-[1.55] mt-2">
             Rotates the image clockwise. Rooms and item pins move with it.
           </div>
         </div>
 
-        <div className="pt-4 border-t border-hm-text/10">
-          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
+        <div className="pt-4 border-t border-line">
+          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-2">
             Legend
           </div>
           <div className="space-y-1.5">
@@ -649,7 +651,7 @@ export default function FloorPlanClient({
                   className="w-2.5 h-2.5 rounded-full"
                   style={{ background: c }}
                 />
-                <div className="font-garamond text-[0.9rem] text-hm-nav">
+                <div className="font-garamond text-[0.9rem] text-ink-muted">
                   {titleCase(s)}
                 </div>
               </div>
@@ -657,7 +659,7 @@ export default function FloorPlanClient({
           </div>
         </div>
 
-        <div className="pt-4 border-t border-hm-text/10 flex flex-col items-start gap-2">
+        <div className="pt-4 border-t border-line flex flex-col items-start gap-2">
           <Button variant="ghost" size="sm" onClick={() => setOpenUpload(true)}>
             Replace floor plan
           </Button>
@@ -665,7 +667,13 @@ export default function FloorPlanClient({
             variant="ghost"
             size="sm"
             onClick={async () => {
-              if (!confirm('Remove the floor plan? Room shapes and pin positions will stay on the project but will not be visible until a new plan is uploaded.')) return
+              const ok = await confirm({
+                title: 'Remove the floor plan?',
+                body: 'Room shapes and pin positions stay on the project but will not be visible until a new plan is uploaded.',
+                confirmLabel: 'Remove',
+                tone: 'danger',
+              })
+              if (!ok) return
               try {
                 await api.patch(`/api/projects/${projectId}`, { floor_plan_url: null })
                 toast.success('Floor plan removed')
@@ -674,7 +682,7 @@ export default function FloorPlanClient({
                 toast.error((e as Error).message)
               }
             }}
-            className="text-red-700 hover:text-red-800"
+            className="text-danger hover:text-danger"
           >
             Remove floor plan
           </Button>
@@ -708,7 +716,7 @@ export default function FloorPlanClient({
 
 function KeyHint({ children }: { children: React.ReactNode }) {
   return (
-    <kbd className="inline-block font-sans text-[10px] uppercase tracking-[0.16em] border border-hm-text/20 rounded-sm px-1.5 py-0.5 mx-0.5 bg-bg">
+    <kbd className="inline-block font-sans text-[10px] uppercase tracking-[0.16em] border border-line-strong rounded-sm px-1.5 py-0.5 mx-0.5 bg-bg">
       {children}
     </kbd>
   )
@@ -855,8 +863,8 @@ function UploadFloorPlanModal({
         className={[
           'border-2 border-dashed cursor-pointer p-10 text-center transition-colors',
           dragging
-            ? 'border-hm-text bg-hm-text/[0.04]'
-            : 'border-hm-text/20 hover:border-hm-text/50',
+            ? 'border-ink bg-ink/[0.04]'
+            : 'border-line-strong hover:border-ink/50',
         ].join(' ')}
       >
         <input
@@ -872,7 +880,7 @@ function UploadFloorPlanModal({
         {file ? (
           <div>
             <div className="font-serif text-[1.1rem]">{file.name}</div>
-            <div className="font-garamond text-[0.9rem] text-hm-nav mt-1">
+            <div className="font-garamond text-[0.9rem] text-ink-muted mt-1">
               {(file.size / 1024 / 1024).toFixed(1)} MB · {file.type || 'unknown type'}
             </div>
             <button
@@ -880,7 +888,7 @@ function UploadFloorPlanModal({
                 e.stopPropagation()
                 setFile(null)
               }}
-              className="mt-3 font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav hover:text-red-700"
+              className="mt-3 font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted hover:text-danger"
             >
               Choose a different file
             </button>
@@ -888,7 +896,7 @@ function UploadFloorPlanModal({
         ) : (
           <>
             <div className="font-serif text-[1.1rem]">Drop a file here</div>
-            <div className="font-garamond text-[0.9rem] text-hm-nav mt-1">
+            <div className="font-garamond text-[0.9rem] text-ink-muted mt-1">
               or click to browse — JPG, PNG, WebP, SVG, PDF · max 25 MB
             </div>
           </>

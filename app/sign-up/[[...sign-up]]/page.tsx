@@ -84,11 +84,11 @@ export default function SignUpPage() {
             </button>
           </SignUp.Action>
 
-          <p className="mt-8 text-center font-garamond text-[0.95rem] text-hm-nav">
+          <p className="mt-8 text-center font-garamond text-[0.95rem] text-ink-muted">
             Already have an account?{' '}
             <Link
               href="/sign-in"
-              className="text-hm-text underline underline-offset-4 hover:no-underline"
+              className="text-ink underline underline-offset-4 hover:no-underline"
             >
               Sign in
             </Link>
@@ -149,9 +149,9 @@ export default function SignUpPage() {
 
             <SignUp.Action
               resend
-              className={`${s.textLink} block w-full mt-6 text-center disabled:text-hm-nav/40 disabled:hover:text-hm-nav/40`}
+              className={`${s.textLink} block w-full mt-6 text-center disabled:text-ink-subtle/70 disabled:hover:text-ink-subtle/70`}
               fallback={({ resendableAfter }) => (
-                <span className="block w-full mt-6 text-center font-sans text-[11px] uppercase tracking-[0.18em] text-hm-nav/40">
+                <span className="block w-full mt-6 text-center font-sans text-[11px] uppercase tracking-[0.18em] text-ink-subtle/70">
                   Resend in {resendableAfter}s
                 </span>
               )}

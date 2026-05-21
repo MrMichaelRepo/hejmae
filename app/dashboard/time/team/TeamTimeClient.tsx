@@ -5,6 +5,7 @@ import { formatCents } from '@/lib/format'
 import { PageHeader } from '@/components/ui/EmptyState'
 import EmptyState from '@/components/ui/EmptyState'
 import { StatGrid, StatTile } from '@/components/finances/SummaryTile'
+import { Select } from '@/components/ui/Input'
 import {
   WEEK_DAY_LABELS,
   addDays,
@@ -196,7 +197,7 @@ export default function TeamTimeClient({
         <button
           type="button"
           onClick={() => setWeekStart((w) => addDays(w, -7))}
-          className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-hm-text"
+          className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted hover:text-ink"
         >
           ← Previous
         </button>
@@ -204,43 +205,45 @@ export default function TeamTimeClient({
         <button
           type="button"
           onClick={() => setWeekStart((w) => addDays(w, 7))}
-          className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-hm-text"
+          className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted hover:text-ink"
         >
           Next →
         </button>
         <button
           type="button"
           onClick={() => setWeekStart(startOfWeekMonday(new Date()))}
-          className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-hm-text ml-2"
+          className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted hover:text-ink ml-2"
         >
           This week
         </button>
 
         <div className="ml-auto flex items-center gap-3">
-          <select
-            value={memberFilter}
-            onChange={(e) => setMemberFilter(e.target.value)}
-            className="bg-transparent border border-hm-text/15 rounded-sm px-3 py-2 font-garamond text-[0.9rem]"
-          >
-            <option value="">All members</option>
-            {members.map((m) => (
-              <option key={m.user_id} value={m.user_id}>
-                {m.name ?? m.email}
-              </option>
-            ))}
-          </select>
-          <select
-            value={projectFilter}
-            onChange={(e) => setProjectFilter(e.target.value)}
-            className="bg-transparent border border-hm-text/15 rounded-sm px-3 py-2 font-garamond text-[0.9rem]"
-          >
-            <option value="">All projects</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+          <div className="w-40">
+            <Select
+              value={memberFilter}
+              onChange={(e) => setMemberFilter(e.target.value)}
+            >
+              <option value="">All members</option>
+              {members.map((m) => (
+                <option key={m.user_id} value={m.user_id}>
+                  {m.name ?? m.email}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <div className="w-40">
+            <Select
+              value={projectFilter}
+              onChange={(e) => setProjectFilter(e.target.value)}
+            >
+              <option value="">All projects</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </Select>
+          </div>
         </div>
       </div>
 
@@ -254,10 +257,10 @@ export default function TeamTimeClient({
           small
         />
       ) : (
-        <div className="border border-hm-text/10 overflow-x-auto mb-10">
+        <div className="border border-line overflow-x-auto mb-10">
           <table className="w-full font-garamond text-[0.95rem]">
             <thead>
-              <tr className="bg-hm-text/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+              <tr className="bg-ink/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
                 <th className="text-left px-4 py-3">Member</th>
                 {wDates.map((d, i) => (
                   <th key={i} className="text-right px-3 py-3">
@@ -280,11 +283,11 @@ export default function TeamTimeClient({
                 const cap = member?.weekly_capacity_minutes ?? 0
                 const util = cap > 0 ? Math.round((total / cap) * 100) : null
                 return (
-                  <tr key={uid} className="border-t border-hm-text/10">
+                  <tr key={uid} className="border-t border-line">
                     <td className="px-4 py-3">
                       {member?.name ?? member?.email ?? '—'}
                       {member?.role === 'owner' ? (
-                        <span className="ml-2 font-sans text-[9px] uppercase tracking-[0.2em] text-hm-nav">
+                        <span className="ml-2 font-sans text-[9px] uppercase tracking-[0.2em] text-ink-muted">
                           owner
                         </span>
                       ) : null}
@@ -296,7 +299,7 @@ export default function TeamTimeClient({
                           key={i}
                           className={[
                             'text-right px-3 py-3 tabular-nums',
-                            v === 0 ? 'text-hm-nav/40' : '',
+                            v === 0 ? 'text-ink-subtle/70' : '',
                           ].join(' ')}
                         >
                           {v > 0 ? fmtMinutes(v) : '—'}
@@ -306,13 +309,13 @@ export default function TeamTimeClient({
                     <td className="text-right px-4 py-3 tabular-nums">
                       {fmtMinutes(total)}
                     </td>
-                    <td className="text-right px-4 py-3 tabular-nums text-hm-nav">
+                    <td className="text-right px-4 py-3 tabular-nums text-ink-muted">
                       {fmtMinutes(cap)}
                     </td>
                     <td
                       className={[
                         'text-right px-4 py-3 tabular-nums',
-                        util != null && util > 100 ? 'text-amber-800' : '',
+                        util != null && util > 100 ? 'text-warn' : '',
                       ].join(' ')}
                     >
                       {util != null ? `${util}%` : '—'}
@@ -349,8 +352,8 @@ export default function TeamTimeClient({
                   className={[
                     'font-sans text-[10px] uppercase tracking-[0.2em]',
                     row.utilizationPct != null && row.utilizationPct > 100
-                      ? 'text-amber-800'
-                      : 'text-hm-nav',
+                      ? 'text-warn'
+                      : 'text-ink-muted',
                   ].join(' ')}
                 >
                   {row.utilizationPct != null
@@ -358,20 +361,20 @@ export default function TeamTimeClient({
                     : '—'}
                 </div>
               </div>
-              <div className="flex gap-6 mb-3 font-garamond text-[0.95rem] text-hm-nav">
-                <div>Logged: <span className="text-hm-text">{fmtMinutes(row.logged)}</span></div>
-                <div>Billable: <span className="text-hm-text">{fmtMinutes(row.billable)}</span></div>
-                <div>Revenue: <span className="text-hm-text">{formatCents(row.revenue)}</span></div>
+              <div className="flex gap-6 mb-3 font-garamond text-[0.95rem] text-ink-muted">
+                <div>Logged: <span className="text-ink">{fmtMinutes(row.logged)}</span></div>
+                <div>Billable: <span className="text-ink">{fmtMinutes(row.billable)}</span></div>
+                <div>Revenue: <span className="text-ink">{formatCents(row.revenue)}</span></div>
               </div>
               {projectRows.length === 0 ? (
-                <div className="font-garamond text-[0.9rem] text-hm-nav italic">
+                <div className="font-garamond text-[0.9rem] text-ink-muted italic">
                   No time logged this week.
                 </div>
               ) : (
                 <table className="w-full font-garamond text-[0.9rem]">
                   <tbody>
                     {projectRows.map((r) => (
-                      <tr key={r.project?.id ?? 'unk'} className="border-t border-hm-text/10 first:border-t-0">
+                      <tr key={r.project?.id ?? 'unk'} className="border-t border-line first:border-t-0">
                         <td className="py-1.5">{r.project?.name ?? '—'}</td>
                         <td className="text-right py-1.5 tabular-nums">
                           {fmtMinutes(r.mins)}

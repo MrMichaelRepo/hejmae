@@ -32,30 +32,30 @@ export default async function CashFlowStatementPage({ searchParams }: Props) {
 
       <form className="mb-6 flex items-end gap-3" method="get">
         <label className="font-garamond text-[0.9rem]">
-          <span className="block font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-1">
+          <span className="block font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-1">
             From
           </span>
           <input
             type="date"
             name="from"
             defaultValue={from}
-            className="border border-hm-text/20 px-3 py-2 bg-bg"
+            className="border border-line-strong px-3 py-2 bg-bg"
           />
         </label>
         <label className="font-garamond text-[0.9rem]">
-          <span className="block font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-1">
+          <span className="block font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-1">
             To
           </span>
           <input
             type="date"
             name="to"
             defaultValue={to}
-            className="border border-hm-text/20 px-3 py-2 bg-bg"
+            className="border border-line-strong px-3 py-2 bg-bg"
           />
         </label>
         <button
           type="submit"
-          className="font-sans text-[10px] uppercase tracking-[0.22em] border border-hm-text/25 px-4 py-2 hover:bg-hm-text hover:text-bg transition-colors"
+          className="font-sans text-[10px] uppercase tracking-[0.22em] border border-line-strong px-4 py-2 hover:bg-ink hover:text-bg transition-colors"
         >
           Apply
         </button>
@@ -65,11 +65,11 @@ export default async function CashFlowStatementPage({ searchParams }: Props) {
       <Section section={stmt.investing} />
       <Section section={stmt.financing} />
 
-      <div className="mt-8 border border-hm-text/30 p-6">
+      <div className="mt-8 border border-line-strong p-6">
         <Row label="Net change in cash" value={stmt.net_change_cents} bold />
         <Row label="Opening cash" value={stmt.opening_cash_cents} />
         <Row label="Closing cash" value={stmt.closing_cash_cents} bold />
-        <div className="mt-3 font-garamond text-[0.9rem] text-hm-nav">
+        <div className="mt-3 font-garamond text-[0.9rem] text-ink-muted">
           {stmt.reconciled
             ? 'Statement reconciles ✓'
             : `Out of balance by ${formatCents(
@@ -96,9 +96,9 @@ function Section({
       <h2 className="font-serif text-[1.2rem] leading-tight mb-3">
         {section.title}
       </h2>
-      <div className="border border-hm-text/10">
+      <div className="border border-line">
         {section.lines.length === 0 ? (
-          <div className="px-4 py-3 font-garamond text-hm-nav italic text-[0.92rem]">
+          <div className="px-4 py-3 font-garamond text-ink-muted italic text-[0.92rem]">
             No activity.
           </div>
         ) : (
@@ -107,7 +107,7 @@ function Section({
               {section.lines.map((l, i) => (
                 <tr
                   key={l.account_id ?? i}
-                  className={i > 0 ? 'border-t border-hm-text/5' : ''}
+                  className={i > 0 ? 'border-t border-ink/5' : ''}
                 >
                   <td className="px-4 py-2">{l.label}</td>
                   <td className="text-right px-4 py-2 w-40">
@@ -115,7 +115,7 @@ function Section({
                   </td>
                 </tr>
               ))}
-              <tr className="border-t border-hm-text/30 font-sans text-[10px] uppercase tracking-[0.18em]">
+              <tr className="border-t border-line-strong font-sans text-[10px] uppercase tracking-[0.18em]">
                 <td className="px-4 py-2">Net {section.title.toLowerCase()}</td>
                 <td className="text-right px-4 py-2">
                   {formatCents(section.net_cents)}

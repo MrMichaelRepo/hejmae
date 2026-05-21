@@ -3,17 +3,17 @@ import type { ReactNode } from 'react'
 
 export const authStyles = {
   input:
-    'w-full bg-transparent border-b border-hm-text/20 px-0 py-2 font-garamond text-[1rem] text-hm-text placeholder:text-hm-nav/50 focus:outline-none focus:border-hm-text/40 transition-colors data-[invalid=true]:border-red-700',
-  label: 'font-sans text-[11px] uppercase tracking-[0.18em] text-hm-nav',
+    'w-full bg-transparent border-b border-line-strong px-0 py-2 font-garamond text-[1rem] text-ink placeholder:text-ink-muted/50 focus:outline-none focus:border-line-strong transition-colors data-[invalid=true]:border-danger',
+  label: 'font-sans text-[11px] uppercase tracking-[0.18em] text-ink-muted',
   primaryButton:
-    'w-full bg-hm-text text-bg font-sans text-[12px] uppercase tracking-[0.18em] py-4 hover:bg-hm-text/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
+    'w-full bg-ink text-bg font-sans text-[12px] uppercase tracking-[0.18em] py-4 hover:bg-ink/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed',
   ghostButton:
-    'w-full border border-hm-text/25 bg-transparent text-hm-text font-sans text-[12px] uppercase tracking-[0.18em] py-4 hover:border-hm-text hover:bg-hm-text/[0.03] transition-colors flex items-center justify-center gap-3 disabled:opacity-50',
-  fieldError: 'block font-garamond text-[0.875rem] text-red-700 mt-2',
+    'w-full border border-line-strong bg-transparent text-ink font-sans text-[12px] uppercase tracking-[0.18em] py-4 hover:border-ink hover:bg-ink/[0.03] transition-colors flex items-center justify-center gap-3 disabled:opacity-50',
+  fieldError: 'block font-garamond text-[0.875rem] text-danger mt-2',
   globalError:
-    'block font-garamond text-[0.875rem] text-red-700 text-center mb-6',
+    'block font-garamond text-[0.875rem] text-danger text-center mb-6',
   textLink:
-    'font-sans text-[11px] uppercase tracking-[0.18em] text-hm-nav hover:text-hm-text transition-colors',
+    'font-sans text-[11px] uppercase tracking-[0.18em] text-ink-muted hover:text-ink transition-colors',
 } as const
 
 export function AuthShell({ children }: { children: ReactNode }) {
@@ -22,13 +22,13 @@ export function AuthShell({ children }: { children: ReactNode }) {
       <header className="px-8 md:px-12 py-6 flex items-center justify-between">
         <Link
           href="/"
-          className="font-sans text-[13px] font-bold uppercase tracking-[0.22em] text-hm-text"
+          className="font-sans text-[13px] font-bold uppercase tracking-[0.22em] text-ink"
         >
           hejmae
         </Link>
         <Link
           href="/"
-          className="font-sans text-[12px] uppercase tracking-[0.18em] text-hm-nav hover:text-hm-text transition-colors"
+          className="font-sans text-[12px] uppercase tracking-[0.18em] text-ink-muted hover:text-ink transition-colors"
         >
           Back to site
         </Link>
@@ -39,7 +39,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
       </main>
 
       <footer className="px-8 md:px-12 py-8 text-center">
-        <p className="font-sans text-[11px] uppercase tracking-[0.18em] text-hm-nav/60">
+        <p className="font-sans text-[11px] uppercase tracking-[0.18em] text-ink-subtle">
           &copy; {new Date().getFullYear()} hejmae
         </p>
       </footer>
@@ -60,7 +60,7 @@ export function AuthHeading({
         {title}
       </h1>
       {subtitle ? (
-        <p className="font-garamond text-[1rem] leading-relaxed text-hm-nav">
+        <p className="font-garamond text-[1rem] leading-relaxed text-ink-muted">
           {subtitle}
         </p>
       ) : null}
@@ -71,11 +71,11 @@ export function AuthHeading({
 export function OrDivider() {
   return (
     <div className="my-7 flex items-center gap-4">
-      <span className="flex-1 h-px bg-hm-text/15" />
-      <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav/70">
+      <span className="flex-1 h-px bg-ink/15" />
+      <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-subtle">
         or
       </span>
-      <span className="flex-1 h-px bg-hm-text/15" />
+      <span className="flex-1 h-px bg-ink/15" />
     </div>
   )
 }

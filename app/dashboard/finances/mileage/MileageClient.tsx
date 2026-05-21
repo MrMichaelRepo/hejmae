@@ -9,6 +9,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import { Input, Label, Select, Textarea } from '@/components/ui/Input'
+import { Checkbox } from '@/components/ui/Checkbox'
 import { StatGrid, StatTile } from '@/components/finances/SummaryTile'
 import type {
   MileageLogRow,
@@ -109,11 +110,11 @@ export default function MileageClient({
         }
       />
 
-      <div className="flex items-center gap-3 mb-6 pb-6 border-b border-hm-text/10">
-        <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav">
+      <div className="flex items-center gap-3 mb-6 pb-6 border-b border-line">
+        <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted">
           Year
         </span>
-        <div className="inline-flex border border-hm-text/15 rounded-sm overflow-hidden">
+        <div className="inline-flex border border-line rounded-sm overflow-hidden">
           {yearOptions.map((y) => (
             <button
               key={y}
@@ -122,8 +123,8 @@ export default function MileageClient({
               className={[
                 'px-4 py-2 font-sans text-[10px] uppercase tracking-[0.2em] transition-colors',
                 y === year
-                  ? 'bg-hm-text text-bg'
-                  : 'text-hm-nav hover:text-hm-text',
+                  ? 'bg-ink text-bg'
+                  : 'text-ink-muted hover:text-ink',
               ].join(' ')}
             >
               {y}
@@ -146,15 +147,15 @@ export default function MileageClient({
         <button
           type="button"
           onClick={() => setEditingRate(true)}
-          className="bg-bg p-6 text-left hover:bg-hm-text/[0.02] transition-colors"
+          className="bg-bg p-6 text-left hover:bg-ink/[0.03] transition-colors"
         >
-          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
+          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-2">
             Rate ({currentRate?.year ?? year})
           </div>
           <div className="font-serif text-[1.6rem] leading-none">
             {currentRate ? `${currentRate.rate_cents_per_mile}¢/mi` : 'not set'}
           </div>
-          <div className="mt-2 font-garamond text-[0.85rem] text-hm-nav/80">
+          <div className="mt-2 font-garamond text-[0.85rem] text-ink-subtle">
             Click to edit
           </div>
         </button>
@@ -173,11 +174,11 @@ export default function MileageClient({
           <h2 className="font-serif text-[1.2rem] leading-tight mb-3">
             Top projects by miles ({year})
           </h2>
-          <div className="border border-hm-text/10">
+          <div className="border border-line">
             <table className="w-full font-garamond text-[0.95rem]">
               <tbody>
                 {byProject.map((r) => (
-                  <tr key={r.key} className="border-t border-hm-text/10 first:border-t-0">
+                  <tr key={r.key} className="border-t border-line first:border-t-0">
                     <td className="px-4 py-2">{r.name}</td>
                     <td className="text-right px-4 py-2">
                       {r.miles.toFixed(1)} mi
@@ -197,10 +198,10 @@ export default function MileageClient({
           action={<Button onClick={() => setCreating(true)}>Log trip</Button>}
         />
       ) : (
-        <div className="border border-hm-text/10 overflow-x-auto">
+        <div className="border border-line overflow-x-auto">
           <table className="w-full font-garamond text-[0.95rem]">
             <thead>
-              <tr className="bg-hm-text/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+              <tr className="bg-ink/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
                 <th className="text-left px-4 py-3">Date</th>
                 <th className="text-left px-4 py-3">Purpose</th>
                 <th className="text-left px-4 py-3">From → To</th>
@@ -214,17 +215,17 @@ export default function MileageClient({
               {tripsForYear.map((t) => (
                 <tr
                   key={t.id}
-                  className="border-t border-hm-text/10 hover:bg-hm-text/[0.02]"
+                  className="border-t border-line hover:bg-ink/[0.03]"
                 >
                   <td className="px-4 py-3 whitespace-nowrap">
                     {formatDate(t.trip_date)}
                   </td>
                   <td className="px-4 py-3">
                     {t.purpose || (
-                      <span className="text-hm-nav italic">—</span>
+                      <span className="text-ink-muted italic">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-hm-nav">
+                  <td className="px-4 py-3 text-ink-muted">
                     {[t.from_location, t.to_location]
                       .filter(Boolean)
                       .join(' → ') || '—'}
@@ -233,16 +234,16 @@ export default function MileageClient({
                     {t.project_id ? (
                       <Link
                         href={`/dashboard/projects/${t.project_id}`}
-                        className="text-hm-nav hover:text-hm-text"
+                        className="text-ink-muted hover:text-ink"
                       >
                         {projIx.get(t.project_id)?.name ?? '—'}
                       </Link>
                     ) : (
-                      <span className="text-hm-nav/40">Studio</span>
+                      <span className="text-ink-subtle/70">Studio</span>
                     )}
                   </td>
                   <td className="text-right px-4 py-3">{Number(t.miles).toFixed(1)}</td>
-                  <td className="text-right px-4 py-3 text-hm-nav">
+                  <td className="text-right px-4 py-3 text-ink-muted">
                     {t.rate_cents_per_mile}¢
                   </td>
                   <td className="text-right px-4 py-3">
@@ -298,22 +299,22 @@ function RateHistory({
         <button
           type="button"
           onClick={onEdit}
-          className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-hm-text"
+          className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted hover:text-ink"
         >
           Edit
         </button>
       </div>
-      <div className="border border-hm-text/10 overflow-x-auto">
+      <div className="border border-line overflow-x-auto">
         <table className="w-full font-garamond text-[0.95rem]">
           <thead>
-            <tr className="bg-hm-text/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+            <tr className="bg-ink/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
               <th className="text-left px-4 py-3">Year</th>
               <th className="text-right px-4 py-3">Rate (cents/mile)</th>
             </tr>
           </thead>
           <tbody>
             {sorted.map((r) => (
-              <tr key={r.id} className="border-t border-hm-text/10">
+              <tr key={r.id} className="border-t border-line">
                 <td className="px-4 py-3">{r.year}</td>
                 <td className="text-right px-4 py-3">
                   {r.rate_cents_per_mile}¢
@@ -419,16 +420,12 @@ function MileageModal({
               onChange={(e) => setMiles(e.target.value)}
               required
             />
-            <label className="mt-2 inline-flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={roundTrip}
-                onChange={(e) => setRoundTrip(e.target.checked)}
-              />
-              <span className="font-garamond text-[0.9rem]">
-                Round trip (×2)
-              </span>
-            </label>
+            <Checkbox
+              className="mt-2"
+              checked={roundTrip}
+              onChange={(e) => setRoundTrip(e.target.checked)}
+              label="Round trip (×2)"
+            />
           </div>
         </div>
 
@@ -490,7 +487,7 @@ function MileageModal({
         </div>
 
         {err ? (
-          <div className="font-garamond text-[0.95rem] text-red-700">{err}</div>
+          <div className="font-garamond text-[0.95rem] text-danger">{err}</div>
         ) : null}
 
         <div className="flex justify-end gap-3 pt-2">
@@ -566,7 +563,7 @@ function RateModal({
   return (
     <Modal open={open} onClose={onClose} title="Mileage rate" size="sm">
       <form onSubmit={handleSubmit} className="space-y-5">
-        <p className="font-garamond text-[0.95rem] text-hm-nav leading-[1.6]">
+        <p className="font-garamond text-[0.95rem] text-ink-muted leading-[1.6]">
           IRS standard mileage rates: 67¢ (2024), 70¢ (2025). Update if the
           IRS publishes a new rate or you&apos;re tracking actuals.
         </p>
@@ -598,7 +595,7 @@ function RateModal({
         </div>
 
         {err ? (
-          <div className="font-garamond text-[0.95rem] text-red-700">{err}</div>
+          <div className="font-garamond text-[0.95rem] text-danger">{err}</div>
         ) : null}
 
         <div className="flex justify-end gap-3 pt-2">

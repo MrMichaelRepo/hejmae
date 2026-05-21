@@ -69,11 +69,11 @@ export default function SignInPage() {
             </button>
           </SignIn.Action>
 
-          <p className="mt-8 text-center font-garamond text-[0.95rem] text-hm-nav">
+          <p className="mt-8 text-center font-garamond text-[0.95rem] text-ink-muted">
             No account yet?{' '}
             <Link
               href="/sign-up"
-              className="text-hm-text underline underline-offset-4 hover:no-underline"
+              className="text-ink underline underline-offset-4 hover:no-underline"
             >
               Create your studio
             </Link>

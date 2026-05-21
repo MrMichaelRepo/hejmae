@@ -54,7 +54,7 @@ export default function VoidModal({
 
   return (
     <Modal open={open} onClose={onClose} title="Void invoice" size="md">
-      <p className="mb-5 font-garamond text-[0.95rem] text-hm-nav">
+      <p className="mb-5 font-garamond text-[0.95rem] text-ink-muted">
         Voiding marks the invoice as cancelled and revokes the client&apos;s
         pay link. This action can&apos;t be undone — to re-bill, create a
         fresh invoice.
@@ -67,7 +67,7 @@ export default function VoidModal({
           placeholder="Why is this being voided? (logged for audit)"
         />
       </Field>
-      <div className="flex justify-end gap-3 border-t border-hm-text/10 pt-5">
+      <div className="flex justify-end gap-3 border-t border-line pt-5">
         <Button variant="ghost" onClick={onClose} disabled={submitting}>
           Cancel
         </Button>

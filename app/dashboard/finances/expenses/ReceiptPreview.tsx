@@ -27,7 +27,7 @@ export default function ReceiptPreview({
         isPdf ? (
           <iframe
             src={expense.receipt_url}
-            className="w-full h-[70vh] border border-hm-text/10"
+            className="w-full h-[70vh] border border-line"
             title="Receipt"
           />
         ) : (
@@ -35,11 +35,11 @@ export default function ReceiptPreview({
           <img
             src={expense.receipt_url}
             alt="Receipt"
-            className="w-full max-h-[70vh] object-contain bg-hm-text/[0.02]"
+            className="w-full max-h-[70vh] object-contain bg-ink/[0.02]"
           />
         )
       ) : (
-        <div className="font-garamond text-[0.95rem] text-hm-nav italic">
+        <div className="font-garamond text-[0.95rem] text-ink-muted italic">
           No receipt attached.
         </div>
       )}
@@ -49,7 +49,7 @@ export default function ReceiptPreview({
             href={expense.receipt_url}
             target="_blank"
             rel="noreferrer"
-            className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-hm-text"
+            className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted hover:text-ink"
           >
             Open in new tab ↗
           </a>

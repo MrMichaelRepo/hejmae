@@ -6,6 +6,8 @@ import { api, ApiError } from '@/lib/api'
 import { PageHeader } from '@/components/ui/EmptyState'
 import Button from '@/components/ui/Button'
 import { Field, Input, Select } from '@/components/ui/Input'
+import { Checkbox } from '@/components/ui/Checkbox'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { toast } from '@/components/ui/Toast'
 
 type Role = 'owner' | 'admin' | 'member'
@@ -79,7 +81,7 @@ export default function TeamClient({ initialData }: { initialData: TeamData | nu
     return (
       <div className="max-w-3xl">
         <PageHeader eyebrow="Settings" title="Team" />
-        <div className="border border-hm-text/10 p-6 font-garamond text-[0.95rem] text-hm-nav">
+        <div className="border border-line p-6 font-garamond text-[0.95rem] text-ink-muted">
           You don&apos;t have permission to manage this studio&apos;s team.
         </div>
       </div>
@@ -99,7 +101,7 @@ export default function TeamClient({ initialData }: { initialData: TeamData | nu
       <div className="mb-6">
         <Link
           href="/dashboard/settings"
-          className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav hover:text-hm-text"
+          className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted hover:text-ink"
         >
           ← Back to settings
         </Link>
@@ -108,7 +110,7 @@ export default function TeamClient({ initialData }: { initialData: TeamData | nu
       {isAdmin ? <InviteForm onCreated={reload} /> : null}
 
       <Section title="Members">
-        <div className="divide-y divide-hm-text/10">
+        <div className="divide-y divide-line">
           {data.members.map((m) => (
             <MemberRow
               key={m.id}
@@ -122,7 +124,7 @@ export default function TeamClient({ initialData }: { initialData: TeamData | nu
 
       {data.invites.length > 0 ? (
         <Section title="Pending invites">
-          <div className="divide-y divide-hm-text/10">
+          <div className="divide-y divide-line">
             {data.invites.map((inv) => (
               <InviteRow
                 key={inv.id}
@@ -201,17 +203,12 @@ function InviteForm({ onCreated }: { onCreated: () => void }) {
       >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
           {ALL_PERMISSIONS.filter((p) => p !== 'team:manage').map((p) => (
-            <label
+            <Checkbox
               key={p}
-              className="flex items-center gap-2 font-garamond text-[0.95rem] text-hm-text cursor-pointer"
-            >
-              <input
-                type="checkbox"
-                checked={perms.has(p)}
-                onChange={() => togglePerm(p)}
-              />
-              {PERMISSION_LABELS[p]}
-            </label>
+              checked={perms.has(p)}
+              onChange={() => togglePerm(p)}
+              label={PERMISSION_LABELS[p]}
+            />
           ))}
         </div>
       </Field>
@@ -237,6 +234,8 @@ function MemberRow({
   const [busy, setBusy] = useState(false)
   const [role, setRole] = useState<Role>(member.role)
   const [perms, setPerms] = useState<Set<Permission>>(new Set(member.permissions))
+
+  const confirm = useConfirm()
 
   const togglePerm = (p: Permission) => {
     setPerms((s) => {
@@ -265,7 +264,13 @@ function MemberRow({
   }
 
   const remove = async () => {
-    if (!confirm(`Remove ${member.user.email} from the studio?`)) return
+    const ok = await confirm({
+      title: `Remove ${member.user.email}?`,
+      body: 'They will lose access to this studio immediately.',
+      confirmLabel: 'Remove',
+      tone: 'danger',
+    })
+    if (!ok) return
     setBusy(true)
     try {
       await api.del(`/api/settings/team/members/${member.id}`)
@@ -282,10 +287,10 @@ function MemberRow({
     <div className="py-4">
       <div className="flex items-center justify-between gap-4">
         <div className="min-w-0">
-          <div className="font-garamond text-[1rem] text-hm-text truncate">
+          <div className="font-garamond text-[1rem] text-ink truncate">
             {member.user.name || member.user.email}
           </div>
-          <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav mt-1">
+          <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted mt-1">
             {member.role}
             {member.user.name ? ` · ${member.user.email}` : ''}
           </div>
@@ -307,7 +312,7 @@ function MemberRow({
       </div>
 
       {editing ? (
-        <div className="mt-4 pl-2 border-l border-hm-text/10 pl-4 ml-1">
+        <div className="mt-4 pl-2 border-l border-line pl-4 ml-1">
           <Field label="Role">
             <Select
               value={role}
@@ -320,17 +325,12 @@ function MemberRow({
           <Field label="Permissions">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {ALL_PERMISSIONS.filter((p) => p !== 'team:manage').map((p) => (
-                <label
+                <Checkbox
                   key={p}
-                  className="flex items-center gap-2 font-garamond text-[0.95rem] text-hm-text cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={perms.has(p)}
-                    onChange={() => togglePerm(p)}
-                  />
-                  {PERMISSION_LABELS[p]}
-                </label>
+                  checked={perms.has(p)}
+                  onChange={() => togglePerm(p)}
+                  label={PERMISSION_LABELS[p]}
+                />
               ))}
             </div>
           </Field>
@@ -355,8 +355,15 @@ function InviteRow({
   onChanged: () => void
 }) {
   const [busy, setBusy] = useState(false)
+  const confirm = useConfirm()
   const revoke = async () => {
-    if (!confirm(`Revoke invite for ${invite.email}?`)) return
+    const ok = await confirm({
+      title: `Revoke invite for ${invite.email}?`,
+      body: 'The invite link will stop working.',
+      confirmLabel: 'Revoke',
+      tone: 'danger',
+    })
+    if (!ok) return
     setBusy(true)
     try {
       await api.del(`/api/settings/team/invites/${invite.id}`)
@@ -371,10 +378,10 @@ function InviteRow({
   return (
     <div className="py-4 flex items-center justify-between gap-4">
       <div className="min-w-0">
-        <div className="font-garamond text-[1rem] text-hm-text truncate">
+        <div className="font-garamond text-[1rem] text-ink truncate">
           {invite.email}
         </div>
-        <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav mt-1">
+        <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted mt-1">
           {invite.role} · invited {new Date(invite.invited_at).toLocaleDateString()}
         </div>
       </div>
@@ -396,10 +403,10 @@ function Section({
 }) {
   return (
     <section className="mb-10">
-      <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-4">
+      <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-4">
         {title}
       </div>
-      <div className="border border-hm-text/10 p-6">{children}</div>
+      <div className="border border-line p-6">{children}</div>
     </section>
   )
 }

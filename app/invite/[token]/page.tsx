@@ -70,8 +70,8 @@ export default function InviteLandingPage() {
   if (error || !invite) {
     return (
       <Centered>
-        <h1 className="font-garamond text-3xl text-hm-text mb-4">Invite unavailable</h1>
-        <p className="font-garamond text-[1rem] text-hm-nav">
+        <h1 className="font-garamond text-3xl text-ink mb-4">Invite unavailable</h1>
+        <p className="font-garamond text-[1rem] text-ink-muted">
           {error ?? 'This invite link is invalid.'}
         </p>
       </Centered>
@@ -81,10 +81,10 @@ export default function InviteLandingPage() {
   if (invite.status === 'revoked' || invite.status === 'expired') {
     return (
       <Centered>
-        <h1 className="font-garamond text-3xl text-hm-text mb-4">
+        <h1 className="font-garamond text-3xl text-ink mb-4">
           {invite.status === 'expired' ? 'Invite expired' : 'Invite revoked'}
         </h1>
-        <p className="font-garamond text-[1rem] text-hm-nav">
+        <p className="font-garamond text-[1rem] text-ink-muted">
           Ask the studio owner to send a new one.
         </p>
       </Centered>
@@ -94,8 +94,8 @@ export default function InviteLandingPage() {
   if (invite.status === 'accepted') {
     return (
       <Centered>
-        <h1 className="font-garamond text-3xl text-hm-text mb-4">Already accepted</h1>
-        <p className="font-garamond text-[1rem] text-hm-nav mb-6">
+        <h1 className="font-garamond text-3xl text-ink mb-4">Already accepted</h1>
+        <p className="font-garamond text-[1rem] text-ink-muted mb-6">
           You&apos;ve already joined this studio.
         </p>
         <Button variant="primary" onClick={() => router.push('/dashboard')}>
@@ -117,13 +117,13 @@ export default function InviteLandingPage() {
           unoptimized
         />
       ) : null}
-      <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-3">
+      <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-3">
         Studio invite
       </div>
-      <h1 className="font-garamond text-3xl md:text-4xl text-hm-text mb-3">
+      <h1 className="font-garamond text-3xl md:text-4xl text-ink mb-3">
         Join {invite.studio.name}
       </h1>
-      <p className="font-garamond text-[1rem] text-hm-nav mb-8">
+      <p className="font-garamond text-[1rem] text-ink-muted mb-8">
         {invite.studio.owner_name
           ? `${invite.studio.owner_name} invited you`
           : 'You were invited'}{' '}
@@ -137,7 +137,7 @@ export default function InviteLandingPage() {
       >
         {isSignedIn ? 'Accept invite' : 'Sign in to accept'}
       </Button>
-      <p className="mt-4 font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav/70">
+      <p className="mt-4 font-sans text-[10px] uppercase tracking-[0.18em] text-ink-subtle">
         Sent to {invite.email}
       </p>
     </Centered>

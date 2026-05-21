@@ -84,8 +84,8 @@ export default function AddToProjectModal({
 
   return (
     <Modal open={open} onClose={onClose} title="Add to project">
-      <div className="flex gap-4 items-start mb-5 pb-5 border-b border-hm-text/10">
-        <div className="w-20 h-20 bg-hm-text/[0.05] shrink-0 relative overflow-hidden">
+      <div className="flex gap-4 items-start mb-5 pb-5 border-b border-line">
+        <div className="w-20 h-20 bg-ink/[0.05] shrink-0 relative overflow-hidden">
           {product.image_url ? (
             <Image
               src={product.image_url}
@@ -101,11 +101,11 @@ export default function AddToProjectModal({
           <div className="font-serif text-[1.1rem] leading-tight">
             {product.name}
           </div>
-          <div className="font-garamond text-[0.9rem] text-hm-nav mt-1">
+          <div className="font-garamond text-[0.9rem] text-ink-muted mt-1">
             {product.vendor ?? 'Unknown vendor'}
           </div>
           {product.retail_price_cents != null ? (
-            <div className="font-garamond text-[0.9rem] text-hm-nav mt-1">
+            <div className="font-garamond text-[0.9rem] text-ink-muted mt-1">
               Retail: {formatCents(product.retail_price_cents)}
             </div>
           ) : null}
@@ -114,7 +114,7 @@ export default function AddToProjectModal({
 
       <Field label="Project">
         {projects.length === 0 ? (
-          <div className="font-garamond text-[0.95rem] text-hm-nav border border-hm-text/15 px-3 py-2.5">
+          <div className="font-garamond text-[0.95rem] text-ink-muted border border-line px-3 py-2.5">
             No active projects. Create one first.
           </div>
         ) : (

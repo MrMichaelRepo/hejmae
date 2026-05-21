@@ -7,6 +7,7 @@ import EmptyState from '@/components/ui/EmptyState'
 import { StatusBadge } from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import { Field, Input, Select, Textarea } from '@/components/ui/Input'
+import { Checkbox } from '@/components/ui/Checkbox'
 import Modal from '@/components/ui/Modal'
 import { toast } from '@/components/ui/Toast'
 import type {
@@ -99,7 +100,7 @@ export default function InvoicesClient({
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav">
+        <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted">
           Invoices ({invoices.length})
         </div>
         <Button variant="primary" onClick={() => setOpenCreate(true)}>
@@ -124,16 +125,16 @@ export default function InvoicesClient({
               (inv.payments ?? []).reduce((a, p) => a + p.amount_cents, 0) || 0
             const outstanding = Math.max(0, inv.total_cents - paid)
             return (
-              <div key={inv.id} className="border border-hm-text/10">
+              <div key={inv.id} className="border border-line">
                 <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
                   <div>
                     <div className="font-serif text-[1.1rem] leading-tight">
                       Invoice · {formatDate(inv.created_at)}{' '}
-                      <span className="font-garamond text-[0.85rem] text-hm-nav">
+                      <span className="font-garamond text-[0.85rem] text-ink-muted">
                         {inv.type}
                       </span>
                     </div>
-                    <div className="font-garamond text-[0.9rem] text-hm-nav mt-1">
+                    <div className="font-garamond text-[0.9rem] text-ink-muted mt-1">
                       Total {formatCents(inv.total_cents)} · Outstanding{' '}
                       {formatCents(outstanding)}
                     </div>
@@ -173,13 +174,13 @@ export default function InvoicesClient({
                   </div>
                 </div>
                 {(inv.invoice_line_items ?? []).length > 0 ? (
-                  <div className="border-t border-hm-text/10 px-5 py-3 bg-hm-text/[0.02]">
+                  <div className="border-t border-line px-5 py-3 bg-ink/[0.02]">
                     <table className="w-full font-garamond text-[0.95rem]">
                       <tbody>
                         {(inv.invoice_line_items ?? []).map((l) => (
                           <tr key={l.id}>
                             <td className="py-1">{l.description}</td>
-                            <td className="py-1 text-right text-hm-nav w-16">
+                            <td className="py-1 text-right text-ink-muted w-16">
                               {l.quantity}
                             </td>
                             <td className="py-1 text-right w-28">
@@ -345,7 +346,7 @@ function renderRowActions(
 
   // status === 'void'
   return (
-    <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav">
+    <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted">
       Voided
     </span>
   )
@@ -411,22 +412,18 @@ function CreateInvoiceModal({
           </Select>
         </Field>
         <Field label="Auto-fill from approved items">
-          <label className="flex items-center gap-2 mt-2.5">
-            <input
-              type="checkbox"
-              checked={fromApproved}
-              onChange={(e) => setFromApproved(e.target.checked)}
-            />
-            <span className="font-garamond text-[0.95rem] text-hm-nav">
-              Pull every approved item into the invoice
-            </span>
-          </label>
+          <Checkbox
+            className="mt-2.5"
+            checked={fromApproved}
+            onChange={(e) => setFromApproved(e.target.checked)}
+            label="Pull every approved item into the invoice"
+          />
         </Field>
       </div>
 
       <Field label="Manual line items (optional)">
-        <div className="border border-hm-text/10">
-          <div className="grid grid-cols-[1fr_80px_120px_120px_40px] gap-2 px-3 py-2 border-b border-hm-text/10 bg-hm-text/[0.02] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+        <div className="border border-line">
+          <div className="grid grid-cols-[1fr_80px_120px_120px_40px] gap-2 px-3 py-2 border-b border-line bg-ink/[0.02] font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
             <div>Description</div>
             <div className="text-right">Qty</div>
             <div className="text-right">Unit</div>
@@ -436,7 +433,7 @@ function CreateInvoiceModal({
           {lines.map((l, i) => (
             <div
               key={i}
-              className="grid grid-cols-[1fr_80px_120px_120px_40px] gap-2 px-3 py-2 border-t border-hm-text/10 first:border-t-0 items-center"
+              className="grid grid-cols-[1fr_80px_120px_120px_40px] gap-2 px-3 py-2 border-t border-line first:border-t-0 items-center"
             >
               <Input
                 value={l.description}
@@ -464,12 +461,12 @@ function CreateInvoiceModal({
                 placeholder="0.00"
                 className="text-right"
               />
-              <div className="text-right font-garamond text-[0.95rem] text-hm-nav">
+              <div className="text-right font-garamond text-[0.95rem] text-ink-muted">
                 {formatCents(l.unit_price_cents * l.quantity)}
               </div>
               <button
                 onClick={() => setLines((s) => s.filter((_, idx) => idx !== i))}
-                className="font-sans text-[14px] text-hm-nav hover:text-red-700"
+                className="font-sans text-[14px] text-ink-muted hover:text-danger"
               >
                 ×
               </button>
@@ -484,7 +481,7 @@ function CreateInvoiceModal({
                 { description: '', quantity: 1, unit_price_cents: 0 },
               ])
             }
-            className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-hm-text"
+            className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted hover:text-ink"
           >
             + Add line
           </button>

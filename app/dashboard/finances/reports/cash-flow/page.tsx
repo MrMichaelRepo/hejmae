@@ -37,10 +37,10 @@ export default async function CashFlowPage() {
         />
       </div>
 
-      <div className="border border-hm-text/10 overflow-x-auto">
+      <div className="border border-line overflow-x-auto">
         <table className="w-full font-garamond text-[0.9rem]">
           <thead>
-            <tr className="bg-hm-text/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+            <tr className="bg-ink/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
               <th className="text-left px-3 py-3 w-32">Week</th>
               <th className="text-right px-3 py-3">In</th>
               <th className="text-right px-3 py-3">Out</th>
@@ -53,40 +53,40 @@ export default async function CashFlowPage() {
             {forecast.weeks.map((w) => {
               const lowBalance = w.endingBalanceCents < 0
               return (
-                <tr key={w.weekStart} className="border-t border-hm-text/10 align-top">
-                  <td className="px-3 py-3 text-hm-nav whitespace-nowrap">
+                <tr key={w.weekStart} className="border-t border-line align-top">
+                  <td className="px-3 py-3 text-ink-muted whitespace-nowrap">
                     {w.weekStart}
                   </td>
-                  <td className="text-right px-3 py-3 text-emerald-700">
+                  <td className="text-right px-3 py-3 text-success">
                     {w.inflowCents > 0 ? formatCents(w.inflowCents) : '—'}
                   </td>
-                  <td className="text-right px-3 py-3 text-amber-800">
+                  <td className="text-right px-3 py-3 text-warn">
                     {w.outflowCents < 0 ? formatCents(w.outflowCents) : '—'}
                   </td>
                   <td className="text-right px-3 py-3">
                     {formatCents(w.netCents)}
                   </td>
                   <td
-                    className={`text-right px-3 py-3 ${lowBalance ? 'text-amber-900 font-semibold' : ''}`}
+                    className={`text-right px-3 py-3 ${lowBalance ? 'text-warn font-semibold' : ''}`}
                   >
                     {formatCents(w.endingBalanceCents)}
                   </td>
                   <td className="px-3 py-3">
                     {w.lines.length === 0 ? (
-                      <span className="text-hm-nav italic">—</span>
+                      <span className="text-ink-muted italic">—</span>
                     ) : (
                       <ul className="space-y-0.5">
                         {w.lines.map((l, i) => (
                           <li key={i} className="flex justify-between gap-3">
-                            <span className="text-hm-nav text-[0.85rem]">
+                            <span className="text-ink-muted text-[0.85rem]">
                               <span className="font-mono">{l.date}</span>{' '}
                               {l.description}
                             </span>
                             <span
                               className={
                                 l.amount_cents >= 0
-                                  ? 'text-emerald-700 whitespace-nowrap'
-                                  : 'text-amber-800 whitespace-nowrap'
+                                  ? 'text-success whitespace-nowrap'
+                                  : 'text-warn whitespace-nowrap'
                               }
                             >
                               {formatCents(l.amount_cents)}
@@ -108,8 +108,8 @@ export default async function CashFlowPage() {
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border border-hm-text/10 p-4">
-      <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-1">
+    <div className="border border-line p-4">
+      <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-1">
         {label}
       </div>
       <div className="font-serif text-[1.3rem]">{value}</div>

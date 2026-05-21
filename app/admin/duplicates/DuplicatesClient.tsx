@@ -143,14 +143,14 @@ export default function DuplicatesClient({
         <StatCard label="New this week" value={stats.newThisWeek} />
       </div>
 
-      <div className="mb-6 font-garamond text-[0.9rem] text-hm-nav">
+      <div className="mb-6 font-garamond text-[0.9rem] text-ink-muted">
         Last scan: Mondays at 06:00 UTC. Resolved pairs persist forever; the
         scanner refreshes existing unresolved flags rather than re-creating
         them.
       </div>
 
       <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
-        <div className="flex gap-px bg-hm-text/10 rounded-sm overflow-hidden w-fit">
+        <div className="flex gap-px bg-ink/10 rounded-sm overflow-hidden w-fit">
           {(
             [
               ['unresolved', 'Unresolved'],
@@ -166,8 +166,8 @@ export default function DuplicatesClient({
               className={[
                 'font-sans text-[10px] uppercase tracking-[0.22em] px-5 py-2.5 transition-colors',
                 tab === k
-                  ? 'bg-hm-text text-bg'
-                  : 'bg-bg text-hm-nav hover:text-hm-text',
+                  ? 'bg-ink text-bg'
+                  : 'bg-bg text-ink-muted hover:text-ink',
               ].join(' ')}
             >
               {label}
@@ -202,7 +202,7 @@ export default function DuplicatesClient({
       </div>
 
       {tab === 'unresolved' ? (
-        <div className="mb-4 font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav/70">
+        <div className="mb-4 font-sans text-[10px] uppercase tracking-[0.2em] text-ink-subtle">
           Shortcuts: <Kbd>D</Kbd> dismiss · <Kbd>M</Kbd> merge (acts on the
           first card)
         </div>
@@ -257,8 +257,8 @@ export default function DuplicatesClient({
 
 function StatCard({ label, value }: { label: string; value: number }) {
   return (
-    <div className="border border-hm-text/10 px-4 py-3">
-      <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-1">
+    <div className="border border-line px-4 py-3">
+      <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-1">
         {label}
       </div>
       <div className="font-serif text-[1.6rem] leading-none">{value}</div>
@@ -284,8 +284,8 @@ function SubChips({
           className={[
             'font-sans text-[10px] uppercase tracking-[0.2em] px-3 py-1.5 rounded-full border transition-colors',
             value === k
-              ? 'border-hm-text text-hm-text bg-hm-text/[0.05]'
-              : 'border-hm-text/15 text-hm-nav hover:border-hm-text/40 hover:text-hm-text',
+              ? 'border-ink text-ink bg-ink/[0.05]'
+              : 'border-line text-ink-muted hover:border-line-strong hover:text-ink',
           ].join(' ')}
         >
           {label}
@@ -297,7 +297,7 @@ function SubChips({
 
 function Kbd({ children }: { children: React.ReactNode }) {
   return (
-    <span className="inline-block px-1.5 py-px border border-hm-text/20 rounded-sm text-[10px] text-hm-text font-mono mx-0.5">
+    <span className="inline-block px-1.5 py-px border border-line-strong rounded-sm text-[10px] text-ink font-mono mx-0.5">
       {children}
     </span>
   )
@@ -324,20 +324,20 @@ function FlagCard({
       : 'Manual flag'
 
   return (
-    <div className="border border-hm-text/10 p-5">
+    <div className="border border-line p-5">
       <div className="flex flex-wrap items-center gap-2 mb-4">
-        <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-text">
+        <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink">
           {similarityPct}
         </span>
         {flag.match_reasons.map((reason) => (
           <ReasonBadge key={reason} reason={reason} />
         ))}
         {stale && kind === 'unresolved' ? (
-          <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav/70 border border-hm-text/10 rounded-full px-2.5 py-0.5">
+          <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-subtle border border-line rounded-full px-2.5 py-0.5">
             Not seen in recent scan
           </span>
         ) : null}
-        <div className="ml-auto font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav">
+        <div className="ml-auto font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted">
           First flagged {flaggedAt.toLocaleDateString()} · Last seen{' '}
           {lastSeenAt.toLocaleDateString()}
         </div>
@@ -352,25 +352,25 @@ function FlagCard({
         <div className="flex flex-wrap items-center justify-end gap-2">
           <button
             onClick={onDismiss}
-            className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav hover:text-hm-text border border-hm-text/15 hover:border-hm-text/40 px-4 py-2"
+            className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted hover:text-ink border border-line hover:border-line-strong px-4 py-2"
           >
             Dismiss — not a duplicate
           </button>
           <button
             onClick={onMerge}
-            className="font-sans text-[10px] uppercase tracking-[0.22em] bg-hm-text text-bg hover:bg-hm-text/90 px-4 py-2"
+            className="font-sans text-[10px] uppercase tracking-[0.22em] bg-ink text-bg hover:bg-ink/90 px-4 py-2"
           >
             Merge
           </button>
         </div>
       ) : (
-        <div className="font-garamond text-[0.95rem] text-hm-nav">
+        <div className="font-garamond text-[0.95rem] text-ink-muted">
           {flag.status === 'confirmed_duplicate'
             ? `Merged ${flag.resolved_at ? new Date(flag.resolved_at).toLocaleDateString() : ''}${row.resolved_by_name ? ` by ${row.resolved_by_name}` : ''}`
             : `Dismissed ${flag.resolved_at ? new Date(flag.resolved_at).toLocaleDateString() : ''}${row.resolved_by_name ? ` by ${row.resolved_by_name}` : ''}`}
           {flag.resolution_notes ? (
-            <div className="mt-1 text-hm-text">
-              <span className="text-hm-nav/70">Notes:</span>{' '}
+            <div className="mt-1 text-ink">
+              <span className="text-ink-subtle">Notes:</span>{' '}
               {flag.resolution_notes}
             </div>
           ) : null}
@@ -389,7 +389,7 @@ function ProductPanel({
 }) {
   if (!product) {
     return (
-      <div className="border border-hm-text/10 p-4 text-hm-nav">
+      <div className="border border-line p-4 text-ink-muted">
         <div className="font-sans text-[10px] uppercase tracking-[0.22em] mb-2">
           Product {side}
         </div>
@@ -398,12 +398,12 @@ function ProductPanel({
     )
   }
   return (
-    <div className="border border-hm-text/10 p-4">
-      <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
+    <div className="border border-line p-4">
+      <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-2">
         Product {side}
       </div>
       <div className="flex gap-3">
-        <div className="w-20 h-20 bg-hm-text/[0.05] relative shrink-0 overflow-hidden">
+        <div className="w-20 h-20 bg-ink/[0.05] relative shrink-0 overflow-hidden">
           {product.image_url ? (
             <Image
               src={product.image_url}
@@ -419,10 +419,10 @@ function ProductPanel({
           <div className="font-garamond text-[1rem] leading-tight line-clamp-2 mb-1">
             {product.name}
           </div>
-          <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav mb-1">
+          <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted mb-1">
             {product.vendor ?? '—'}
           </div>
-          <div className="font-garamond text-[0.9rem] text-hm-nav">
+          <div className="font-garamond text-[0.9rem] text-ink-muted">
             {product.retail_price_cents != null
               ? formatCents(product.retail_price_cents)
               : 'No price'}
@@ -434,7 +434,7 @@ function ProductPanel({
               href={product.source_url}
               target="_blank"
               rel="noreferrer"
-              className="mt-1 inline-block font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-hm-text underline-offset-2 hover:underline truncate max-w-full"
+              className="mt-1 inline-block font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted hover:text-ink underline-offset-2 hover:underline truncate max-w-full"
             >
               {safeDomain(product.source_url)}
             </a>
@@ -454,7 +454,7 @@ function ReasonBadge({ reason }: { reason: string }) {
     manual_flag: 'Manual flag',
   }
   return (
-    <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-text border border-hm-text/20 rounded-full px-2.5 py-0.5">
+    <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink border border-line-strong rounded-full px-2.5 py-0.5">
       {LABEL[reason] ?? reason}
     </span>
   )
@@ -474,7 +474,7 @@ function Pagination({
   const pages = Math.ceil(total / limit)
   if (pages <= 1) return null
   return (
-    <div className="flex items-center justify-between mt-6 font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav">
+    <div className="flex items-center justify-between mt-6 font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted">
       <div>
         Page {page} of {pages}
       </div>
@@ -482,14 +482,14 @@ function Pagination({
         <button
           disabled={page <= 1}
           onClick={() => onChange(page - 1)}
-          className="border border-hm-text/15 px-3 py-1.5 disabled:opacity-30"
+          className="border border-line px-3 py-1.5 disabled:opacity-30"
         >
           Prev
         </button>
         <button
           disabled={page >= pages}
           onClick={() => onChange(page + 1)}
-          className="border border-hm-text/15 px-3 py-1.5 disabled:opacity-30"
+          className="border border-line px-3 py-1.5 disabled:opacity-30"
         >
           Next
         </button>

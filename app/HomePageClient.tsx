@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { ClerkProvider, UserButton, useAuth } from '@clerk/nextjs'
+import { clerkAppearance } from '@/lib/clerkAppearance'
 
 const NAV_SECTIONS: Array<[string, string]> = [
   ['About', 'about'],
@@ -14,17 +15,7 @@ const NAV_SECTIONS: Array<[string, string]> = [
 
 export default function HomePageClient() {
   return (
-    <ClerkProvider
-      afterSignOutUrl="/"
-      appearance={{
-        variables: {
-          colorPrimary: '#1e2128',
-          colorText: '#1e2128',
-          colorTextSecondary: '#4a5068',
-          borderRadius: '0.375rem',
-        },
-      }}
-    >
+    <ClerkProvider afterSignOutUrl="/" appearance={clerkAppearance}>
       <HomePageContent />
     </ClerkProvider>
   )
@@ -82,7 +73,7 @@ function HomePageContent() {
         <div className="max-w-6xl mx-auto px-8 md:px-12 h-[68px] flex items-center justify-between">
           <button
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="font-sans text-[13px] font-bold uppercase tracking-[0.22em] text-hm-text bg-transparent border-0 cursor-pointer"
+            className="font-sans text-[13px] font-bold uppercase tracking-[0.22em] text-ink bg-transparent border-0 cursor-pointer"
           >
             hejmae
           </button>
@@ -92,7 +83,7 @@ function HomePageContent() {
               <button
                 key={id}
                 onClick={() => smoothScrollTo(id)}
-                className="nav-item underline-animated bg-transparent border-0 cursor-pointer font-sans text-[12px] uppercase tracking-[0.18em] text-hm-nav"
+                className="nav-item underline-animated bg-transparent border-0 cursor-pointer font-sans text-[12px] uppercase tracking-[0.18em] text-ink-muted"
               >
                 {label}
               </button>
@@ -102,7 +93,7 @@ function HomePageContent() {
           <div className="flex items-center gap-6">
             <a
               href="mailto:hello@hejmae.com"
-              className="hidden sm:inline font-sans text-[12px] uppercase tracking-[0.18em] text-hm-nav hover:text-hm-text transition-colors"
+              className="hidden sm:inline font-sans text-[12px] uppercase tracking-[0.18em] text-ink-muted hover:text-ink transition-colors"
             >
               Contact
             </a>
@@ -111,16 +102,30 @@ function HomePageContent() {
                 <>
                   <Link
                     href="/dashboard"
-                    className="inline-block font-sans text-[11px] uppercase tracking-[0.2em] border border-hm-text/25 rounded-full px-5 py-2 text-hm-text hover:bg-hm-text hover:text-bg transition-all duration-300"
+                    className="inline-block font-sans text-[11px] uppercase tracking-[0.2em] border border-line-strong rounded-full px-5 py-2 text-ink hover:bg-ink hover:text-bg transition-all duration-300"
                   >
                     Dashboard
                   </Link>
-                  <UserButton />
+                  <UserButton afterSignOutUrl="/" showName={false}>
+                    <UserButton.MenuItems>
+                      <UserButton.Link
+                        label="Studio settings"
+                        labelIcon={
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                            <circle cx="12" cy="12" r="3" />
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                          </svg>
+                        }
+                        href="/dashboard/settings"
+                      />
+                      <UserButton.Action label="signOut" />
+                    </UserButton.MenuItems>
+                  </UserButton>
                 </>
               ) : (
                 <Link
                   href="/sign-in"
-                  className="inline-block font-sans text-[11px] uppercase tracking-[0.2em] border border-hm-text/25 rounded-full px-5 py-2 text-hm-text hover:bg-hm-text hover:text-bg transition-all duration-300"
+                  className="inline-block font-sans text-[11px] uppercase tracking-[0.2em] border border-line-strong rounded-full px-5 py-2 text-ink hover:bg-ink hover:text-bg transition-all duration-300"
                 >
                   Login
                 </Link>
@@ -141,8 +146,8 @@ function HomePageContent() {
       </section>
 
       {/* ── FOOTER ────────────────────────────────────────────────────────── */}
-      <footer className="px-8 md:px-12 py-10 text-center border-t border-hm-text/10">
-        <p className="font-sans text-[11px] uppercase tracking-[0.18em] text-hm-nav/60">
+      <footer className="px-8 md:px-12 py-10 text-center border-t border-line">
+        <p className="font-sans text-[11px] uppercase tracking-[0.18em] text-ink-subtle">
           &copy; {new Date().getFullYear()} hejmae
         </p>
       </footer>

@@ -79,13 +79,13 @@ export default async function DashboardPage() {
   return (
     <div className="max-w-5xl">
       <div className="mb-12">
-        <div className="font-sans text-[10px] uppercase tracking-[0.26em] text-hm-nav mb-4">
+        <div className="font-sans text-[10px] uppercase tracking-[0.26em] text-ink-muted mb-4">
           Overview
         </div>
         <h1 className="font-serif text-[clamp(1.8rem,3vw,2.6rem)] leading-[1.1] tracking-[-0.015em] mb-3">
           Welcome, {firstName}.
         </h1>
-        <p className="font-garamond text-[1rem] leading-[1.7] text-hm-nav max-w-xl">
+        <p className="font-garamond text-[1rem] leading-[1.7] text-ink-muted max-w-xl">
           A snapshot of your studio. Jump straight to a project, or start a new one.
         </p>
       </div>
@@ -113,11 +113,11 @@ export default async function DashboardPage() {
             href: '/dashboard/finances',
           },
         ].map(({ title, text, href }) => (
-          <Link key={title} href={href} className="bg-bg p-6 hover:bg-hm-text/[0.03] transition-colors group">
-            <div className="font-serif text-[1.05rem] mb-2 leading-tight group-hover:text-hm-text">
+          <Link key={title} href={href} className="bg-bg p-6 hover:bg-ink/[0.03] transition-colors group">
+            <div className="font-serif text-[1.05rem] mb-2 leading-tight group-hover:text-ink">
               {title}
             </div>
-            <div className="font-garamond text-[0.9rem] leading-[1.7] text-hm-nav">{text}</div>
+            <div className="font-garamond text-[0.9rem] leading-[1.7] text-ink-muted">{text}</div>
           </Link>
         ))}
       </div>

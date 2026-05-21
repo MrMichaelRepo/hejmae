@@ -5,6 +5,8 @@ import Image from 'next/image'
 import { api, ApiError } from '@/lib/api'
 import { formatCents } from '@/lib/format'
 import { Input } from '@/components/ui/Input'
+import { Checkbox } from '@/components/ui/Checkbox'
+import { Badge } from '@/components/ui/Badge'
 import { PageSpinner } from '@/components/ui/Spinner'
 import EmptyState from '@/components/ui/EmptyState'
 import { toast } from '@/components/ui/Toast'
@@ -150,18 +152,20 @@ export default function CatalogAdminClient({
             setPage(1)
           }}
         />
-        <label className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav flex items-center gap-2 ml-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={includeMerged}
-            onChange={(e) => {
-              setIncludeMerged(e.target.checked)
-              setPage(1)
-            }}
-          />
-          Show merged
-        </label>
-        <div className="ml-auto font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav">
+        <Checkbox
+          className="ml-2"
+          checked={includeMerged}
+          onChange={(e) => {
+            setIncludeMerged(e.target.checked)
+            setPage(1)
+          }}
+          label={
+            <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted">
+              Show merged
+            </span>
+          }
+        />
+        <div className="ml-auto font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted">
           {data.total} total
         </div>
       </div>
@@ -175,9 +179,9 @@ export default function CatalogAdminClient({
           small
         />
       ) : (
-        <div className="border border-hm-text/10">
+        <div className="border border-line">
           <table className="w-full font-garamond text-[0.9rem]">
-            <thead className="bg-hm-text/[0.03] text-left font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+            <thead className="bg-ink/[0.03] text-left font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
               <tr>
                 <th className="px-3 py-2.5 w-8"></th>
                 <th className="px-3 py-2.5 w-12"></th>
@@ -195,11 +199,10 @@ export default function CatalogAdminClient({
               {data.items.map((row) => (
                 <tr
                   key={row.id}
-                  className="border-t border-hm-text/10 hover:bg-hm-text/[0.02]"
+                  className="border-t border-line hover:bg-ink/[0.03]"
                 >
                   <td className="px-3 py-2.5">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={selected.some((r) => r.id === row.id)}
                       onChange={() => toggleSelect(row)}
                       disabled={
@@ -209,7 +212,7 @@ export default function CatalogAdminClient({
                     />
                   </td>
                   <td className="px-3 py-2.5">
-                    <div className="w-10 h-10 bg-hm-text/[0.05] relative overflow-hidden">
+                    <div className="w-10 h-10 bg-ink/[0.05] relative overflow-hidden">
                       {row.image_url ? (
                         <Image
                           src={row.image_url}
@@ -230,21 +233,21 @@ export default function CatalogAdminClient({
                       {row.name}
                     </button>
                   </td>
-                  <td className="px-3 py-2.5 text-hm-nav">
+                  <td className="px-3 py-2.5 text-ink-muted">
                     {row.vendor ?? '—'}
                   </td>
-                  <td className="px-3 py-2.5 text-hm-nav">
+                  <td className="px-3 py-2.5 text-ink-muted">
                     {row.item_type ?? '—'}
                   </td>
-                  <td className="px-3 py-2.5 text-hm-nav">
+                  <td className="px-3 py-2.5 text-ink-muted">
                     {row.retail_price_cents != null
                       ? formatCents(row.retail_price_cents)
                       : '—'}
                   </td>
-                  <td className="px-3 py-2.5 text-hm-nav">
+                  <td className="px-3 py-2.5 text-ink-muted">
                     {row.clipped_count}
                   </td>
-                  <td className="px-3 py-2.5 text-hm-nav text-[0.8rem]">
+                  <td className="px-3 py-2.5 text-ink-muted text-[0.8rem]">
                     {new Date(row.created_at).toLocaleDateString()}
                   </td>
                   <td className="px-3 py-2.5">
@@ -270,13 +273,13 @@ export default function CatalogAdminClient({
                   <td className="px-3 py-2.5 text-right whitespace-nowrap">
                     <button
                       onClick={() => setEditing(row)}
-                      className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-hm-text mr-3"
+                      className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted hover:text-ink mr-3"
                     >
                       Edit
                     </button>
                     <button
                       onClick={() => setFlaggingFor(row)}
-                      className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-hm-text mr-3"
+                      className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted hover:text-ink mr-3"
                       disabled={!!row.merged_into_id}
                     >
                       Flag
@@ -286,7 +289,7 @@ export default function CatalogAdminClient({
                         href={row.source_url}
                         target="_blank"
                         rel="noreferrer"
-                        className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-hm-text"
+                        className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted hover:text-ink"
                       >
                         Source ↗
                       </a>
@@ -308,7 +311,7 @@ export default function CatalogAdminClient({
 
       {/* ── Compare sticky bar ───────────────────────────────────── */}
       {selected.length === 2 ? (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-hm-text text-bg shadow-xl border border-hm-text px-5 py-3 flex items-center gap-4">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-ink text-bg shadow-xl border border-ink px-5 py-3 flex items-center gap-4">
           <span className="font-sans text-[10px] uppercase tracking-[0.22em]">
             2 products selected
           </span>
@@ -316,7 +319,7 @@ export default function CatalogAdminClient({
             onClick={() =>
               setComparing([selected[0]!, selected[1]!])
             }
-            className="font-sans text-[10px] uppercase tracking-[0.22em] bg-bg text-hm-text px-3 py-1.5"
+            className="font-sans text-[10px] uppercase tracking-[0.22em] bg-bg text-ink px-3 py-1.5"
           >
             Compare
           </button>
@@ -370,7 +373,7 @@ function FilterInput({
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
-      className="bg-transparent border border-hm-text/15 rounded-sm px-3 py-1.5 font-sans text-[11px] text-hm-text placeholder:text-hm-nav/60 focus:outline-none focus:border-hm-text/40"
+      className="bg-transparent border border-line rounded-sm px-3 py-1.5 font-sans text-[11px] text-ink placeholder:text-ink-subtle focus:outline-none focus:border-line-strong"
     />
   )
 }
@@ -397,8 +400,8 @@ function TrinaryChip({
       className={[
         'font-sans text-[10px] uppercase tracking-[0.2em] px-3 py-1.5 rounded-full border transition-colors',
         value === ''
-          ? 'border-hm-text/15 text-hm-nav hover:border-hm-text/40'
-          : 'border-hm-text text-hm-text bg-hm-text/[0.05]',
+          ? 'border-line text-ink-muted hover:border-line-strong'
+          : 'border-ink text-ink bg-ink/[0.05]',
       ].join(' ')}
     >
       {display}
@@ -416,18 +419,7 @@ function StatusPill({
   warn?: boolean
 }) {
   return (
-    <span
-      className={[
-        'font-sans text-[9px] uppercase tracking-[0.18em] px-2 py-0.5 rounded-full border',
-        ok
-          ? 'border-emerald-700/30 text-emerald-900'
-          : warn
-            ? 'border-amber-700/40 text-amber-900'
-            : 'border-hm-text/15 text-hm-nav',
-      ].join(' ')}
-    >
-      {children}
-    </span>
+    <Badge tone={ok ? 'sage' : warn ? 'amber' : 'neutral'}>{children}</Badge>
   )
 }
 
@@ -445,7 +437,7 @@ function Pagination({
   const pages = Math.ceil(total / limit)
   if (pages <= 1) return null
   return (
-    <div className="flex items-center justify-between mt-4 font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav">
+    <div className="flex items-center justify-between mt-4 font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted">
       <div>
         Page {page} of {pages}
       </div>
@@ -453,14 +445,14 @@ function Pagination({
         <button
           disabled={page <= 1}
           onClick={() => onChange(page - 1)}
-          className="border border-hm-text/15 px-3 py-1.5 disabled:opacity-30"
+          className="border border-line px-3 py-1.5 disabled:opacity-30"
         >
           Prev
         </button>
         <button
           disabled={page >= pages}
           onClick={() => onChange(page + 1)}
-          className="border border-hm-text/15 px-3 py-1.5 disabled:opacity-30"
+          className="border border-line px-3 py-1.5 disabled:opacity-30"
         >
           Next
         </button>

@@ -87,12 +87,12 @@ export default function AddClippingToProjectModal({
 
   return (
     <Modal open={true} onClose={onClose} title="Add to project">
-      <div className="mb-5 pb-5 border-b border-hm-text/10">
+      <div className="mb-5 pb-5 border-b border-line">
         <div className="font-serif text-[1.1rem] leading-tight">
           {clipping.name?.trim() || clipping.source_url}
         </div>
         {clipping.brand ? (
-          <div className="font-garamond text-[0.9rem] text-hm-nav mt-1">
+          <div className="font-garamond text-[0.9rem] text-ink-muted mt-1">
             {clipping.brand}
           </div>
         ) : null}
@@ -100,7 +100,7 @@ export default function AddClippingToProjectModal({
 
       <Field label="Project">
         {projects.length === 0 ? (
-          <div className="font-garamond text-[0.95rem] text-hm-nav border border-hm-text/15 px-3 py-2.5">
+          <div className="font-garamond text-[0.95rem] text-ink-muted border border-line px-3 py-2.5">
             No active projects. Create one first.
           </div>
         ) : (

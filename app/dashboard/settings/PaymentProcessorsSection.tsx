@@ -11,7 +11,11 @@
 import { useEffect, useState } from 'react'
 import { api } from '@/lib/api'
 import Button from '@/components/ui/Button'
+import { Badge } from '@/components/ui/Badge'
+import SelectableCard from '@/components/ui/SelectableCard'
+import Alert from '@/components/ui/Alert'
 import { Field, Input } from '@/components/ui/Input'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { toast } from '@/components/ui/Toast'
 import type { PaymentProcessorName } from '@/lib/supabase/types'
 
@@ -28,6 +32,7 @@ interface State {
 }
 
 export default function PaymentProcessorsSection({ canEdit }: { canEdit: boolean }) {
+  const confirm = useConfirm()
   const [state, setState] = useState<State | null>(null)
   const [loading, setLoading] = useState(false)
   const [helcimToken, setHelcimToken] = useState('')
@@ -91,7 +96,13 @@ export default function PaymentProcessorsSection({ canEdit }: { canEdit: boolean
   }
 
   const disconnectHelcim = async () => {
-    if (!confirm('Disconnect Helcim? Saved credentials will be removed.')) return
+    const ok = await confirm({
+      title: 'Disconnect Helcim?',
+      body: 'Saved credentials will be removed. You can reconnect at any time.',
+      confirmLabel: 'Disconnect',
+      tone: 'danger',
+    })
+    if (!ok) return
     try {
       await api.del('/api/settings/payment-processors/helcim')
       toast.success('Helcim disconnected')
@@ -115,13 +126,13 @@ export default function PaymentProcessorsSection({ canEdit }: { canEdit: boolean
 
   if (!state) {
     return (
-      <div className="font-garamond text-[0.95rem] text-hm-nav">Loading…</div>
+      <div className="font-garamond text-[0.95rem] text-ink-muted">Loading…</div>
     )
   }
 
   return (
     <div>
-      <p className="font-garamond text-[0.95rem] text-hm-nav mb-5 leading-[1.6]">
+      <p className="font-garamond text-[0.95rem] text-ink-muted mb-5 leading-[1.6]">
         Choose how your clients pay invoices. Funds go directly to your own
         merchant account — hejmae never holds your money and does not take a
         cut of payment volume. You can connect both and switch at any time.
@@ -199,11 +210,11 @@ export default function PaymentProcessorsSection({ canEdit }: { canEdit: boolean
               </Button>
             </div>
           ) : (
-            <div className="mt-4 font-garamond text-[0.85rem] text-hm-nav space-y-2">
+            <div className="mt-4 font-garamond text-[0.85rem] text-ink-muted space-y-2">
               <div>
                 Webhook URL — paste into Helcim → Integrations → Webhooks:
               </div>
-              <code className="block break-all text-[0.8rem] bg-hm-text/[0.04] px-2 py-1 border border-hm-text/15">
+              <code className="block break-all text-[0.8rem] bg-ink/[0.04] px-2 py-1 border border-line">
                 {typeof window !== 'undefined' ? window.location.origin : ''}
                 /api/webhooks/helcim
               </code>
@@ -213,19 +224,22 @@ export default function PaymentProcessorsSection({ canEdit }: { canEdit: boolean
       </div>
 
       {active ? (
-        <div className="mt-5 font-garamond text-[0.9rem] text-hm-nav">
-          Currently routing new invoices to <span className="text-hm-text">{labelFor(active)}</span>.{' '}
+        <div className="mt-5 space-y-3">
+          <div className="font-garamond text-[0.9rem] text-ink-muted">
+            Currently routing new invoices to{' '}
+            <span className="text-ink">{labelFor(active)}</span>.
+          </div>
           {active === 'helcim' ? (
-            <span className="text-amber-700">
-              Heads up: Helcim checkout is not yet wired up — clients will see a
-              friendly “coming soon” message until the integration ships.
-            </span>
+            <Alert tone="warn" title="Helcim checkout is in beta">
+              Clients will see a friendly “coming soon” message until the
+              integration ships.
+            </Alert>
           ) : null}
         </div>
       ) : (
-        <div className="mt-5 font-garamond text-[0.9rem] text-amber-700">
-          No processor active — clients can view invoices but cannot pay online.
-        </div>
+        <Alert tone="warn" className="mt-5" title="No processor active">
+          Clients can view invoices but cannot pay online.
+        </Alert>
       )}
     </div>
   )
@@ -261,30 +275,26 @@ function ProcessorCard({
   children?: React.ReactNode
 }) {
   return (
-    <div
-      className={`border p-5 ${isActive ? 'border-hm-text bg-hm-text/[0.04]' : 'border-hm-text/15'}`}
-    >
+    <SelectableCard as="div" selected={isActive}>
       <div className="flex items-start justify-between gap-3 mb-2">
         <div className="font-serif text-[1.2rem]">{title}</div>
         {isActive ? (
-          <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-text border border-hm-text px-2 py-0.5">
-            Active
-          </span>
+          <Badge tone="terra">Active</Badge>
         ) : connected ? (
-          <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav border border-hm-nav/30 px-2 py-0.5">
-            Connected
-          </span>
+          <Badge tone="neutral">Connected</Badge>
         ) : null}
       </div>
-      <p className="font-garamond text-[0.9rem] text-hm-nav leading-[1.55] mb-4">
+      <p className="font-garamond text-[0.9rem] text-ink-muted leading-[1.55] mb-4">
         {subtitle}
       </p>
 
       {connected ? (
-        <div className="font-garamond text-[0.85rem] text-hm-nav mb-4 break-all">
+        <div className="font-garamond text-[0.85rem] text-ink-muted mb-4 break-all">
           Account: <span className="font-mono">{external}</span>
           {status && status !== 'active' ? (
-            <span className="ml-2 text-amber-700">({status})</span>
+            <span className="ml-2 inline-block">
+              <Badge tone="amber">{status}</Badge>
+            </span>
           ) : null}
         </div>
       ) : null}
@@ -323,7 +333,7 @@ function ProcessorCard({
           </Button>
         ) : null}
       </div>
-    </div>
+    </SelectableCard>
   )
 }
 

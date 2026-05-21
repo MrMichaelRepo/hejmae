@@ -97,18 +97,18 @@ export default function BulkAddToProjectModal({
 
   return (
     <Modal open={true} onClose={onClose} title="Add selected to project">
-      <div className="mb-5 pb-5 border-b border-hm-text/10">
+      <div className="mb-5 pb-5 border-b border-line">
         <div className="font-serif text-[1.1rem] leading-tight">
           {selectedCount} {selectedCount === 1 ? 'clipping' : 'clippings'} selected
         </div>
-        <div className="font-garamond text-[0.9rem] text-hm-nav mt-1">
+        <div className="font-garamond text-[0.9rem] text-ink-muted mt-1">
           Total: {formatCents(totalCents)}
         </div>
       </div>
 
       <Field label="Project">
         {projects.length === 0 ? (
-          <div className="text-[12px] text-hm-nav">No active projects yet.</div>
+          <div className="text-[12px] text-ink-muted">No active projects yet.</div>
         ) : (
           <Select
             value={projectId}
@@ -139,7 +139,7 @@ export default function BulkAddToProjectModal({
       <div className="mt-6 flex items-center justify-end gap-3">
         <button
           onClick={onClose}
-          className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav hover:text-hm-text"
+          className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted hover:text-ink"
         >
           Cancel
         </button>

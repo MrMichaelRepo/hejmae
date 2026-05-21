@@ -32,30 +32,30 @@ export default async function SalesTaxPage({ searchParams }: Props) {
 
       <form className="mb-6 flex items-end gap-3" method="get">
         <label className="font-garamond text-[0.9rem]">
-          <span className="block font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-1">
+          <span className="block font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-1">
             From
           </span>
           <input
             type="date"
             name="from"
             defaultValue={from}
-            className="border border-hm-text/20 px-3 py-2 bg-bg"
+            className="border border-line-strong px-3 py-2 bg-bg"
           />
         </label>
         <label className="font-garamond text-[0.9rem]">
-          <span className="block font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-1">
+          <span className="block font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-1">
             To
           </span>
           <input
             type="date"
             name="to"
             defaultValue={to}
-            className="border border-hm-text/20 px-3 py-2 bg-bg"
+            className="border border-line-strong px-3 py-2 bg-bg"
           />
         </label>
         <button
           type="submit"
-          className="font-sans text-[10px] uppercase tracking-[0.22em] border border-hm-text/25 px-4 py-2 hover:bg-hm-text hover:text-bg transition-colors"
+          className="font-sans text-[10px] uppercase tracking-[0.22em] border border-line-strong px-4 py-2 hover:bg-ink hover:text-bg transition-colors"
         >
           Apply
         </button>
@@ -80,10 +80,10 @@ export default async function SalesTaxPage({ searchParams }: Props) {
         />
       </div>
 
-      <div className="border border-hm-text/10 overflow-x-auto">
+      <div className="border border-line overflow-x-auto">
         <table className="w-full font-garamond text-[0.95rem]">
           <thead>
-            <tr className="bg-hm-text/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+            <tr className="bg-ink/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
               <th className="text-left px-4 py-3 w-20">State</th>
               <th className="text-right px-4 py-3">Invoices</th>
               <th className="text-right px-4 py-3">Taxable sales</th>
@@ -95,22 +95,22 @@ export default async function SalesTaxPage({ searchParams }: Props) {
           <tbody>
             {report.rows.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-6 text-hm-nav italic">
+                <td colSpan={6} className="px-4 py-6 text-ink-muted italic">
                   No tax-bearing invoices in this period.
                 </td>
               </tr>
             ) : (
               report.rows.map((r, i) => (
-                <tr key={i} className="border-t border-hm-text/10">
+                <tr key={i} className="border-t border-line">
                   <td className="px-4 py-3 font-mono">{r.state_code ?? '—'}</td>
                   <td className="text-right px-4 py-3">{r.invoice_count}</td>
                   <td className="text-right px-4 py-3">
                     {formatCents(r.taxable_sales_cents)}
                   </td>
-                  <td className="text-right px-4 py-3 text-hm-nav">
+                  <td className="text-right px-4 py-3 text-ink-muted">
                     {formatCents(r.exempt_sales_cents)}
                   </td>
-                  <td className="text-right px-4 py-3 text-hm-nav">
+                  <td className="text-right px-4 py-3 text-ink-muted">
                     {r.avg_rate_bps !== null
                       ? `${(r.avg_rate_bps / 100).toFixed(2)}%`
                       : '—'}
@@ -121,7 +121,7 @@ export default async function SalesTaxPage({ searchParams }: Props) {
                 </tr>
               ))
             )}
-            <tr className="border-t border-hm-text/30 font-sans text-[10px] uppercase tracking-[0.18em]">
+            <tr className="border-t border-line-strong font-sans text-[10px] uppercase tracking-[0.18em]">
               <td className="px-4 py-3">Total</td>
               <td className="text-right px-4 py-3">
                 {report.totals.invoice_count}
@@ -129,7 +129,7 @@ export default async function SalesTaxPage({ searchParams }: Props) {
               <td className="text-right px-4 py-3">
                 {formatCents(report.totals.taxable_sales_cents)}
               </td>
-              <td className="text-right px-4 py-3 text-hm-nav">
+              <td className="text-right px-4 py-3 text-ink-muted">
                 {formatCents(report.totals.exempt_sales_cents)}
               </td>
               <td />
@@ -141,7 +141,7 @@ export default async function SalesTaxPage({ searchParams }: Props) {
         </table>
       </div>
 
-      <p className="mt-4 font-garamond text-[0.85rem] text-hm-nav leading-[1.55]">
+      <p className="mt-4 font-garamond text-[0.85rem] text-ink-muted leading-[1.55]">
         Remit sales tax to your state by posting a manual journal entry —
         debit{' '}
         <code className="font-mono text-[0.85rem]">Sales Tax Payable</code>{' '}
@@ -154,8 +154,8 @@ export default async function SalesTaxPage({ searchParams }: Props) {
 
 function SummaryCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border border-hm-text/10 p-4">
-      <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-1">
+    <div className="border border-line p-4">
+      <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-1">
         {label}
       </div>
       <div className="font-serif text-[1.3rem]">{value}</div>

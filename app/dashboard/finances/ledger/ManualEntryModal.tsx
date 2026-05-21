@@ -167,10 +167,10 @@ export default function ManualEntryModal({
           </div>
         </div>
 
-        <div className="border border-hm-text/10">
+        <div className="border border-line">
           <table className="w-full font-garamond text-[0.95rem]">
             <thead>
-              <tr className="bg-hm-text/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+              <tr className="bg-ink/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
                 <th className="text-left px-3 py-2">Account</th>
                 <th className="text-left px-3 py-2 w-44">Project</th>
                 <th className="text-left px-3 py-2">Memo</th>
@@ -181,7 +181,7 @@ export default function ManualEntryModal({
             </thead>
             <tbody>
               {lines.map((l, idx) => (
-                <tr key={l.key} className="border-t border-hm-text/10">
+                <tr key={l.key} className="border-t border-line">
                   <td className="px-3 py-2">
                     <Select
                       value={l.account_id}
@@ -253,7 +253,7 @@ export default function ManualEntryModal({
                       type="button"
                       onClick={() => removeLine(idx)}
                       disabled={lines.length <= 2}
-                      className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-hm-text disabled:opacity-30 disabled:cursor-not-allowed"
+                      className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted hover:text-ink disabled:opacity-30 disabled:cursor-not-allowed"
                       aria-label="Remove line"
                     >
                       ✕
@@ -261,12 +261,12 @@ export default function ManualEntryModal({
                   </td>
                 </tr>
               ))}
-              <tr className="border-t-2 border-hm-text/15 bg-hm-text/[0.02]">
+              <tr className="border-t-2 border-line bg-ink/[0.02]">
                 <td colSpan={3} className="px-3 py-2">
                   <button
                     type="button"
                     onClick={addLine}
-                    className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-hm-text"
+                    className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted hover:text-ink"
                   >
                     + Add line
                   </button>
@@ -288,10 +288,10 @@ export default function ManualEntryModal({
             className={[
               'font-sans text-[10px] uppercase tracking-[0.22em]',
               balanced
-                ? 'text-hm-text'
+                ? 'text-ink'
                 : totalCents === 0
-                  ? 'text-hm-nav'
-                  : 'text-red-700',
+                  ? 'text-ink-muted'
+                  : 'text-danger',
             ].join(' ')}
           >
             {balanced
@@ -301,7 +301,7 @@ export default function ManualEntryModal({
                 : `Out of balance by ${formatCents(Math.abs(totalCents))}`}
           </div>
           {err ? (
-            <div className="font-garamond text-[0.95rem] text-red-700">
+            <div className="font-garamond text-[0.95rem] text-danger">
               {err}
             </div>
           ) : null}

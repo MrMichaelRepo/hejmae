@@ -16,7 +16,7 @@ export default async function ProjectLayout({
       <div className="print:hidden">
         <Link
           href="/dashboard/projects"
-          className="inline-block font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav hover:text-hm-text mb-6"
+          className="inline-block font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted hover:text-ink mb-6"
         >
           ← All projects
         </Link>

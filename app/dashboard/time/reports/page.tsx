@@ -109,10 +109,10 @@ export default async function TimeReportsPage({ searchParams }: Props) {
           small
         />
       ) : (
-        <div className="border border-hm-text/10 overflow-x-auto">
+        <div className="border border-line overflow-x-auto">
           <table className="w-full font-garamond text-[0.95rem]">
             <thead>
-              <tr className="bg-hm-text/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+              <tr className="bg-ink/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
                 <th className="text-left px-4 py-3">Project</th>
                 <th className="text-right px-4 py-3">Hours</th>
                 <th className="text-right px-4 py-3">Billable hrs</th>
@@ -121,7 +121,7 @@ export default async function TimeReportsPage({ searchParams }: Props) {
             </thead>
             <tbody>
               {projectRows.map((r, i) => (
-                <tr key={r.project?.id ?? `r${i}`} className="border-t border-hm-text/10">
+                <tr key={r.project?.id ?? `r${i}`} className="border-t border-line">
                   <td className="px-4 py-3">{r.project?.name ?? '—'}</td>
                   <td className="text-right px-4 py-3 tabular-nums">{fmtMinutes(r.mins)}</td>
                   <td className="text-right px-4 py-3 tabular-nums">{fmtMinutes(r.billable)}</td>

@@ -60,12 +60,12 @@ export default function DashboardOverview({ initialProjects, initialSummary }: P
           <Link
             key={label}
             href={href}
-            className="bg-bg p-7 hover:bg-hm-text/[0.03] transition-colors"
+            className="bg-bg p-7 hover:bg-ink/[0.03] transition-colors"
           >
-            <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-3">
+            <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-3">
               {label}
             </div>
-            <div className="font-serif text-[clamp(1.8rem,2.5vw,2.4rem)] leading-none text-hm-text">
+            <div className="font-serif text-[clamp(1.8rem,2.5vw,2.4rem)] leading-none text-ink">
               {value}
             </div>
           </Link>
@@ -74,7 +74,7 @@ export default function DashboardOverview({ initialProjects, initialSummary }: P
 
       <div className="flex items-end justify-between mb-5">
         <div>
-          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
+          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-2">
             Recent projects
           </div>
           <h2 className="font-serif text-[1.4rem] leading-tight">In progress</h2>
@@ -97,19 +97,19 @@ export default function DashboardOverview({ initialProjects, initialSummary }: P
           }
         />
       ) : (
-        <div className="border border-hm-text/10">
+        <div className="border border-line">
           {active.slice(0, 5).map((p, i) => (
             <Link
               key={p.id}
               href={`/dashboard/projects/${p.id}`}
               className={[
-                'flex items-center justify-between gap-4 px-5 py-4 hover:bg-hm-text/[0.03] transition-colors',
-                i > 0 ? 'border-t border-hm-text/10' : '',
+                'flex items-center justify-between gap-4 px-5 py-4 hover:bg-ink/[0.03] transition-colors',
+                i > 0 ? 'border-t border-line' : '',
               ].join(' ')}
             >
               <div className="font-serif text-[1.05rem] leading-tight">{p.name}</div>
               <div className="flex items-center gap-4 shrink-0">
-                <span className="font-garamond text-[0.95rem] text-hm-nav hidden sm:block">
+                <span className="font-garamond text-[0.95rem] text-ink-muted hidden sm:block">
                   {formatCents(p.budget_cents)}
                 </span>
                 <StatusBadge kind="project" status={p.status} />

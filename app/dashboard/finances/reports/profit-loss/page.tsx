@@ -63,13 +63,13 @@ export default async function PLPage({ searchParams }: Props) {
       </Section>
 
       <div
-        className="border border-hm-text/30 p-6 mt-2 flex items-baseline justify-between"
+        className="border border-line-strong p-6 mt-2 flex items-baseline justify-between"
       >
         <div>
-          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-1">
+          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-1">
             Net income
           </div>
-          <div className="font-garamond text-[0.9rem] text-hm-nav">
+          <div className="font-garamond text-[0.9rem] text-ink-muted">
             Income minus expenses, before tax
           </div>
         </div>
@@ -92,16 +92,16 @@ function PLTable({
 }) {
   if (lines.length === 0) {
     return (
-      <div className="border border-hm-text/10 p-6 font-garamond text-[0.95rem] text-hm-nav italic">
+      <div className="border border-line p-6 font-garamond text-[0.95rem] text-ink-muted italic">
         No activity in this period.
       </div>
     )
   }
   return (
-    <div className="border border-hm-text/10 overflow-x-auto">
+    <div className="border border-line overflow-x-auto">
       <table className="w-full font-garamond text-[0.95rem]">
         <thead>
-          <tr className="bg-hm-text/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+          <tr className="bg-ink/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
             <th className="text-left px-4 py-3 w-24">Code</th>
             <th className="text-left px-4 py-3">Account</th>
             <th className="text-right px-4 py-3">Amount</th>
@@ -109,15 +109,15 @@ function PLTable({
         </thead>
         <tbody>
           {lines.map((l) => (
-            <tr key={l.account_id} className="border-t border-hm-text/10">
-              <td className="px-4 py-3 text-hm-nav">{l.account_code}</td>
+            <tr key={l.account_id} className="border-t border-line">
+              <td className="px-4 py-3 text-ink-muted">{l.account_code}</td>
               <td className="px-4 py-3">{l.account_name}</td>
               <td className="text-right px-4 py-3">
                 {formatCents(l.amount_cents)}
               </td>
             </tr>
           ))}
-          <tr className="border-t border-hm-text/30 font-sans text-[10px] uppercase tracking-[0.18em]">
+          <tr className="border-t border-line-strong font-sans text-[10px] uppercase tracking-[0.18em]">
             <td className="px-4 py-3" />
             <td className="px-4 py-3">{totalLabel}</td>
             <td className="text-right px-4 py-3">{formatCents(total)}</td>

@@ -5,16 +5,9 @@ import Link from 'next/link'
 import DashboardNav from './DashboardNav'
 import MobileNavTrigger from './MobileNavTrigger'
 import { CommandPaletteProvider, CommandPaletteTrigger } from '@/components/ui/CommandPalette'
+import { ConfirmDialogProvider } from '@/components/ui/ConfirmDialog'
 import { DensityProvider } from '@/components/ui/Density'
-
-const clerkAppearance = {
-  variables: {
-    colorPrimary: '#1e2128',
-    colorText: '#1e2128',
-    colorTextSecondary: '#4a5068',
-    borderRadius: '0.375rem',
-  },
-}
+import { clerkAppearance } from '@/lib/clerkAppearance'
 
 export default async function DashboardLayout({
   children,
@@ -30,6 +23,7 @@ export default async function DashboardLayout({
   return (
     <ClerkProvider afterSignOutUrl="/" appearance={clerkAppearance}>
       <DensityProvider>
+      <ConfirmDialogProvider>
       <CommandPaletteProvider>
         <div className="min-h-screen flex">
           {/* ── Sidebar ───────────────────────────────────────────────────────── */}
@@ -59,14 +53,46 @@ export default async function DashboardLayout({
                   {studioName}
                 </div>
               </div>
-              <UserButton />
+              <UserButton
+                afterSignOutUrl="/"
+                showName={false}
+              >
+                <UserButton.MenuItems>
+                  <UserButton.Link
+                    label="Studio settings"
+                    labelIcon={<SettingsIcon />}
+                    href="/dashboard/settings"
+                  />
+                  <UserButton.Action label="signOut" />
+                </UserButton.MenuItems>
+              </UserButton>
             </header>
 
             <main className="flex-1 px-6 md:px-10 py-10 print:p-0">{children}</main>
           </div>
         </div>
       </CommandPaletteProvider>
+      </ConfirmDialogProvider>
       </DensityProvider>
     </ClerkProvider>
+  )
+}
+
+function SettingsIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
   )
 }

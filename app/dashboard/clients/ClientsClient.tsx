@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/ui/EmptyState'
 import EmptyState from '@/components/ui/EmptyState'
 import Button from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { useDensity, rowClass } from '@/components/ui/Density'
 import { toast } from '@/components/ui/Toast'
 import { ClientFormModal } from './ClientFormModal'
 import type { Client, Project } from '@/lib/types-ui'
@@ -22,6 +23,7 @@ export default function ClientsClient({ initialClients, initialProjects }: Props
   const [projects, setProjects] = useState<Project[]>(initialProjects)
   const [search, setSearch] = useState('')
   const [openCreate, setOpenCreate] = useState(false)
+  const { density } = useDensity()
 
   useOpenOnQuery(
     'new',
@@ -78,7 +80,7 @@ export default function ClientsClient({ initialClients, initialProjects }: Props
           }
         />
       ) : (
-        <div className="border border-hm-text/10">
+        <div className="border border-line">
           {filtered.map((c, i) => {
             const cp = projects.filter((p) => p.client_id === c.id)
             return (
@@ -86,20 +88,21 @@ export default function ClientsClient({ initialClients, initialProjects }: Props
                 key={c.id}
                 href={`/dashboard/clients/${c.id}`}
                 className={[
-                  'grid grid-cols-[2fr_2fr_1fr_auto] gap-4 items-center px-5 py-4 hover:bg-hm-text/[0.03] transition-colors',
-                  i > 0 ? 'border-t border-hm-text/10' : '',
+                  'grid grid-cols-[2fr_2fr_1fr_auto] gap-4 items-center px-5 hover:bg-ink/[0.03] transition-colors',
+                  rowClass(density),
+                  i > 0 ? 'border-t border-line' : '',
                 ].join(' ')}
               >
                 <div className="font-serif text-[1.1rem] leading-tight truncate">
                   {c.name}
                 </div>
-                <div className="font-garamond text-[0.95rem] text-hm-nav truncate">
+                <div className="font-garamond text-[0.95rem] text-ink-muted truncate">
                   {c.email ?? '—'}
                 </div>
-                <div className="font-garamond text-[0.95rem] text-hm-nav hidden sm:block">
+                <div className="font-garamond text-[0.95rem] text-ink-muted hidden sm:block">
                   {c.phone ?? '—'}
                 </div>
-                <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav/80">
+                <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-subtle">
                   {cp.length} {cp.length === 1 ? 'project' : 'projects'}
                 </div>
               </Link>

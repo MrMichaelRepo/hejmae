@@ -92,19 +92,19 @@ export default function CompareModal({
             className={[
               'text-left border p-4 transition-colors',
               keepId === p.id
-                ? 'border-hm-text bg-hm-text/[0.04]'
-                : 'border-hm-text/15 hover:border-hm-text/40',
+                ? 'border-ink bg-ink/[0.04]'
+                : 'border-line hover:border-line-strong',
             ].join(' ')}
           >
             <div className="flex items-center justify-between mb-2">
-              <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav">
+              <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted">
                 Product {idx === 0 ? 'A' : 'B'}
               </span>
               {showMergeChooser ? (
                 <span
                   className={[
                     'font-sans text-[10px] uppercase tracking-[0.22em]',
-                    keepId === p.id ? 'text-hm-text' : 'text-hm-nav/60',
+                    keepId === p.id ? 'text-ink' : 'text-ink-subtle',
                   ].join(' ')}
                 >
                   {keepId === p.id ? '✓ Keep' : 'Click to keep'}
@@ -112,7 +112,7 @@ export default function CompareModal({
               ) : null}
             </div>
             <div className="flex gap-3">
-              <div className="w-24 h-24 bg-hm-text/[0.05] relative shrink-0 overflow-hidden">
+              <div className="w-24 h-24 bg-ink/[0.05] relative shrink-0 overflow-hidden">
                 {p.image_url ? (
                   <Image
                     src={p.image_url}
@@ -128,10 +128,10 @@ export default function CompareModal({
                 <div className="font-garamond text-[1rem] leading-tight line-clamp-2 mb-1">
                   {p.name}
                 </div>
-                <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav mb-1">
+                <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted mb-1">
                   {p.vendor ?? '—'}
                 </div>
-                <div className="font-garamond text-[0.9rem] text-hm-nav mb-1">
+                <div className="font-garamond text-[0.9rem] text-ink-muted mb-1">
                   {p.retail_price_cents != null
                     ? formatCents(p.retail_price_cents)
                     : 'No price'}
@@ -139,7 +139,7 @@ export default function CompareModal({
                   {p.clipped_count} clip{p.clipped_count === 1 ? '' : 's'}
                 </div>
                 {p.description ? (
-                  <div className="font-garamond text-[0.85rem] text-hm-nav line-clamp-3">
+                  <div className="font-garamond text-[0.85rem] text-ink-muted line-clamp-3">
                     {p.description}
                   </div>
                 ) : null}
@@ -149,7 +149,7 @@ export default function CompareModal({
                     target="_blank"
                     rel="noreferrer"
                     onClick={(e) => e.stopPropagation()}
-                    className="mt-1 inline-block font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-hm-text"
+                    className="mt-1 inline-block font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted hover:text-ink"
                   >
                     Source ↗
                   </a>
@@ -163,21 +163,21 @@ export default function CompareModal({
       <div className="flex flex-wrap items-center justify-end gap-2">
         <button
           onClick={onClose}
-          className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav hover:text-hm-text px-4 py-2"
+          className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted hover:text-ink px-4 py-2"
         >
           Not duplicates
         </button>
         <button
           onClick={handleFlagOnly}
           disabled={busy}
-          className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav hover:text-hm-text border border-hm-text/15 hover:border-hm-text/40 px-4 py-2 disabled:opacity-50"
+          className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted hover:text-ink border border-line hover:border-line-strong px-4 py-2 disabled:opacity-50"
         >
           {busy ? 'Working…' : 'Flag for review'}
         </button>
         <button
           onClick={handleMergeNow}
           disabled={busy || (showMergeChooser && !keepId)}
-          className="font-sans text-[10px] uppercase tracking-[0.22em] bg-hm-text text-bg hover:bg-hm-text/90 px-4 py-2 disabled:opacity-50"
+          className="font-sans text-[10px] uppercase tracking-[0.22em] bg-ink text-bg hover:bg-ink/90 px-4 py-2 disabled:opacity-50"
         >
           {showMergeChooser
             ? keepId

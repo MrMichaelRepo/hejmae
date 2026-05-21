@@ -190,7 +190,7 @@ export default function QboManageClient() {
         </Link>
         <Link
           href="/dashboard/settings/qbo/import"
-          className="inline-flex items-center gap-2 font-sans text-[10px] uppercase tracking-[0.2em] text-hm-text border border-hm-text/25 hover:bg-hm-text hover:text-bg rounded-full px-5 py-2 transition-colors"
+          className="inline-flex items-center gap-2 font-sans text-[10px] uppercase tracking-[0.2em] text-ink border border-line-strong hover:bg-ink hover:text-bg rounded-full px-5 py-2 transition-colors"
         >
           Import from QuickBooks →
         </Link>
@@ -198,12 +198,12 @@ export default function QboManageClient() {
 
       {/* Account mapping */}
       <section className="mb-12">
-        <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-4">
+        <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-4">
           Chart of accounts
         </div>
-        <div className="border border-hm-text/10">
+        <div className="border border-line">
           {qboLoadError ? (
-            <div className="p-4 bg-amber-50 text-amber-900 font-garamond text-[0.9rem] border-b border-amber-200">
+            <div className="p-4 bg-warn-soft/40 text-warn font-garamond text-[0.9rem] border-b border-warn/30">
               Couldn&rsquo;t load QuickBooks accounts: {qboLoadError}. Connect
               QuickBooks first from{' '}
               <Link href="/dashboard/settings" className="underline">
@@ -213,15 +213,15 @@ export default function QboManageClient() {
             </div>
           ) : null}
           {loading ? (
-            <div className="p-6 font-garamond text-hm-nav">Loading…</div>
+            <div className="p-6 font-garamond text-ink-muted">Loading…</div>
           ) : hejmaeAccounts.length === 0 ? (
-            <div className="p-6 font-garamond text-hm-nav">
+            <div className="p-6 font-garamond text-ink-muted">
               No accounts found. Bootstrap your chart of accounts first.
             </div>
           ) : (
             <table className="w-full">
               <thead>
-                <tr className="border-b border-hm-text/10 text-left font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+                <tr className="border-b border-line text-left font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
                   <th className="px-4 py-2">Code</th>
                   <th className="px-4 py-2">hejmae account</th>
                   <th className="px-4 py-2">Type</th>
@@ -230,10 +230,10 @@ export default function QboManageClient() {
               </thead>
               <tbody className="font-garamond text-[0.92rem]">
                 {hejmaeAccounts.map((a) => (
-                  <tr key={a.id} className="border-b border-hm-text/5">
+                  <tr key={a.id} className="border-b border-ink/5">
                     <td className="px-4 py-2 font-mono text-[0.85rem]">{a.code}</td>
                     <td className="px-4 py-2">{a.name}</td>
-                    <td className="px-4 py-2 capitalize text-hm-nav">{a.type}</td>
+                    <td className="px-4 py-2 capitalize text-ink-muted">{a.type}</td>
                     <td className="px-4 py-2">
                       <Select
                         value={mappings[a.id] ?? ''}
@@ -260,7 +260,7 @@ export default function QboManageClient() {
             </table>
           )}
         </div>
-        <p className="mt-3 font-garamond text-[0.85rem] text-hm-nav leading-[1.55]">
+        <p className="mt-3 font-garamond text-[0.85rem] text-ink-muted leading-[1.55]">
           Unmapped accounts that show up on invoices, expenses, or journal
           entries will cause those records to skip the QuickBooks push and
           surface in the sync log below.
@@ -269,7 +269,7 @@ export default function QboManageClient() {
 
       {/* Sync log */}
       <section className="mb-12">
-        <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-4 flex items-center justify-between">
+        <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-4 flex items-center justify-between">
           <span>Recent sync activity</span>
           <button
             onClick={() => void load()}
@@ -278,16 +278,16 @@ export default function QboManageClient() {
             Refresh
           </button>
         </div>
-        <div className="border border-hm-text/10">
+        <div className="border border-line">
           {syncLog.length === 0 ? (
-            <div className="p-6 font-garamond text-hm-nav">
+            <div className="p-6 font-garamond text-ink-muted">
               Nothing synced yet. Once you map your chart of accounts and create
               an invoice, payment, or expense, attempts will show up here.
             </div>
           ) : (
             <table className="w-full">
               <thead>
-                <tr className="border-b border-hm-text/10 text-left font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+                <tr className="border-b border-line text-left font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
                   <th className="px-4 py-2">When</th>
                   <th className="px-4 py-2">Entity</th>
                   <th className="px-4 py-2">Direction</th>
@@ -298,14 +298,14 @@ export default function QboManageClient() {
               </thead>
               <tbody className="font-garamond text-[0.9rem]">
                 {syncLog.map((r) => (
-                  <tr key={r.id} className="border-b border-hm-text/5 align-top">
-                    <td className="px-4 py-2 whitespace-nowrap text-hm-nav">
+                  <tr key={r.id} className="border-b border-ink/5 align-top">
+                    <td className="px-4 py-2 whitespace-nowrap text-ink-muted">
                       {new Date(r.created_at).toLocaleString()}
                     </td>
                     <td className="px-4 py-2 capitalize">
                       {r.entity_type.replace('_', ' ')}
                       {r.hejmae_id ? (
-                        <div className="font-mono text-[0.75rem] text-hm-nav">
+                        <div className="font-mono text-[0.75rem] text-ink-muted">
                           {r.hejmae_id.slice(0, 8)}
                         </div>
                       ) : null}
@@ -313,20 +313,20 @@ export default function QboManageClient() {
                     <td className="px-4 py-2 capitalize">{r.direction}</td>
                     <td className="px-4 py-2">
                       {r.status === 'success' ? (
-                        <span className="text-emerald-700">Success</span>
+                        <span className="text-success">Success</span>
                       ) : (
-                        <span className="text-amber-800">Error</span>
+                        <span className="text-warn">Error</span>
                       )}
                     </td>
                     <td className="px-4 py-2 max-w-[28rem] break-words">
                       {r.status === 'success' ? (
                         r.qbo_id ? (
-                          <span className="font-mono text-[0.8rem] text-hm-nav">
+                          <span className="font-mono text-[0.8rem] text-ink-muted">
                             QBO id: {r.qbo_id}
                           </span>
                         ) : null
                       ) : (
-                        <span className="text-amber-900">
+                        <span className="text-warn">
                           {r.error_message ?? r.error_code ?? 'Unknown error'}
                         </span>
                       )}

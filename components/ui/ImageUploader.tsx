@@ -91,14 +91,14 @@ export default function ImageUploader({
   return (
     <div className="mb-5">
       {label ? (
-        <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
+        <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-2">
           {label}
         </div>
       ) : null}
 
       {value ? (
-        <div className="border border-hm-text/10 p-3 mb-3 flex gap-3 items-start">
-          <div className="w-20 h-20 bg-hm-text/[0.05] shrink-0 overflow-hidden relative">
+        <div className="border border-line p-3 mb-3 flex gap-3 items-start">
+          <div className="w-20 h-20 bg-ink/[0.05] shrink-0 overflow-hidden relative">
             {renderSrc ? (
               <Image
                 src={renderSrc}
@@ -111,13 +111,13 @@ export default function ImageUploader({
             ) : null}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="font-garamond text-[0.85rem] text-hm-nav truncate">
+            <div className="font-garamond text-[0.85rem] text-ink-muted truncate">
               {isExternalUrl(value) ? value : 'Uploaded asset'}
             </div>
             <div className="flex gap-2 mt-2">
               <button
                 onClick={() => inputRef.current?.click()}
-                className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav hover:text-hm-text"
+                className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted hover:text-ink"
                 type="button"
               >
                 Replace
@@ -127,7 +127,7 @@ export default function ImageUploader({
                   setLocalDisplay(null)
                   onChange(null)
                 }}
-                className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav hover:text-red-700"
+                className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted hover:text-danger"
                 type="button"
               >
                 Remove
@@ -152,14 +152,14 @@ export default function ImageUploader({
           className={[
             'border-2 border-dashed cursor-pointer p-5 text-center transition-colors mb-2',
             dragging
-              ? 'border-hm-text bg-hm-text/[0.04]'
-              : 'border-hm-text/15 hover:border-hm-text/40',
+              ? 'border-ink bg-ink/[0.04]'
+              : 'border-line hover:border-line-strong',
           ].join(' ')}
         >
           <div className="font-garamond text-[0.95rem]">
             {uploading ? 'Uploading…' : 'Drop an image or click to browse'}
           </div>
-          <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav mt-1">
+          <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted mt-1">
             JPG · PNG · WebP · max 25 MB
           </div>
         </div>
@@ -182,7 +182,7 @@ export default function ImageUploader({
           <button
             type="button"
             onClick={() => setShowUrl((s) => !s)}
-            className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav hover:text-hm-text"
+            className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted hover:text-ink"
           >
             {showUrl ? 'Hide URL field' : 'Or paste a URL'}
           </button>
@@ -195,7 +195,7 @@ export default function ImageUploader({
             value={urlDraft}
             onChange={(e) => setUrlDraft(e.target.value)}
             placeholder="https://…"
-            className="flex-1 bg-transparent border border-hm-text/15 rounded-sm px-3.5 py-2.5 font-garamond text-[1rem] text-hm-text placeholder:text-hm-nav/50 focus:outline-none focus:border-hm-text/60 transition-colors"
+            className="flex-1 bg-transparent border border-line rounded-sm px-3.5 py-2.5 font-garamond text-[1rem] text-ink placeholder:text-ink-muted/50 focus:outline-none focus:border-ink/60 transition-colors"
           />
           <Button
             type="button"
@@ -213,7 +213,7 @@ export default function ImageUploader({
       ) : null}
 
       {hint ? (
-        <div className="mt-1.5 font-garamond text-[0.85rem] text-hm-nav/70">{hint}</div>
+        <div className="mt-1.5 font-garamond text-[0.85rem] text-ink-subtle">{hint}</div>
       ) : null}
     </div>
   )

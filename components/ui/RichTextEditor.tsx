@@ -152,7 +152,7 @@ export default function RichTextEditor({
     editorProps: {
       attributes: {
         class:
-          'prose-invoice min-h-[260px] outline-none px-5 py-4 font-serif text-[15px] leading-[1.7] text-hm-text',
+          'prose-invoice min-h-[260px] outline-none px-5 py-4 font-serif text-[15px] leading-[1.7] text-ink',
       },
     },
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
@@ -181,7 +181,7 @@ export default function RichTextEditor({
 
   return (
     <div
-      className={`border border-hm-text/10 bg-white ${focusLevel !== 'off' ? `ap-focus-mode ap-focus-${focusLevel}` : ''} ${className ?? ''}`}
+      className={`border border-line bg-white ${focusLevel !== 'off' ? `ap-focus-mode ap-focus-${focusLevel}` : ''} ${className ?? ''}`}
     >
       {showToolbar ? <Toolbar editor={editor} /> : null}
       <EditorContent editor={editor} />
@@ -215,7 +215,7 @@ function Toolbar({ editor }: { editor: Editor }) {
   }, [editor])
 
   return (
-    <div className="flex flex-wrap items-center gap-1 border-b border-hm-text/10 bg-hm-bg/40 px-2 py-1.5">
+    <div className="flex flex-wrap items-center gap-1 border-b border-line bg-hm-bg/40 px-2 py-1.5">
       <TB onClick={() => editor.chain().focus().toggleBold().run()} active={editor.isActive('bold')} title="Bold (⌘B)">
         <strong style={{ fontSize: 12 }}>B</strong>
       </TB>
@@ -225,14 +225,14 @@ function Toolbar({ editor }: { editor: Editor }) {
       <TB onClick={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive('strike')} title="Strikethrough">
         <span style={{ fontSize: 12, textDecoration: 'line-through' }}>S</span>
       </TB>
-      <div className="mx-1 h-4 w-px bg-hm-text/15" />
+      <div className="mx-1 h-4 w-px bg-ink/15" />
       <TB onClick={() => editor.chain().focus().toggleBulletList().run()} active={editor.isActive('bulletList')} title="Bullet list">
         <span style={{ fontSize: 12 }}>•</span>
       </TB>
       <TB onClick={() => editor.chain().focus().toggleOrderedList().run()} active={editor.isActive('orderedList')} title="Numbered list">
         <span style={{ fontSize: 11 }}>1.</span>
       </TB>
-      <div className="mx-1 h-4 w-px bg-hm-text/15" />
+      <div className="mx-1 h-4 w-px bg-ink/15" />
       <TB onClick={onLink} active={editor.isActive('link')} title="Link">
         <span style={{ fontSize: 12 }}>🔗</span>
       </TB>
@@ -256,7 +256,7 @@ function TB({
       type="button"
       title={title}
       onClick={onClick}
-      className={`flex h-7 w-8 items-center justify-center border text-[11px] tracking-[0.18em] ${active ? 'border-hm-text bg-hm-text text-white' : 'border-transparent text-hm-text hover:border-hm-text/30'}`}
+      className={`flex h-7 w-8 items-center justify-center border text-[11px] tracking-[0.18em] ${active ? 'border-ink bg-ink text-white' : 'border-transparent text-ink hover:border-line-strong'}`}
     >
       {children}
     </button>

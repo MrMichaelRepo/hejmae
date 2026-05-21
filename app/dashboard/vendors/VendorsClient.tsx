@@ -5,8 +5,11 @@ import { api } from '@/lib/api'
 import { useOpenOnQuery } from '@/lib/hooks/useOpenOnQuery'
 import { PageHeader } from '@/components/ui/EmptyState'
 import EmptyState from '@/components/ui/EmptyState'
+import { Badge } from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { useDensity, rowClass } from '@/components/ui/Density'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { toast } from '@/components/ui/Toast'
 import { VendorFormModal } from './VendorFormModal'
 import type { Vendor } from '@/lib/types-ui'
@@ -23,6 +26,8 @@ export default function VendorsClient({ initialVendors }: { initialVendors: Vend
   const [search, setSearch] = useState('')
   const [editing, setEditing] = useState<Vendor | null>(null)
   const [openCreate, setOpenCreate] = useState(false)
+  const confirm = useConfirm()
+  const { density } = useDensity()
 
   useOpenOnQuery(
     'new',
@@ -39,12 +44,13 @@ export default function VendorsClient({ initialVendors }: { initialVendors: Vend
   )
 
   const remove = async (vendor: Vendor) => {
-    if (
-      !confirm(
-        `Remove "${vendor.name}"? Existing items and POs that reference this vendor will keep their snapshotted vendor name. Only future auto-populate is affected.`,
-      )
-    )
-      return
+    const ok = await confirm({
+      title: `Remove "${vendor.name}"?`,
+      body: 'Existing items and POs that reference this vendor keep their snapshotted vendor name — only future auto-populate is affected.',
+      confirmLabel: 'Remove',
+      tone: 'danger',
+    })
+    if (!ok) return
     try {
       await api.del(`/api/vendors/${vendor.id}`)
       toast.success('Vendor removed')
@@ -91,13 +97,14 @@ export default function VendorsClient({ initialVendors }: { initialVendors: Vend
           }
         />
       ) : (
-        <div className="border border-hm-text/10">
+        <div className="border border-line">
           {filtered.map((v, i) => (
             <div
               key={v.id}
               className={[
-                'grid grid-cols-[2fr_1.5fr_1.5fr_auto] gap-4 items-center px-5 py-4 hover:bg-hm-text/[0.03] transition-colors',
-                i > 0 ? 'border-t border-hm-text/10' : '',
+                'grid grid-cols-[2fr_1.5fr_1.5fr_auto] gap-4 items-center px-5 hover:bg-ink/[0.03] transition-colors',
+                rowClass(density),
+                i > 0 ? 'border-t border-line' : '',
               ].join(' ')}
             >
               <div>
@@ -105,44 +112,43 @@ export default function VendorsClient({ initialVendors }: { initialVendors: Vend
                   <span>{v.name}</span>
                   {v.is_1099_eligible ? (
                     <span
-                      className="font-sans text-[9px] uppercase tracking-[0.2em] text-emerald-800 border border-emerald-700/30 rounded-full px-2 py-0.5"
                       title={
                         v.tax_id_last4
                           ? `1099-NEC · TIN ending ${v.tax_id_last4}`
                           : '1099-NEC · TIN missing'
                       }
                     >
-                      1099
+                      <Badge tone="sage">1099</Badge>
                     </span>
                   ) : null}
                 </div>
                 {v.account_number ? (
-                  <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav/80 mt-0.5">
+                  <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-subtle mt-0.5">
                     Acct {v.account_number}
                   </div>
                 ) : null}
                 {v.is_1099_eligible && !v.tax_id_last4 ? (
-                  <div className="font-sans text-[9px] uppercase tracking-[0.2em] text-amber-800 mt-0.5">
+                  <div className="font-sans text-[9px] uppercase tracking-[0.2em] text-warn mt-0.5">
                     Missing W-9 / TIN
                   </div>
                 ) : null}
               </div>
-              <div className="font-garamond text-[0.95rem] text-hm-nav truncate">
+              <div className="font-garamond text-[0.95rem] text-ink-muted truncate">
                 {v.contact_name ?? v.contact_email ?? '—'}
               </div>
-              <div className="font-garamond text-[0.95rem] text-hm-nav hidden sm:block">
+              <div className="font-garamond text-[0.95rem] text-ink-muted hidden sm:block">
                 {formatDiscount(v.trade_discount_percent)}
               </div>
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => setEditing(v)}
-                  className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav hover:text-hm-text"
+                  className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted hover:text-ink"
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => remove(v)}
-                  className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav hover:text-red-700"
+                  className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted hover:text-danger"
                 >
                   Remove
                 </button>

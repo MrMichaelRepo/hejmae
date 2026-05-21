@@ -35,14 +35,46 @@ export default function PaymentForm({
 
   const options: StripeElementsOptions = {
     clientSecret,
+    // Match the cream world: Stripe loads EB Garamond from Google Fonts so
+    // the Elements input typography lines up with the rest of the portal.
+    // Stripe's `fonts:` array runs inside the Elements iframe.
+    fonts: [
+      {
+        cssSrc: 'https://fonts.googleapis.com/css2?family=EB+Garamond:wght@400;500&display=swap',
+      },
+    ],
     appearance: {
       theme: 'stripe',
       variables: {
         colorPrimary: brandColor,
-        colorBackground: '#eae8e0',
+        colorBackground: '#fbfaf6',
         colorText: '#1e2128',
-        fontFamily: 'Times New Roman, serif',
-        borderRadius: '2px',
+        colorTextSecondary: '#4a5068',
+        colorTextPlaceholder: '#8a8e9c',
+        colorDanger: '#8a2e2e',
+        fontFamily: '"EB Garamond", Georgia, serif',
+        fontSizeBase: '16px',
+        borderRadius: '6px',
+        spacingUnit: '4px',
+      },
+      rules: {
+        '.Input': {
+          border: '1px solid #d8d4c6',
+          boxShadow: 'none',
+          padding: '10px 14px',
+        },
+        '.Input:focus': {
+          border: `1px solid ${brandColor}`,
+          boxShadow: `0 0 0 2px #eae8e0, 0 0 0 4px ${brandColor}`,
+        },
+        '.Label': {
+          fontFamily: 'Inter, system-ui, sans-serif',
+          fontSize: '10px',
+          textTransform: 'uppercase',
+          letterSpacing: '0.22em',
+          color: '#4a5068',
+          marginBottom: '8px',
+        },
       },
     },
   }

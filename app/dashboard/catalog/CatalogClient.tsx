@@ -75,7 +75,7 @@ export default function CatalogClient({
       />
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="flex gap-px bg-hm-text/10 rounded-sm overflow-hidden">
+        <div className="flex gap-px bg-ink/10 rounded-sm overflow-hidden">
           {(
             [
               ['library', 'My Library'],
@@ -88,8 +88,8 @@ export default function CatalogClient({
               className={[
                 'font-sans text-[10px] uppercase tracking-[0.22em] px-5 py-2.5 transition-colors',
                 tab === k
-                  ? 'bg-hm-text text-bg'
-                  : 'bg-bg text-hm-nav hover:text-hm-text',
+                  ? 'bg-ink text-bg'
+                  : 'bg-bg text-ink-muted hover:text-ink',
               ].join(' ')}
             >
               {label}
@@ -116,7 +116,7 @@ export default function CatalogClient({
               onClick={() => setImageSearchOpen(true)}
               title="Search by image"
               aria-label="Search by image"
-              className="border border-hm-text/15 px-3 hover:border-hm-text/40 hover:bg-hm-text/[0.03] transition-colors shrink-0"
+              className="border border-line px-3 hover:border-line-strong hover:bg-ink/[0.03] transition-colors shrink-0"
             >
               <CameraIcon />
             </button>
@@ -125,18 +125,18 @@ export default function CatalogClient({
       </div>
 
       {imageSearch ? (
-        <div className="mb-5 flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4 pb-4 border-b border-hm-text/10">
+        <div className="mb-5 flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-4 pb-4 border-b border-line">
           <div className="flex-1 min-w-0">
-            <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-1">
+            <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-1">
               Showing results for
             </div>
-            <div className="font-garamond text-[0.95rem] text-hm-text">
+            <div className="font-garamond text-[0.95rem] text-ink">
               {imageSearch.query_description}
             </div>
           </div>
           <button
             onClick={clearImageSearch}
-            className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav hover:text-hm-text whitespace-nowrap"
+            className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted hover:text-ink whitespace-nowrap"
           >
             Clear image search
           </button>
@@ -171,9 +171,9 @@ export default function CatalogClient({
             <button
               key={p.id}
               onClick={() => setPicking(p)}
-              className="text-left border border-hm-text/10 p-3 hover:bg-hm-text/[0.03] transition-colors group"
+              className="text-left border border-line p-3 hover:bg-ink/[0.03] transition-colors group"
             >
-              <div className="aspect-square bg-hm-text/[0.05] mb-2.5 relative overflow-hidden">
+              <div className="aspect-square bg-ink/[0.05] mb-2.5 relative overflow-hidden">
                 {p.image_url ? (
                   <Image
                     src={p.image_url}
@@ -184,7 +184,7 @@ export default function CatalogClient({
                     unoptimized
                   />
                 ) : null}
-                <div className="absolute inset-0 bg-hm-text/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <div className="absolute inset-0 bg-ink/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                   <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-bg">
                     + Add to project
                   </span>
@@ -193,11 +193,11 @@ export default function CatalogClient({
               <div className="font-garamond text-[0.95rem] leading-tight line-clamp-2">
                 {p.name}
               </div>
-              <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav mt-2">
+              <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted mt-2">
                 {p.vendor ?? '—'}
               </div>
               {p.retail_price_cents != null ? (
-                <div className="font-garamond text-[0.85rem] text-hm-nav mt-0.5">
+                <div className="font-garamond text-[0.85rem] text-ink-muted mt-0.5">
                   {formatCents(p.retail_price_cents)}
                 </div>
               ) : null}

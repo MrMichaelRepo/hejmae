@@ -17,6 +17,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
 import { Field, Input, Select } from '@/components/ui/Input'
+import ChipInput from '@/components/ui/ChipInput'
 import RichTextEditor, { type FocusLevel } from '@/components/ui/RichTextEditor'
 import { toast } from '@/components/ui/Toast'
 import { api } from '@/lib/api'
@@ -167,21 +168,25 @@ export default function SendInvoiceModal(props: Props) {
       <div className="grid gap-6 md:grid-cols-[1.05fr_1fr]">
         <div>
           <Field label="To">
-            <RecipientChips
+            <ChipInput
               values={recipients}
               draft={recipientDraft}
               setDraft={setRecipientDraft}
               setValues={setRecipients}
               placeholder={clientEmail ?? 'client@example.com'}
+              inputType="email"
+              validate={(v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)}
             />
           </Field>
           <Field label="CC (optional)">
-            <RecipientChips
+            <ChipInput
               values={cc}
               draft={ccDraft}
               setDraft={setCcDraft}
               setValues={setCc}
               placeholder="bookkeeper@example.com"
+              inputType="email"
+              validate={(v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)}
             />
           </Field>
           <Field label="Reply-to">
@@ -237,10 +242,10 @@ export default function SendInvoiceModal(props: Props) {
           </div>
 
           <div className="mb-2 flex items-center justify-between">
-            <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav">
+            <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted">
               Message body
             </div>
-            <div className="font-garamond text-[0.85rem] text-hm-nav/80">
+            <div className="font-garamond text-[0.85rem] text-ink-subtle">
               {loadingDraft ? 'Drafting…' : `Source: ${source}`}
             </div>
           </div>
@@ -250,26 +255,26 @@ export default function SendInvoiceModal(props: Props) {
             focusLevel={focusLevel}
             placeholder="Write your note to the client…"
           />
-          <p className="mt-3 font-garamond text-[0.8rem] text-hm-nav/70">
+          <p className="mt-3 font-garamond text-[0.8rem] text-ink-subtle">
             The pay button and total ({formatCents(invoice.total_cents)}) are
             appended below your message automatically.
           </p>
         </div>
 
         <div>
-          <div className="mb-2 font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav">
+          <div className="mb-2 font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted">
             Live preview
           </div>
           <iframe
             title="Email preview"
             srcDoc={previewHtml}
             sandbox=""
-            className="h-[560px] w-full border border-hm-text/10 bg-white"
+            className="h-[560px] w-full rounded border border-line bg-bg shadow-elev1"
           />
         </div>
       </div>
 
-      <div className="mt-6 flex items-center justify-end gap-3 border-t border-hm-text/10 pt-5">
+      <div className="mt-6 flex items-center justify-end gap-3 border-t border-line pt-5">
         <Button variant="ghost" onClick={props.onClose} disabled={sending}>
           Cancel
         </Button>
@@ -282,72 +287,6 @@ export default function SendInvoiceModal(props: Props) {
         </Button>
       </div>
     </Modal>
-  )
-}
-
-function RecipientChips({
-  values,
-  setValues,
-  draft,
-  setDraft,
-  placeholder,
-}: {
-  values: string[]
-  setValues: (v: string[]) => void
-  draft: string
-  setDraft: (v: string) => void
-  placeholder?: string
-}) {
-  const commit = (raw: string) => {
-    const v = raw.trim().replace(/,$/, '')
-    if (!v) return
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return
-    if (values.includes(v)) {
-      setDraft('')
-      return
-    }
-    setValues([...values, v])
-    setDraft('')
-  }
-  return (
-    <div className="flex flex-wrap items-center gap-1 border border-hm-text/15 bg-bg px-2 py-2 min-h-[42px]">
-      {values.map((v) => (
-        <span
-          key={v}
-          className="inline-flex items-center gap-1 border border-hm-text/15 bg-white px-2 py-0.5 font-garamond text-[0.85rem]"
-        >
-          {v}
-          <button
-            type="button"
-            onClick={() => setValues(values.filter((x) => x !== v))}
-            className="text-hm-nav hover:text-hm-text"
-            aria-label={`Remove ${v}`}
-          >
-            ✕
-          </button>
-        </span>
-      ))}
-      <input
-        type="email"
-        value={draft}
-        onChange={(e) => {
-          const v = e.target.value
-          if (v.endsWith(',') || v.endsWith(' ')) commit(v)
-          else setDraft(v)
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === 'Tab') {
-            e.preventDefault()
-            commit(draft)
-          } else if (e.key === 'Backspace' && draft === '' && values.length) {
-            setValues(values.slice(0, -1))
-          }
-        }}
-        onBlur={() => commit(draft)}
-        placeholder={values.length ? '' : placeholder}
-        className="flex-1 min-w-[140px] bg-transparent font-garamond text-[0.95rem] outline-none"
-      />
-    </div>
   )
 }
 

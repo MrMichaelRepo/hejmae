@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Image from 'next/image'
 import Modal from '@/components/ui/Modal'
 import { Textarea } from '@/components/ui/Input'
+import SelectableCard from '@/components/ui/SelectableCard'
 import { api, ApiError } from '@/lib/api'
 import { formatCents } from '@/lib/format'
 import { toast } from '@/components/ui/Toast'
@@ -75,7 +76,7 @@ export default function MergeModal({
 
   return (
     <Modal open={open} onClose={onClose} title="Confirm merge" size="xl">
-      <p className="font-garamond text-[0.95rem] text-hm-nav leading-relaxed mb-5">
+      <p className="font-garamond text-[0.95rem] text-ink-muted leading-relaxed mb-5">
         Pick the product to keep. Items and clippings pointing at the other
         will be re-pointed to the kept product. The removed record is marked
         merged but not deleted — its history is preserved.
@@ -84,32 +85,27 @@ export default function MergeModal({
       <div className="grid md:grid-cols-2 gap-4 mb-6">
         {[a, b].map((p, idx) =>
           p ? (
-            <button
+            <SelectableCard
               key={p.id}
-              type="button"
               onClick={() => setKeepId(p.id)}
-              className={[
-                'text-left border p-4 transition-colors',
-                keepId === p.id
-                  ? 'border-hm-text bg-hm-text/[0.04]'
-                  : 'border-hm-text/15 hover:border-hm-text/40',
-              ].join(' ')}
+              selected={keepId === p.id}
+              className="!p-4"
             >
               <div className="flex items-center justify-between mb-2">
-                <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav">
+                <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted">
                   Product {idx === 0 ? 'A' : 'B'}
                 </span>
                 <span
                   className={[
                     'font-sans text-[10px] uppercase tracking-[0.22em]',
-                    keepId === p.id ? 'text-hm-text' : 'text-hm-nav/60',
+                    keepId === p.id ? 'text-ink' : 'text-ink-subtle',
                   ].join(' ')}
                 >
                   {keepId === p.id ? '✓ Keep' : 'Click to keep'}
                 </span>
               </div>
               <div className="flex gap-3">
-                <div className="w-20 h-20 bg-hm-text/[0.05] relative shrink-0 overflow-hidden">
+                <div className="w-20 h-20 bg-ink/[0.05] relative shrink-0 overflow-hidden">
                   {p.image_url ? (
                     <Image
                       src={p.image_url}
@@ -125,10 +121,10 @@ export default function MergeModal({
                   <div className="font-garamond text-[1rem] leading-tight line-clamp-2 mb-1">
                     {p.name}
                   </div>
-                  <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav mb-1">
+                  <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted mb-1">
                     {p.vendor ?? '—'}
                   </div>
-                  <div className="font-garamond text-[0.9rem] text-hm-nav">
+                  <div className="font-garamond text-[0.9rem] text-ink-muted">
                     {p.retail_price_cents != null
                       ? formatCents(p.retail_price_cents)
                       : 'No price'}
@@ -138,11 +134,11 @@ export default function MergeModal({
                   </div>
                 </div>
               </div>
-            </button>
+            </SelectableCard>
           ) : (
             <div
               key={idx}
-              className="border border-hm-text/10 p-4 text-hm-nav font-garamond text-[0.95rem]"
+              className="border border-line rounded p-4 text-ink-muted font-garamond text-[0.95rem]"
             >
               Product missing.
             </div>
@@ -151,7 +147,7 @@ export default function MergeModal({
       </div>
 
       <div className="mb-6">
-        <label className="block font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
+        <label className="block font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-2">
           Resolution notes (optional)
         </label>
         <Textarea
@@ -166,7 +162,7 @@ export default function MergeModal({
         <button
           type="button"
           onClick={onClose}
-          className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav hover:text-hm-text border border-hm-text/15 hover:border-hm-text/40 px-4 py-2"
+          className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted hover:text-ink border border-line hover:border-line-strong px-4 py-2"
         >
           Cancel
         </button>
@@ -174,7 +170,7 @@ export default function MergeModal({
           type="button"
           onClick={onConfirm}
           disabled={!canSubmit}
-          className="font-sans text-[10px] uppercase tracking-[0.22em] bg-hm-text text-bg hover:bg-hm-text/90 px-4 py-2 disabled:opacity-50"
+          className="font-sans text-[10px] uppercase tracking-[0.22em] bg-ink text-bg hover:bg-ink/90 px-4 py-2 disabled:opacity-50"
         >
           {submitting ? 'Merging…' : 'Confirm merge'}
         </button>

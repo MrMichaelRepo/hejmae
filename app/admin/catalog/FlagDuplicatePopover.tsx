@@ -89,8 +89,8 @@ export default function FlagDuplicatePopover({
 
   return (
     <Modal open={open} onClose={onClose} title="Flag as duplicate" size="md">
-      <div className="border border-hm-text/10 p-3 mb-4 flex gap-3 items-center">
-        <div className="w-12 h-12 bg-hm-text/[0.05] relative shrink-0 overflow-hidden">
+      <div className="border border-line p-3 mb-4 flex gap-3 items-center">
+        <div className="w-12 h-12 bg-ink/[0.05] relative shrink-0 overflow-hidden">
           {product.image_url ? (
             <Image
               src={product.image_url}
@@ -106,7 +106,7 @@ export default function FlagDuplicatePopover({
           <div className="font-garamond text-[0.95rem] line-clamp-1">
             {product.name}
           </div>
-          <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+          <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
             {product.vendor ?? '—'}
           </div>
         </div>
@@ -121,23 +121,23 @@ export default function FlagDuplicatePopover({
 
       <div className="mt-3 max-h-72 overflow-y-auto">
         {loading ? (
-          <div className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav py-4 text-center">
+          <div className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted py-4 text-center">
             Searching…
           </div>
         ) : results.length === 0 ? (
-          <div className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav/60 py-4 text-center">
+          <div className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-subtle py-4 text-center">
             {q.trim() ? 'No matches' : 'Type to search'}
           </div>
         ) : (
-          <ul className="flex flex-col divide-y divide-hm-text/10">
+          <ul className="flex flex-col divide-y divide-line">
             {results.map((r) => (
               <li key={r.id}>
                 <button
                   disabled={submitting}
                   onClick={() => flagAgainst(r)}
-                  className="w-full text-left flex gap-3 items-center py-2.5 px-1 hover:bg-hm-text/[0.03] disabled:opacity-50"
+                  className="w-full text-left flex gap-3 items-center py-2.5 px-1 hover:bg-ink/[0.03] disabled:opacity-50"
                 >
-                  <div className="w-10 h-10 bg-hm-text/[0.05] relative shrink-0 overflow-hidden">
+                  <div className="w-10 h-10 bg-ink/[0.05] relative shrink-0 overflow-hidden">
                     {r.image_url ? (
                       <Image
                         src={r.image_url}
@@ -153,7 +153,7 @@ export default function FlagDuplicatePopover({
                     <div className="font-garamond text-[0.95rem] line-clamp-1">
                       {r.name}
                     </div>
-                    <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+                    <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
                       {r.vendor ?? '—'}
                       {r.retail_price_cents != null
                         ? ` · ${formatCents(r.retail_price_cents)}`

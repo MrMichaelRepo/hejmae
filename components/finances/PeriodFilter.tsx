@@ -6,7 +6,7 @@ import type { PeriodKey } from '@/lib/finances/period'
 import type { AccountingBasis } from '@/lib/supabase/types'
 import Modal from '@/components/ui/Modal'
 import Button from '@/components/ui/Button'
-import { Input, Label } from '@/components/ui/Input'
+import { Input, Label, Select } from '@/components/ui/Input'
 
 const PERIODS: Array<{ key: PeriodKey; label: string }> = [
   { key: 'mtd', label: 'This month' },
@@ -74,24 +74,25 @@ export function PeriodFilterBar(props: PeriodFilterBarProps) {
   const initialTo = searchParams.get('to') ?? new Date().toISOString().slice(0, 10)
 
   return (
-    <div className="flex flex-wrap items-end gap-3 mb-8 pb-6 border-b border-hm-text/10">
+    <div className="flex flex-wrap items-end gap-3 mb-8 pb-6 border-b border-line">
       {showPeriod ? (
         <div className="flex items-center gap-2">
-          <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav">
+          <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted">
             Period
           </span>
-          <select
-            value={periodKey}
-            onChange={(e) => handlePeriodChange(e.target.value as PeriodKey)}
-            className="bg-transparent border border-hm-text/15 rounded-sm px-3 py-2 font-garamond text-[0.95rem] focus:outline-none focus:border-hm-text/60"
-          >
-            {PERIODS.map((p) => (
-              <option key={p.key} value={p.key}>
-                {p.label}
-              </option>
-            ))}
-          </select>
-          <span className="font-garamond text-[0.9rem] text-hm-nav">
+          <div className="w-44">
+            <Select
+              value={periodKey}
+              onChange={(e) => handlePeriodChange(e.target.value as PeriodKey)}
+            >
+              {PERIODS.map((p) => (
+                <option key={p.key} value={p.key}>
+                  {p.label}
+                </option>
+              ))}
+            </Select>
+          </div>
+          <span className="font-garamond text-[0.9rem] text-ink-muted">
             {rangeLabel}
           </span>
         </div>
@@ -99,10 +100,10 @@ export function PeriodFilterBar(props: PeriodFilterBarProps) {
 
       {showBasis ? (
         <div className="flex items-center gap-2 ml-auto">
-          <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav">
+          <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted">
             Basis
           </span>
-          <div className="inline-flex border border-hm-text/15 rounded-sm overflow-hidden">
+          <div className="inline-flex border border-line rounded-sm overflow-hidden">
             {(['cash', 'accrual'] as AccountingBasis[]).map((b) => (
               <button
                 key={b}
@@ -111,8 +112,8 @@ export function PeriodFilterBar(props: PeriodFilterBarProps) {
                 className={[
                   'px-3 py-2 font-sans text-[10px] uppercase tracking-[0.2em] transition-colors',
                   basis === b
-                    ? 'bg-hm-text text-bg'
-                    : 'text-hm-nav hover:text-hm-text',
+                    ? 'bg-ink text-bg'
+                    : 'text-ink-muted hover:text-ink',
                 ].join(' ')}
               >
                 {b}
@@ -121,7 +122,7 @@ export function PeriodFilterBar(props: PeriodFilterBarProps) {
           </div>
           {basis !== studioBasis ? (
             <span
-              className="font-sans text-[9px] uppercase tracking-[0.22em] text-hm-nav/60"
+              className="font-sans text-[9px] uppercase tracking-[0.22em] text-ink-subtle"
               title={`Studio default: ${studioBasis}`}
             >
               Override

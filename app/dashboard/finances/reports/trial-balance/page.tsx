@@ -66,7 +66,7 @@ export default async function TrialBalancePage({ searchParams }: Props) {
       />
 
       {tb.lines.length === 0 ? (
-        <div className="border border-hm-text/10 p-6 font-garamond text-[0.95rem] text-hm-nav italic">
+        <div className="border border-line p-6 font-garamond text-[0.95rem] text-ink-muted italic">
           No journal activity yet.
         </div>
       ) : (
@@ -81,10 +81,10 @@ export default async function TrialBalancePage({ searchParams }: Props) {
                 <h2 className="font-serif text-[1.2rem] leading-tight mb-3">
                   {TYPE_LABEL[t]}
                 </h2>
-                <div className="border border-hm-text/10 overflow-x-auto">
+                <div className="border border-line overflow-x-auto">
                   <table className="w-full font-garamond text-[0.95rem]">
                     <thead>
-                      <tr className="bg-hm-text/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+                      <tr className="bg-ink/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
                         <th className="text-left px-4 py-3 w-24">Code</th>
                         <th className="text-left px-4 py-3">Account</th>
                         <th className="text-right px-4 py-3">Debit</th>
@@ -93,8 +93,8 @@ export default async function TrialBalancePage({ searchParams }: Props) {
                     </thead>
                     <tbody>
                       {rows.map((l) => (
-                        <tr key={l.account_id} className="border-t border-hm-text/10">
-                          <td className="px-4 py-3 text-hm-nav">{l.account_code}</td>
+                        <tr key={l.account_id} className="border-t border-line">
+                          <td className="px-4 py-3 text-ink-muted">{l.account_code}</td>
                           <td className="px-4 py-3">{l.account_name}</td>
                           <td className="text-right px-4 py-3">
                             {l.debit_cents > 0 ? formatCents(l.debit_cents) : ''}
@@ -104,7 +104,7 @@ export default async function TrialBalancePage({ searchParams }: Props) {
                           </td>
                         </tr>
                       ))}
-                      <tr className="border-t border-hm-text/30 font-sans text-[10px] uppercase tracking-[0.18em]">
+                      <tr className="border-t border-line-strong font-sans text-[10px] uppercase tracking-[0.18em]">
                         <td className="px-4 py-3" />
                         <td className="px-4 py-3">Subtotal</td>
                         <td className="text-right px-4 py-3">
@@ -121,12 +121,12 @@ export default async function TrialBalancePage({ searchParams }: Props) {
             )
           })}
 
-          <div className="border border-hm-text/30 p-6 flex items-baseline justify-between">
+          <div className="border border-line-strong p-6 flex items-baseline justify-between">
             <div>
-              <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-1">
+              <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-1">
                 Trial balance
               </div>
-              <div className="font-garamond text-[0.9rem] text-hm-nav">
+              <div className="font-garamond text-[0.9rem] text-ink-muted">
                 {tb.total_debits_cents === tb.total_credits_cents
                   ? 'Books balance ✓'
                   : 'Out of balance — open a manual entry to investigate.'}
@@ -134,7 +134,7 @@ export default async function TrialBalancePage({ searchParams }: Props) {
             </div>
             <div className="text-right font-serif text-[1.4rem] leading-none">
               <div>{formatCents(tb.total_debits_cents)}</div>
-              <div className="text-hm-nav text-[0.95rem] font-garamond mt-1">
+              <div className="text-ink-muted text-[0.95rem] font-garamond mt-1">
                 {formatCents(tb.total_credits_cents)} credits
               </div>
             </div>

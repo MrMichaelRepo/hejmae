@@ -5,6 +5,7 @@ import { api } from '@/lib/api'
 import Button from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Input'
 import Modal from '@/components/ui/Modal'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { toast } from '@/components/ui/Toast'
 import type { Room } from '@/lib/types-ui'
 
@@ -49,6 +50,7 @@ export function ManageRoomsModal({
 }) {
   const [name, setName] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const confirm = useConfirm()
 
   const add = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -70,7 +72,13 @@ export function ManageRoomsModal({
   }
 
   const remove = async (id: string) => {
-    if (!confirm('Delete this room? Items in it will become unassigned.')) return
+    const ok = await confirm({
+      title: 'Delete this room?',
+      body: 'Items in it will become unassigned.',
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    })
+    if (!ok) return
     try {
       await api.del(`/api/projects/${projectId}/rooms/${id}`)
       onChange()
@@ -94,13 +102,13 @@ export function ManageRoomsModal({
 
   return (
     <Modal open={open} onClose={onClose} title="Rooms">
-      <p className="font-garamond text-[0.95rem] text-hm-nav mb-5">
+      <p className="font-garamond text-[0.95rem] text-ink-muted mb-5">
         Rooms organize items, proposal pages, and floor-plan pins. Add as
         many as you need — “Living Room,” “Primary Bedroom,” “Back Hall.”
       </p>
 
       {rooms.length > 0 ? (
-        <div className="border border-hm-text/10 mb-5">
+        <div className="border border-line mb-5">
           {rooms.map((r, i) => (
             <RoomRow
               key={r.id}
@@ -154,18 +162,18 @@ function RoomRow({
     <div
       className={[
         'flex items-center justify-between gap-2 px-3 py-2',
-        first ? '' : 'border-t border-hm-text/10',
+        first ? '' : 'border-t border-line',
       ].join(' ')}
     >
       <Input
         value={v}
         onChange={(e) => setV(e.target.value)}
         onBlur={() => v !== room.name && onRename(v)}
-        className="!border-transparent hover:!border-hm-text/15 focus:!border-hm-text/60"
+        className="!border-transparent hover:!border-line focus:!border-ink/60"
       />
       <button
         onClick={onDelete}
-        className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-red-700 px-3"
+        className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted hover:text-danger px-3"
       >
         Delete
       </button>

@@ -97,10 +97,10 @@ export default async function FinancesPage({ searchParams }: Props) {
       <h2 className="font-serif text-[1.3rem] leading-tight mb-4">
         Aging
       </h2>
-      <div className="border border-hm-text/10 mb-12">
+      <div className="border border-line mb-12">
         <table className="w-full font-garamond text-[0.95rem]">
           <thead>
-            <tr className="bg-hm-text/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+            <tr className="bg-ink/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
               <th className="text-left px-4 py-3">Bucket</th>
               <th className="text-right px-4 py-3">Outstanding</th>
               <th className="text-right px-4 py-3">% of total</th>
@@ -118,17 +118,17 @@ export default async function FinancesPage({ searchParams }: Props) {
               return (
                 <tr
                   key={label as string}
-                  className="border-t border-hm-text/10"
+                  className="border-t border-line"
                 >
                   <td className="px-4 py-3">{label}</td>
                   <td className="text-right px-4 py-3">{formatCents(v)}</td>
-                  <td className="text-right px-4 py-3 text-hm-nav">
+                  <td className="text-right px-4 py-3 text-ink-muted">
                     {a.total_cents > 0 ? `${pct.toFixed(0)}%` : '—'}
                   </td>
                 </tr>
               )
             })}
-            <tr className="border-t border-hm-text/30 font-sans text-[10px] uppercase tracking-[0.18em]">
+            <tr className="border-t border-line-strong font-sans text-[10px] uppercase tracking-[0.18em]">
               <td className="px-4 py-3">Total</td>
               <td className="text-right px-4 py-3">
                 {formatCents(a.total_cents)}
@@ -149,10 +149,10 @@ export default async function FinancesPage({ searchParams }: Props) {
           small
         />
       ) : (
-        <div className="border border-hm-text/10 overflow-x-auto">
+        <div className="border border-line overflow-x-auto">
           <table className="w-full font-garamond text-[0.95rem]">
             <thead>
-              <tr className="bg-hm-text/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+              <tr className="bg-ink/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
                 <th className="text-left px-4 py-3">Project</th>
                 <th className="text-right px-4 py-3">Revenue</th>
                 <th className="text-right px-4 py-3">COGS</th>
@@ -165,12 +165,12 @@ export default async function FinancesPage({ searchParams }: Props) {
               {projects.map((p) => (
                 <tr
                   key={p.project_id}
-                  className="border-t border-hm-text/10 hover:bg-hm-text/[0.02]"
+                  className="border-t border-line hover:bg-ink/[0.03]"
                 >
                   <td className="px-4 py-3">
                     <Link
                       href={`/dashboard/projects/${p.project_id}`}
-                      className="hover:text-hm-text"
+                      className="hover:text-ink"
                     >
                       {p.project_name}
                     </Link>

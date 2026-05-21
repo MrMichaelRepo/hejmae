@@ -1,4 +1,5 @@
 import { ClerkProvider } from '@clerk/nextjs'
+import { clerkAppearance } from '@/lib/clerkAppearance'
 
 export default function SignInLayout({
   children,
@@ -6,17 +7,7 @@ export default function SignInLayout({
   children: React.ReactNode
 }) {
   return (
-    <ClerkProvider
-      afterSignOutUrl="/"
-      appearance={{
-        variables: {
-          colorPrimary: '#1e2128',
-          colorText: '#1e2128',
-          colorTextSecondary: '#4a5068',
-          borderRadius: '0.375rem',
-        },
-      }}
-    >
+    <ClerkProvider afterSignOutUrl="/" appearance={clerkAppearance}>
       {children}
     </ClerkProvider>
   )

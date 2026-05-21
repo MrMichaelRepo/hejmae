@@ -8,6 +8,8 @@ import { PageHeader } from '@/components/ui/EmptyState'
 import EmptyState from '@/components/ui/EmptyState'
 import Button from '@/components/ui/Button'
 import { Input, Select } from '@/components/ui/Input'
+import { Checkbox } from '@/components/ui/Checkbox'
+import { Badge } from '@/components/ui/Badge'
 import { toast } from '@/components/ui/Toast'
 import ExpenseModal from './ExpenseModal'
 import ReceiptPreview from './ReceiptPreview'
@@ -179,21 +181,21 @@ export default function ExpensesClient({
         }
       />
 
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6 pb-6 border-b border-hm-text/10">
+      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6 pb-6 border-b border-line">
         <div className="md:col-span-1">
-          <label className="block font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-1">
+          <label className="block font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-1">
             From
           </label>
           <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
         </div>
         <div className="md:col-span-1">
-          <label className="block font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-1">
+          <label className="block font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-1">
             To
           </label>
           <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
         </div>
         <div className="md:col-span-1">
-          <label className="block font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-1">
+          <label className="block font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-1">
             Category
           </label>
           <Select value={categoryId} onChange={(e) => setCategoryId(e.target.value)}>
@@ -206,7 +208,7 @@ export default function ExpensesClient({
           </Select>
         </div>
         <div className="md:col-span-1">
-          <label className="block font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-1">
+          <label className="block font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-1">
             Project
           </label>
           <Select value={projectId} onChange={(e) => setProjectId(e.target.value)}>
@@ -220,7 +222,7 @@ export default function ExpensesClient({
           </Select>
         </div>
         <div className="md:col-span-1">
-          <label className="block font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-1">
+          <label className="block font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-1">
             Paid from
           </label>
           <Select
@@ -236,7 +238,7 @@ export default function ExpensesClient({
           </Select>
         </div>
         <div className="md:col-span-1">
-          <label className="block font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-1">
+          <label className="block font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-1">
             Reconciled
           </label>
           <Select
@@ -251,19 +253,16 @@ export default function ExpensesClient({
           </Select>
         </div>
         <div className="md:col-span-6 flex items-center gap-4">
-          <label className="inline-flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={billableOnly}
-              onChange={(e) => setBillableOnly(e.target.checked)}
-            />
-            <span className="font-garamond text-[0.95rem]">Billable to client only</span>
-          </label>
+          <Checkbox
+            checked={billableOnly}
+            onChange={(e) => setBillableOnly(e.target.checked)}
+            label="Billable to client only"
+          />
           {filtersActive ? (
             <button
               type="button"
               onClick={clearFilters}
-              className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-hm-text"
+              className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted hover:text-ink"
             >
               Clear filters
             </button>
@@ -296,10 +295,10 @@ export default function ExpensesClient({
           }
         />
       ) : (
-        <div className="border border-hm-text/10 overflow-x-auto">
+        <div className="border border-line overflow-x-auto">
           <table className="w-full font-garamond text-[0.95rem]">
             <thead>
-              <tr className="bg-hm-text/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+              <tr className="bg-ink/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
                 <th className="text-left px-4 py-3">Date</th>
                 <th className="text-left px-4 py-3">Vendor</th>
                 <th className="text-left px-4 py-3">Category</th>
@@ -314,35 +313,35 @@ export default function ExpensesClient({
               {filtered.map((e) => (
                 <tr
                   key={e.id}
-                  className="border-t border-hm-text/10 hover:bg-hm-text/[0.02]"
+                  className="border-t border-line hover:bg-ink/[0.03]"
                 >
                   <td className="px-4 py-3 whitespace-nowrap">
                     {formatDate(e.expense_date)}
                   </td>
                   <td className="px-4 py-3">
                     {e.vendor_display || (
-                      <span className="text-hm-nav italic">—</span>
+                      <span className="text-ink-muted italic">—</span>
                     )}
                     {e.billable_to_client ? (
-                      <span className="ml-2 font-sans text-[9px] uppercase tracking-[0.2em] text-emerald-700">
-                        billable
+                      <span className="ml-2 inline-block">
+                        <Badge tone="sage">Billable</Badge>
                       </span>
                     ) : null}
                   </td>
-                  <td className="px-4 py-3 text-hm-nav">{e.category_name}</td>
+                  <td className="px-4 py-3 text-ink-muted">{e.category_name}</td>
                   <td className="px-4 py-3">
                     {e.project_name ? (
                       <Link
                         href={`/dashboard/projects/${e.project_id}`}
-                        className="text-hm-nav hover:text-hm-text"
+                        className="text-ink-muted hover:text-ink"
                       >
                         {e.project_name}
                       </Link>
                     ) : (
-                      <span className="text-hm-nav/40">Studio</span>
+                      <span className="text-ink-subtle/70">Studio</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-hm-nav">{e.payment_name}</td>
+                  <td className="px-4 py-3 text-ink-muted">{e.payment_name}</td>
                   <td className="text-right px-4 py-3">
                     {formatCents(e.amount_cents)}
                   </td>
@@ -351,12 +350,12 @@ export default function ExpensesClient({
                       <button
                         type="button"
                         onClick={() => setPreviewing(e)}
-                        className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-hm-text"
+                        className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted hover:text-ink"
                       >
                         View
                       </button>
                     ) : (
-                      <span className="text-hm-nav/40">—</span>
+                      <span className="text-ink-subtle/70">—</span>
                     )}
                   </td>
                   <td className="text-center px-4 py-3">
@@ -370,10 +369,10 @@ export default function ExpensesClient({
                             : 'Mark reconciled'
                         }
                         className={[
-                          'font-sans text-[14px] hover:text-hm-text',
+                          'font-sans text-[14px] hover:text-ink',
                           e.reconciled_at
-                            ? 'text-emerald-700'
-                            : 'text-hm-nav/40',
+                            ? 'text-success'
+                            : 'text-ink-subtle/70',
                         ].join(' ')}
                       >
                         {e.reconciled_at ? '✓' : '○'}
@@ -383,8 +382,8 @@ export default function ExpensesClient({
                         className={[
                           'font-sans text-[14px]',
                           e.reconciled_at
-                            ? 'text-emerald-700'
-                            : 'text-hm-nav/40',
+                            ? 'text-success'
+                            : 'text-ink-subtle/70',
                         ].join(' ')}
                       >
                         {e.reconciled_at ? '✓' : '○'}
@@ -403,7 +402,7 @@ export default function ExpensesClient({
           <h2 className="font-serif text-[1.2rem] leading-tight mb-3">
             By category (filtered)
           </h2>
-          <div className="border border-hm-text/10 overflow-x-auto">
+          <div className="border border-line overflow-x-auto">
             <table className="w-full font-garamond text-[0.95rem]">
               <tbody>
                 {Array.from(totalsByCategory.entries())
@@ -414,8 +413,8 @@ export default function ExpensesClient({
                   .filter((r) => r.acc)
                   .sort((a, b) => b.amt - a.amt)
                   .map((r) => (
-                    <tr key={r.acc!.id} className="border-t border-hm-text/10">
-                      <td className="px-4 py-2 text-hm-nav w-24">
+                    <tr key={r.acc!.id} className="border-t border-line">
+                      <td className="px-4 py-2 text-ink-muted w-24">
                         {r.acc!.code}
                       </td>
                       <td className="px-4 py-2">{r.acc!.name}</td>
@@ -424,7 +423,7 @@ export default function ExpensesClient({
                       </td>
                     </tr>
                   ))}
-                <tr className="border-t border-hm-text/30 font-sans text-[10px] uppercase tracking-[0.18em]">
+                <tr className="border-t border-line-strong font-sans text-[10px] uppercase tracking-[0.18em]">
                   <td className="px-4 py-2" />
                   <td className="px-4 py-2">Total</td>
                   <td className="text-right px-4 py-2">{formatCents(total)}</td>
@@ -466,13 +465,13 @@ function Stat({
 }) {
   return (
     <div>
-      <div className="font-sans text-[9px] uppercase tracking-[0.22em] text-hm-nav">
+      <div className="font-sans text-[9px] uppercase tracking-[0.22em] text-ink-muted">
         {label}
       </div>
       <div
         className={[
           'font-serif text-[1rem] leading-none mt-1',
-          warn ? 'text-amber-800' : '',
+          warn ? 'text-warn' : '',
         ].join(' ')}
       >
         {value}

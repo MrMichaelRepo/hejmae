@@ -6,6 +6,7 @@ import { api } from '@/lib/api'
 import Button from '@/components/ui/Button'
 import { Field, Input, Select, Textarea } from '@/components/ui/Input'
 import { Drawer } from '@/components/ui/Modal'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { toast } from '@/components/ui/Toast'
 import type { Project, Client, ProjectStatus, PricingMode } from '@/lib/types-ui'
 
@@ -34,6 +35,7 @@ export default function EditProjectModal({
   const [notes, setNotes] = useState(project.notes ?? '')
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const confirm = useConfirm()
 
   useEffect(() => {
     if (open)
@@ -70,7 +72,13 @@ export default function EditProjectModal({
   }
 
   const archive = async () => {
-    if (!confirm('Archive this project? It can be reopened from settings.')) return
+    const ok = await confirm({
+      title: 'Archive this project?',
+      body: 'It can be reopened from settings.',
+      confirmLabel: 'Archive',
+      tone: 'danger',
+    })
+    if (!ok) return
     setDeleting(true)
     try {
       await api.del(`/api/projects/${project.id}`)

@@ -76,7 +76,7 @@ export default function BankingClient({
         subtitle="Upload a CSV bank or credit-card statement. We parse the rows and use AI to propose matches against your expenses and invoice payments — accept or reject each in the review screen."
       />
 
-      <section className="mb-10 border border-hm-text/10 p-6">
+      <section className="mb-10 border border-line p-6">
         <h2 className="font-serif text-[1.2rem] mb-4">Upload statement</h2>
         <div className="grid gap-4 md:grid-cols-3">
           <Field label="CSV file">
@@ -131,14 +131,14 @@ export default function BankingClient({
       <section>
         <h2 className="font-serif text-[1.2rem] mb-4">Recent imports</h2>
         {imports.length === 0 ? (
-          <div className="border border-hm-text/10 p-6 font-garamond text-[0.95rem] text-hm-nav italic">
+          <div className="border border-line p-6 font-garamond text-[0.95rem] text-ink-muted italic">
             No statements imported yet.
           </div>
         ) : (
-          <div className="border border-hm-text/10 overflow-x-auto">
+          <div className="border border-line overflow-x-auto">
             <table className="w-full font-garamond text-[0.92rem]">
               <thead>
-                <tr className="bg-hm-text/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+                <tr className="bg-ink/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
                   <th className="text-left px-4 py-3">Uploaded</th>
                   <th className="text-left px-4 py-3">File</th>
                   <th className="text-left px-4 py-3">Source</th>
@@ -151,13 +151,13 @@ export default function BankingClient({
               </thead>
               <tbody>
                 {imports.map((i) => (
-                  <tr key={i.id} className="border-t border-hm-text/10">
-                    <td className="px-4 py-3 text-hm-nav whitespace-nowrap">
+                  <tr key={i.id} className="border-t border-line">
+                    <td className="px-4 py-3 text-ink-muted whitespace-nowrap">
                       {new Date(i.uploaded_at).toLocaleString()}
                     </td>
                     <td className="px-4 py-3 break-all">{i.filename}</td>
-                    <td className="px-4 py-3 capitalize text-hm-nav">{i.source}</td>
-                    <td className="px-4 py-3 text-hm-nav whitespace-nowrap">
+                    <td className="px-4 py-3 capitalize text-ink-muted">{i.source}</td>
+                    <td className="px-4 py-3 text-ink-muted whitespace-nowrap">
                       {i.period_start ?? '—'} → {i.period_end ?? '—'}
                     </td>
                     <td className="text-right px-4 py-3">{i.row_count}</td>
@@ -187,10 +187,10 @@ export default function BankingClient({
 function StatusPill({ status }: { status: BankStatementImportRow['status'] }) {
   const cls =
     status === 'matched' || status === 'completed'
-      ? 'text-emerald-700 border-emerald-700/30'
+      ? 'text-success border-success/30'
       : status === 'failed'
-        ? 'text-amber-800 border-amber-800/30'
-        : 'text-hm-nav border-hm-nav/30'
+        ? 'text-warn border-warn/30'
+        : 'text-ink-muted border-line'
   return (
     <span
       className={`font-sans text-[10px] uppercase tracking-[0.18em] border px-2 py-0.5 ${cls}`}

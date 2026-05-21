@@ -5,6 +5,7 @@ import { api } from '@/lib/api'
 import Button from '@/components/ui/Button'
 import { Field, Input, Textarea } from '@/components/ui/Input'
 import { Drawer } from '@/components/ui/Modal'
+import { Checkbox } from '@/components/ui/Checkbox'
 import { toast } from '@/components/ui/Toast'
 import type { Vendor } from '@/lib/types-ui'
 
@@ -241,16 +242,12 @@ export function VendorFormModal({
         </Field>
 
         <SectionLabel>1099-NEC</SectionLabel>
-        <label className="flex items-center gap-3 cursor-pointer mb-4">
-          <input
-            type="checkbox"
-            checked={is1099}
-            onChange={(e) => setIs1099(e.target.checked)}
-          />
-          <span className="font-garamond text-[0.95rem]">
-            This vendor is 1099-NEC eligible (independent contractor / sole prop)
-          </span>
-        </label>
+        <Checkbox
+          className="mb-4"
+          checked={is1099}
+          onChange={(e) => setIs1099(e.target.checked)}
+          label="This vendor is 1099-NEC eligible (independent contractor / sole prop)"
+        />
         {is1099 ? (
           <>
             <Field

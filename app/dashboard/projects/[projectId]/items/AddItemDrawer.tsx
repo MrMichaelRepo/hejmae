@@ -7,6 +7,7 @@ import { formatCents } from '@/lib/format'
 import Button from '@/components/ui/Button'
 import { Field, Input, Label, Select, Textarea } from '@/components/ui/Input'
 import { Drawer } from '@/components/ui/Modal'
+import Alert from '@/components/ui/Alert'
 import { toast } from '@/components/ui/Toast'
 import ImageUploader from '@/components/ui/ImageUploader'
 import type { CatalogProduct, Room } from '@/lib/types-ui'
@@ -24,14 +25,14 @@ export default function AddItemDrawer({ open, onClose, projectId, rooms, onAdded
 
   return (
     <Drawer open={open} onClose={onClose} title="Add item" width={560}>
-      <div className="flex border border-hm-text/15 rounded-sm overflow-hidden mb-6">
+      <div className="flex border border-line rounded-sm overflow-hidden mb-6">
         <button
           onClick={() => setTab('search')}
           className={[
             'flex-1 font-sans text-[10px] uppercase tracking-[0.22em] py-2.5 transition-colors',
             tab === 'search'
-              ? 'bg-hm-text text-bg'
-              : 'bg-bg text-hm-nav hover:text-hm-text',
+              ? 'bg-ink text-bg'
+              : 'bg-bg text-ink-muted hover:text-ink',
           ].join(' ')}
         >
           Search catalog
@@ -41,8 +42,8 @@ export default function AddItemDrawer({ open, onClose, projectId, rooms, onAdded
           className={[
             'flex-1 font-sans text-[10px] uppercase tracking-[0.22em] py-2.5 transition-colors',
             tab === 'new'
-              ? 'bg-hm-text text-bg'
-              : 'bg-bg text-hm-nav hover:text-hm-text',
+              ? 'bg-ink text-bg'
+              : 'bg-bg text-ink-muted hover:text-ink',
           ].join(' ')}
         >
           Add new
@@ -114,12 +115,12 @@ function CatalogSearch({
       <div>
         <button
           onClick={() => setPicking(null)}
-          className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav hover:text-hm-text mb-4"
+          className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted hover:text-ink mb-4"
         >
           ← Back to search
         </button>
-        <div className="flex gap-4 items-start mb-5 pb-5 border-b border-hm-text/10">
-          <div className="w-20 h-20 bg-hm-text/[0.05] shrink-0 relative overflow-hidden">
+        <div className="flex gap-4 items-start mb-5 pb-5 border-b border-line">
+          <div className="w-20 h-20 bg-ink/[0.05] shrink-0 relative overflow-hidden">
             {picking.image_url ? (
               <Image
                 src={picking.image_url}
@@ -133,11 +134,11 @@ function CatalogSearch({
           </div>
           <div>
             <div className="font-serif text-[1.1rem] leading-tight">{picking.name}</div>
-            <div className="font-garamond text-[0.9rem] text-hm-nav mt-1">
+            <div className="font-garamond text-[0.9rem] text-ink-muted mt-1">
               {picking.vendor ?? 'Unknown vendor'}
             </div>
             {picking.retail_price_cents != null ? (
-              <div className="font-garamond text-[0.9rem] text-hm-nav mt-1">
+              <div className="font-garamond text-[0.9rem] text-ink-muted mt-1">
                 Retail: {formatCents(picking.retail_price_cents)}
               </div>
             ) : null}
@@ -183,7 +184,7 @@ function CatalogSearch({
       />
       <div className="space-y-2 max-h-[60vh] overflow-y-auto">
         {results.length === 0 ? (
-          <div className="font-garamond text-[0.95rem] text-hm-nav py-6 text-center">
+          <div className="font-garamond text-[0.95rem] text-ink-muted py-6 text-center">
             {q ? 'No results' : 'Start typing to search'}
           </div>
         ) : (
@@ -191,9 +192,9 @@ function CatalogSearch({
             <button
               key={r.id}
               onClick={() => setPicking(r)}
-              className="w-full text-left border border-hm-text/10 px-3 py-3 flex gap-3 items-center hover:bg-hm-text/[0.03] transition-colors"
+              className="w-full text-left border border-line px-3 py-3 flex gap-3 items-center hover:bg-ink/[0.03] transition-colors"
             >
-              <div className="w-12 h-12 bg-hm-text/[0.05] shrink-0 relative overflow-hidden">
+              <div className="w-12 h-12 bg-ink/[0.05] shrink-0 relative overflow-hidden">
                 {r.image_url ? (
                   <Image
                     src={r.image_url}
@@ -207,7 +208,7 @@ function CatalogSearch({
               </div>
               <div className="min-w-0 flex-1">
                 <div className="font-serif text-[1rem] leading-tight truncate">{r.name}</div>
-                <div className="font-garamond text-[0.85rem] text-hm-nav truncate">
+                <div className="font-garamond text-[0.85rem] text-ink-muted truncate">
                   {r.vendor ?? 'Unknown'}
                   {r.retail_price_cents != null ? ` · ${formatCents(r.retail_price_cents)}` : ''}
                 </div>
@@ -342,13 +343,11 @@ function NewItemForm({
       </Field>
 
       {err ? (
-        <div className="mb-4 border border-red-700/30 px-3 py-2 font-garamond text-[0.9rem] text-red-900">
-          {err}
-        </div>
+        <Alert tone="danger" className="mb-4">{err}</Alert>
       ) : (
         <div className="mb-4">
           <Label>Client price</Label>
-          <div className="font-garamond text-[0.9rem] text-hm-nav">
+          <div className="font-garamond text-[0.9rem] text-ink-muted">
             Calculated automatically using your project&apos;s pricing mode (retail or
             cost-plus). Trade pricing is private to you.
           </div>

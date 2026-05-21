@@ -17,7 +17,7 @@ const TABS: Array<[string, string]> = [
 export default function FinancesNav() {
   const pathname = usePathname()
   return (
-    <div className="border-b border-hm-text/10 mb-8 -mt-2">
+    <div className="border-b border-line mb-8 -mt-2">
       <div className="flex gap-1 overflow-x-auto">
         {TABS.map(([label, href]) => {
           const active =
@@ -31,8 +31,8 @@ export default function FinancesNav() {
               className={[
                 'font-sans text-[10px] uppercase tracking-[0.22em] px-4 py-3 -mb-px border-b-2 transition-colors whitespace-nowrap',
                 active
-                  ? 'text-hm-text border-hm-text'
-                  : 'text-hm-nav border-transparent hover:text-hm-text',
+                  ? 'text-ink border-ink'
+                  : 'text-ink-muted border-transparent hover:text-ink',
               ].join(' ')}
             >
               {label}

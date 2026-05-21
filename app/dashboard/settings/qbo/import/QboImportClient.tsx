@@ -17,6 +17,7 @@ import Link from 'next/link'
 import { api } from '@/lib/api'
 import Button from '@/components/ui/Button'
 import { Field, Input } from '@/components/ui/Input'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { toast } from '@/components/ui/Toast'
 import { PageHeader } from '@/components/ui/EmptyState'
 
@@ -91,12 +92,12 @@ function fmt(cents: number): string {
 function ActionPill({ action }: { action: ImportAction }) {
   const cls =
     action === 'create'
-      ? 'text-emerald-700 border-emerald-700/30'
+      ? 'text-success border-success/30'
       : action === 'merge'
-        ? 'text-blue-700 border-blue-700/30'
+        ? 'text-accent border-accent/30'
         : action === 'mapped'
-          ? 'text-hm-nav border-hm-nav/30'
-          : 'text-amber-800 border-amber-800/30'
+          ? 'text-ink-muted border-line'
+          : 'text-warn border-warn/30'
   return (
     <span
       className={`font-sans text-[10px] uppercase tracking-[0.18em] border px-2 py-0.5 ${cls}`}
@@ -111,7 +112,7 @@ function ResultBanner({ result }: { result: ResultSummary | null }) {
   const errors = result.errors ?? []
   return (
     <div
-      className={`mt-3 p-3 border font-garamond text-[0.9rem] ${errors.length > 0 ? 'border-amber-700/40 bg-amber-50' : 'border-emerald-700/40 bg-emerald-50/40'}`}
+      className={`mt-3 p-3 border font-garamond text-[0.9rem] ${errors.length > 0 ? 'border-warn/40 bg-warn-soft/40' : 'border-success/40 bg-success-soft/40'}`}
     >
       <div>
         {result.created !== undefined && (
@@ -127,11 +128,11 @@ function ResultBanner({ result }: { result: ResultSummary | null }) {
           <span className="mr-3">{result.skipped} skipped</span>
         )}
         {errors.length > 0 && (
-          <span className="text-amber-900">{errors.length} error(s)</span>
+          <span className="text-warn">{errors.length} error(s)</span>
         )}
       </div>
       {errors.length > 0 && (
-        <ul className="mt-2 list-disc pl-5 text-amber-900">
+        <ul className="mt-2 list-disc pl-5 text-warn">
           {errors.slice(0, 10).map((e, i) => (
             <li key={i}>
               <span className="font-mono text-[0.8rem]">{e.qboId}</span> —{' '}
@@ -148,6 +149,7 @@ function ResultBanner({ result }: { result: ResultSummary | null }) {
 }
 
 export default function QboImportClient() {
+  const confirm = useConfirm()
   // Per-section state
   const [accountsPreview, setAccountsPreview] = useState<AccountPreviewRow[] | null>(null)
   const [accountsBusy, setAccountsBusy] = useState(false)
@@ -195,7 +197,12 @@ export default function QboImportClient() {
     setBusy: (b: boolean) => void,
     setResult: (r: ResultSummary | null) => void,
   ) => {
-    if (!confirm('Apply this import? Existing rows will be merged where names match.')) return
+    const ok = await confirm({
+      title: 'Apply this import?',
+      body: 'Existing rows will be merged where names match. This is the actual import — not just a preview.',
+      confirmLabel: 'Apply import',
+    })
+    if (!ok) return
     setBusy(true)
     try {
       const res = await api.post<ResultSummary>(url)
@@ -224,7 +231,7 @@ export default function QboImportClient() {
 
       {/* Accounts */}
       <Section title="1. Chart of accounts">
-        <p className="font-garamond text-[0.92rem] text-hm-nav mb-4 leading-[1.6]">
+        <p className="font-garamond text-[0.92rem] text-ink-muted mb-4 leading-[1.6]">
           Match-by-name with your existing accounts. New ones are created with
           QB&rsquo;s account number when present (otherwise hejmae picks an
           unused code). Mappings are stored so future syncs target the same QB
@@ -278,7 +285,7 @@ export default function QboImportClient() {
 
       {/* Customers */}
       <Section title="2. Customers → Clients">
-        <p className="font-garamond text-[0.92rem] text-hm-nav mb-4 leading-[1.6]">
+        <p className="font-garamond text-[0.92rem] text-ink-muted mb-4 leading-[1.6]">
           Active QBO customers. Existing hejmae clients matching by name are
           merged (blank fields filled in, never overwritten).
         </p>
@@ -329,7 +336,7 @@ export default function QboImportClient() {
 
       {/* Vendors */}
       <Section title="3. Vendors">
-        <p className="font-garamond text-[0.92rem] text-hm-nav mb-4 leading-[1.6]">
+        <p className="font-garamond text-[0.92rem] text-ink-muted mb-4 leading-[1.6]">
           Active QBO vendors. 1099-eligibility, tax-id last-4, and billing
           address are pulled where present.
         </p>
@@ -376,14 +383,14 @@ export default function QboImportClient() {
 
       {/* Invoices */}
       <Section title="4. Open invoices (A/R)">
-        <p className="font-garamond text-[0.92rem] text-hm-nav mb-4 leading-[1.6]">
+        <p className="font-garamond text-[0.92rem] text-ink-muted mb-4 leading-[1.6]">
           Invoices with a remaining balance in QuickBooks. They land in a
           single &ldquo;QuickBooks import&rdquo; project so they don&rsquo;t
           interfere with your hejmae projects; you can re-home them later.
           Partially-paid invoices come over as <span className="italic">partially_paid</span>{' '}
           with the paid portion stubbed in as a payment.
         </p>
-        <p className="font-garamond text-[0.88rem] text-hm-nav mb-4">
+        <p className="font-garamond text-[0.88rem] text-ink-muted mb-4">
           <strong>Bills (A/P)</strong> are not imported — hejmae doesn&rsquo;t
           model bills as a separate entity. Outstanding bills should be
           re-entered as expenses post-cutover.
@@ -430,7 +437,7 @@ export default function QboImportClient() {
                 r.alreadyImported ? (
                   <ActionPill key="a" action="mapped" />
                 ) : r.customerMissing ? (
-                  <span key="m" className="font-garamond text-[0.85rem] text-amber-800">
+                  <span key="m" className="font-garamond text-[0.85rem] text-warn">
                     Import customer first
                   </span>
                 ) : (
@@ -446,7 +453,7 @@ export default function QboImportClient() {
 
       {/* Trial balance */}
       <Section title="5. Opening trial balance">
-        <p className="font-garamond text-[0.92rem] text-hm-nav mb-4 leading-[1.6]">
+        <p className="font-garamond text-[0.92rem] text-ink-muted mb-4 leading-[1.6]">
           Posts a single manual journal entry on the cutover date that lands
           every hejmae account at the same balance QuickBooks shows. Requires
           every QB account with a balance to be mapped to a hejmae account on
@@ -486,12 +493,12 @@ export default function QboImportClient() {
           <Button
             variant="primary"
             onClick={async () => {
-              if (
-                !confirm(
-                  'Post the opening journal entry? This creates a single manual JE dated on the cutover.',
-                )
-              )
-                return
+              const ok = await confirm({
+                title: 'Post the opening journal entry?',
+                body: 'This creates a single manual JE dated on the cutover.',
+                confirmLabel: 'Post entry',
+              })
+              if (!ok) return
               setTbBusy(true)
               try {
                 const res = await api.post<{ journalEntryId: string; lineCount: number }>(
@@ -525,12 +532,12 @@ export default function QboImportClient() {
                 Credits: <span className="font-mono">${tbPreview.totalCredit.toFixed(2)}</span>
               </span>
               {!tbPreview.balanced && (
-                <span className="text-amber-800">
+                <span className="text-warn">
                   ⚠ QB trial balance is not balanced.
                 </span>
               )}
               {tbPreview.unmappedCount > 0 && (
-                <span className="text-amber-800">
+                <span className="text-warn">
                   {' '}
                   {tbPreview.unmappedCount} account(s) need mapping first.
                 </span>
@@ -544,11 +551,11 @@ export default function QboImportClient() {
                   r.debit ? `$${r.debit.toFixed(2)}` : '',
                   r.credit ? `$${r.credit.toFixed(2)}` : '',
                   r.hejmaeAccountMapped ? (
-                    <span key="m" className="text-emerald-700 font-sans text-[10px] uppercase tracking-[0.18em]">
+                    <span key="m" className="text-success font-sans text-[10px] uppercase tracking-[0.18em]">
                       Mapped
                     </span>
                   ) : (
-                    <span key="m" className="text-amber-800 font-sans text-[10px] uppercase tracking-[0.18em]">
+                    <span key="m" className="text-warn font-sans text-[10px] uppercase tracking-[0.18em]">
                       Unmapped
                     </span>
                   ),
@@ -560,7 +567,7 @@ export default function QboImportClient() {
         )}
 
         {tbResult && (
-          <div className="mt-3 p-3 border border-emerald-700/40 bg-emerald-50/40 font-garamond text-[0.9rem]">
+          <div className="mt-3 p-3 border border-success/40 bg-success-soft/40 font-garamond text-[0.9rem]">
             Posted JE <span className="font-mono">{tbResult.journalEntryId.slice(0, 8)}</span>{' '}
             with {tbResult.lineCount} lines.
           </div>
@@ -579,10 +586,10 @@ function Section({
 }) {
   return (
     <section className="mb-10">
-      <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-4">
+      <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-4">
         {title}
       </div>
-      <div className="border border-hm-text/10 p-6">{children}</div>
+      <div className="border border-line p-6">{children}</div>
     </section>
   )
 }
@@ -596,16 +603,16 @@ function PreviewTable({
 }) {
   if (rows.length === 0) {
     return (
-      <div className="border border-hm-text/10 p-4 font-garamond text-[0.9rem] text-hm-nav">
+      <div className="border border-line p-4 font-garamond text-[0.9rem] text-ink-muted">
         Nothing to import.
       </div>
     )
   }
   return (
-    <div className="border border-hm-text/10 max-h-[28rem] overflow-auto">
+    <div className="border border-line max-h-[28rem] overflow-auto">
       <table className="w-full">
         <thead className="sticky top-0 bg-bg">
-          <tr className="border-b border-hm-text/10 text-left font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+          <tr className="border-b border-line text-left font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
             {headers.map((h) => (
               <th key={h} className="px-3 py-2">
                 {h}
@@ -615,7 +622,7 @@ function PreviewTable({
         </thead>
         <tbody className="font-garamond text-[0.9rem]">
           {rows.map((r) => (
-            <tr key={r.key} className="border-b border-hm-text/5">
+            <tr key={r.key} className="border-b border-ink/5">
               {r.cells.map((c, i) => (
                 <td key={i} className="px-3 py-2 align-top">
                   {c}

@@ -17,12 +17,37 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
   },
 )
 
+// Custom-chevron select. We hide the OS dropdown indicator with
+// `appearance-none` and render our own SVG so the field looks identical
+// across Safari, Chrome, and Firefox.
 export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(
   function Select({ className = '', children, ...rest }, ref) {
     return (
-      <select ref={ref} className={[baseField, 'pr-8', className].join(' ')} {...rest}>
-        {children}
-      </select>
+      <span className="relative block w-full">
+        <select
+          ref={ref}
+          className={[
+            baseField,
+            'pr-9 appearance-none bg-no-repeat cursor-pointer',
+            className,
+          ].join(' ')}
+          {...rest}
+        >
+          {children}
+        </select>
+        <svg
+          aria-hidden
+          viewBox="0 0 12 8"
+          className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 w-3 h-2 text-ink-subtle"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M1 1.5l5 5 5-5" />
+        </svg>
+      </span>
     )
   },
 )

@@ -67,7 +67,7 @@ export default function PortalProposal({ token }: { token: string }) {
     return (
       <div className="max-w-md mx-auto pt-32 px-6 text-center">
         <h1 className="font-serif text-[2rem] mb-3">Link unavailable</h1>
-        <p className="font-garamond text-[1rem] text-hm-nav">{error}</p>
+        <p className="font-garamond text-[1rem] text-ink-muted">{error}</p>
       </div>
     )
   if (!data) return <PageSpinner />
@@ -105,25 +105,25 @@ export default function PortalProposal({ token }: { token: string }) {
             </div>
           )}
         </div>
-        <div className="font-garamond text-[0.9rem] text-hm-nav">
+        <div className="font-garamond text-[0.9rem] text-ink-muted">
           {data.proposal.sent_at ? formatDate(data.proposal.sent_at) : ''}
         </div>
       </header>
 
       <div className="mb-10">
-        <div className="font-sans text-[10px] uppercase tracking-[0.26em] text-hm-nav mb-3">
+        <div className="font-sans text-[10px] uppercase tracking-[0.26em] text-ink-muted mb-3">
           Proposal
         </div>
         <h1 className="font-serif text-[clamp(2rem,4vw,3rem)] leading-[1.05] tracking-[-0.015em]">
           {data.project?.name ?? 'Your project'}
         </h1>
         {data.project?.location ? (
-          <div className="mt-2 font-garamond text-[1rem] text-hm-nav">
+          <div className="mt-2 font-garamond text-[1rem] text-ink-muted">
             {data.project.location}
           </div>
         ) : null}
         {data.proposal.client_notes ? (
-          <p className="mt-5 font-garamond text-[1rem] leading-[1.7] text-hm-nav max-w-2xl whitespace-pre-wrap">
+          <p className="mt-5 font-garamond text-[1rem] leading-[1.7] text-ink-muted max-w-2xl whitespace-pre-wrap">
             {data.proposal.client_notes}
           </p>
         ) : null}
@@ -145,13 +145,13 @@ export default function PortalProposal({ token }: { token: string }) {
         className="mt-12 border-t pt-6 flex items-center justify-between"
         style={{ borderColor: `${brand}25` }}
       >
-        <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav">
+        <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted">
           Proposal total
         </div>
         <div className="font-serif text-[1.6rem]">{formatCents(grand)}</div>
       </div>
 
-      <footer className="mt-10 text-center font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav/60">
+      <footer className="mt-10 text-center font-sans text-[10px] uppercase tracking-[0.2em] text-ink-subtle">
         Prepared by {data.designer?.studio_name ?? data.designer?.name ?? 'your designer'}
       </footer>
     </div>
@@ -198,20 +198,20 @@ function RoomSection({
         <h2 className="font-serif text-[1.6rem] leading-tight">
           {room.room?.name ?? 'Room'}
         </h2>
-        <div className="font-garamond text-[1.05rem] text-hm-nav">
+        <div className="font-garamond text-[1.05rem] text-ink-muted">
           {formatCents(total)}
         </div>
       </div>
 
       {room.items.length === 0 ? (
-        <div className="font-garamond text-[0.95rem] text-hm-nav border border-dashed border-hm-text/15 p-6 text-center">
+        <div className="font-garamond text-[0.95rem] text-ink-muted border border-dashed border-line p-6 text-center">
           No items in this room.
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {room.items.map((it) => (
-            <div key={it.id} className="border border-hm-text/10 p-3">
-              <div className="aspect-square bg-hm-text/[0.05] mb-3 relative overflow-hidden">
+            <div key={it.id} className="border border-line p-3">
+              <div className="aspect-square bg-ink/[0.05] mb-3 relative overflow-hidden">
                 {it.image_url ? (
                   <Image
                     src={it.image_url}
@@ -227,11 +227,11 @@ function RoomSection({
                 {it.name}
               </div>
               {it.vendor ? (
-                <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav mt-1.5">
+                <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted mt-1.5">
                   {it.vendor}
                 </div>
               ) : null}
-              <div className="font-garamond text-[0.95rem] text-hm-text mt-2">
+              <div className="font-garamond text-[0.95rem] text-ink mt-2">
                 {formatCents(it.client_price_cents)}
                 {it.quantity > 1 ? ` · qty ${it.quantity}` : ''}
               </div>
@@ -247,12 +247,18 @@ function RoomSection({
         >
           Approved {formatDate(room.approved_at)}
           {room.client_comment ? (
-            <div className="mt-1 italic text-hm-nav">“{room.client_comment}”</div>
+            <div className="mt-1 italic text-ink-muted">“{room.client_comment}”</div>
           ) : null}
         </div>
       ) : (
-        <div className="mt-5 border border-hm-text/10 p-4">
-          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-3">
+        <div
+          className="mt-5 border rounded p-5 bg-accent-soft/30"
+          style={{ borderColor: `${brand}40` }}
+        >
+          <div
+            className="font-sans text-[10px] uppercase tracking-[0.26em] mb-3"
+            style={{ color: brand }}
+          >
             Approve this room
           </div>
           <Textarea
@@ -262,7 +268,13 @@ function RoomSection({
             placeholder="Optional comment for your designer…"
             className="mb-3"
           />
-          <Button onClick={approve} variant="primary" loading={submitting}>
+          <Button
+            onClick={approve}
+            variant="primary"
+            loading={submitting}
+            size="lg"
+            style={{ background: brand, borderColor: brand }}
+          >
             Approve {room.room?.name ?? 'room'}
           </Button>
         </div>

@@ -51,7 +51,7 @@ export default async function POPrintPage({
   const logoSignedUrl = await resolveAssetUrl(user.logo_url)
 
   return (
-    <div className="bg-white text-hm-text">
+    <div className="bg-white text-ink">
       <PrintBar projectId={projectId} poId={poId} />
 
       <div className="max-w-[800px] mx-auto px-10 py-12 print:px-0 print:py-0">
@@ -87,7 +87,7 @@ export default async function POPrintPage({
             <div className="font-serif text-[1.4rem] mt-1">
               #{po.id.slice(0, 8).toUpperCase()}
             </div>
-            <div className="font-garamond text-[0.95rem] text-hm-nav mt-1">
+            <div className="font-garamond text-[0.95rem] text-ink-muted mt-1">
               {formatDate(po.sent_at ?? po.created_at)}
             </div>
           </div>
@@ -95,28 +95,28 @@ export default async function POPrintPage({
 
         <div className="grid grid-cols-2 gap-8 mb-10">
           <div>
-            <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
+            <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-2">
               Vendor
             </div>
             <div className="font-serif text-[1.1rem]">{po.vendor_name}</div>
             {po.vendor_email ? (
-              <div className="font-garamond text-[0.95rem] text-hm-nav mt-1">
+              <div className="font-garamond text-[0.95rem] text-ink-muted mt-1">
                 {po.vendor_email}
               </div>
             ) : null}
           </div>
           <div>
-            <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
+            <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-2">
               Project
             </div>
             <div className="font-serif text-[1.1rem]">{project.name}</div>
             {project.location ? (
-              <div className="font-garamond text-[0.95rem] text-hm-nav mt-1">
+              <div className="font-garamond text-[0.95rem] text-ink-muted mt-1">
                 {project.location}
               </div>
             ) : null}
             {po.expected_lead_time_days ? (
-              <div className="font-garamond text-[0.85rem] text-hm-nav mt-1">
+              <div className="font-garamond text-[0.85rem] text-ink-muted mt-1">
                 Lead time: {po.expected_lead_time_days} days
               </div>
             ) : null}
@@ -145,9 +145,9 @@ export default async function POPrintPage({
           </thead>
           <tbody>
             {lines.map((l) => (
-              <tr key={l.id} className="border-b border-hm-text/10">
+              <tr key={l.id} className="border-b border-line">
                 <td className="py-3">{l.description}</td>
-                <td className="py-3 text-right text-hm-nav">{l.quantity}</td>
+                <td className="py-3 text-right text-ink-muted">{l.quantity}</td>
                 <td className="py-3 text-right">
                   {formatCents(l.trade_price_cents)}
                 </td>
@@ -171,8 +171,8 @@ export default async function POPrintPage({
         </table>
 
         {po.notes ? (
-          <div className="mt-10 pt-6 border-t border-hm-text/10">
-            <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
+          <div className="mt-10 pt-6 border-t border-line">
+            <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-2">
               Notes
             </div>
             <p className="font-garamond text-[0.95rem] leading-[1.7] whitespace-pre-wrap">
@@ -181,7 +181,7 @@ export default async function POPrintPage({
           </div>
         ) : null}
 
-        <div className="mt-16 font-garamond text-[0.85rem] text-hm-nav text-center">
+        <div className="mt-16 font-garamond text-[0.85rem] text-ink-muted text-center">
           Please confirm receipt and expected ship date by reply.
         </div>
       </div>

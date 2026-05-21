@@ -254,8 +254,8 @@ export default function ClippingsClient({
           className={[
             'shrink-0 font-sans text-[10px] uppercase tracking-[0.22em] px-4 py-2 rounded-full border transition-colors',
             selectMode
-              ? 'bg-hm-text text-bg border-hm-text'
-              : 'bg-transparent text-hm-text border-hm-text/25 hover:border-hm-text',
+              ? 'bg-ink text-bg border-ink'
+              : 'bg-transparent text-ink border-line-strong hover:border-ink',
           ].join(' ')}
         >
           {selectMode ? 'Cancel selection' : 'Select'}
@@ -267,14 +267,14 @@ export default function ClippingsClient({
           {pendingDeletes.map((p) => (
             <div
               key={p.id}
-              className="flex items-center justify-between border border-hm-text/15 bg-hm-text/[0.03] px-4 py-2.5"
+              className="flex items-center justify-between border border-line bg-ink/[0.03] px-4 py-2.5"
             >
-              <div className="font-garamond text-[0.95rem] text-hm-nav">
+              <div className="font-garamond text-[0.95rem] text-ink-muted">
                 Removed “{p.row.name ?? 'clipping'}”
               </div>
               <button
                 onClick={() => handleUndo(p.id)}
-                className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-text hover:underline"
+                className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink hover:underline"
               >
                 Undo
               </button>
@@ -339,13 +339,13 @@ export default function ClippingsClient({
           select mode is on. Padding is generous because the page grid
           extends underneath. */}
       {selectMode ? (
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-bg border-t border-hm-text/15 shadow-[0_-2px_12px_rgba(30,33,40,0.08)]">
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-bg border-t border-line shadow-[0_-2px_12px_rgba(30,33,40,0.08)]">
           <div className="max-w-7xl mx-auto px-6 py-3.5 flex items-center justify-between gap-4">
             <div className="flex items-baseline gap-4">
-              <div className="font-serif text-[1.05rem] text-hm-text">
+              <div className="font-serif text-[1.05rem] text-ink">
                 {selectedIds.size} selected
               </div>
-              <div className="font-garamond text-[0.95rem] text-hm-nav">
+              <div className="font-garamond text-[0.95rem] text-ink-muted">
                 Total: {formatCents(selectionTotalCents)}
               </div>
             </div>
@@ -448,7 +448,7 @@ function FilterBar({
       {active ? (
         <button
           onClick={() => onChange(EMPTY_FILTERS)}
-          className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav hover:text-hm-text px-3 py-2"
+          className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted hover:text-ink px-3 py-2"
         >
           Clear filters
         </button>
@@ -472,28 +472,42 @@ function FilterSelect({
   return (
     <label
       className={[
-        'inline-flex items-center gap-2 border px-3 py-2 transition-colors',
+        'inline-flex items-center gap-2 border rounded-sm pl-3 pr-2 py-2 transition-colors',
         isActive
-          ? 'border-hm-text text-hm-text bg-hm-text/[0.04]'
-          : 'border-hm-text/15 text-hm-nav hover:text-hm-text',
+          ? 'border-accent text-ink bg-accent-soft/40'
+          : 'border-line text-ink-muted hover:border-line-strong hover:text-ink',
       ].join(' ')}
     >
       <span className="font-sans text-[10px] uppercase tracking-[0.22em]">
         {label}
       </span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="bg-transparent font-garamond text-[0.9rem] focus:outline-none cursor-pointer"
-        disabled={options.length === 0}
-      >
-        <option value="">All</option>
-        {options.map((o) => (
-          <option key={o.value} value={o.value}>
-            {o.label}
-          </option>
-        ))}
-      </select>
+      <span className="relative inline-flex items-center">
+        <select
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="bg-transparent appearance-none font-garamond text-[0.9rem] text-ink pr-5 focus:outline-none cursor-pointer disabled:cursor-not-allowed"
+          disabled={options.length === 0}
+        >
+          <option value="">All</option>
+          {options.map((o) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
+        <svg
+          aria-hidden
+          viewBox="0 0 12 8"
+          className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 w-3 h-2 text-ink-subtle"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M1 1.5l5 5 5-5" />
+        </svg>
+      </span>
     </label>
   )
 }

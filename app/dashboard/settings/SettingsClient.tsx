@@ -6,6 +6,7 @@ import { api } from '@/lib/api'
 import { PageHeader } from '@/components/ui/EmptyState'
 import Button from '@/components/ui/Button'
 import { Field, Input, Select } from '@/components/ui/Input'
+import { Checkbox } from '@/components/ui/Checkbox'
 import { DensityToggle } from '@/components/ui/Density'
 import { toast } from '@/components/ui/Toast'
 import type { DesignerUser, PricingMode } from '@/lib/types-ui'
@@ -165,26 +166,15 @@ export default function SettingsClient({ initialUser }: { initialUser: DesignerU
       </Section>
 
       <Section title="Floor plans">
-        <label className="flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            className="mt-1"
-            checked={user.auto_straighten_floor_plans}
-            onChange={(e) =>
-              update({ auto_straighten_floor_plans: e.target.checked })
-            }
-          />
-          <div>
-            <div className="font-garamond text-[0.95rem] text-hm-text">
-              Auto-crop and straighten on upload
-            </div>
-            <div className="font-garamond text-[0.85rem] text-hm-nav leading-[1.55] mt-0.5">
-              Uses a vision model to find the floor plan in the image and
-              deskew it to a clean rectangle. Turn off if your scans are
-              already clean.
-            </div>
-          </div>
-        </label>
+        <Checkbox
+          align="start"
+          checked={user.auto_straighten_floor_plans}
+          onChange={(e) =>
+            update({ auto_straighten_floor_plans: e.target.checked })
+          }
+          label="Auto-crop and straighten on upload"
+          hint="Uses a vision model to find the floor plan in the image and deskew it to a clean rectangle. Turn off if your scans are already clean."
+        />
       </Section>
 
       <Section title="Display preferences">
@@ -205,26 +195,26 @@ export default function SettingsClient({ initialUser }: { initialUser: DesignerU
       </div>
 
       <Section title="Team">
-        <p className="font-garamond text-[0.95rem] text-hm-nav mb-4">
+        <p className="font-garamond text-[0.95rem] text-ink-muted mb-4">
           Invite collaborators and manage their access to projects, finances,
           and purchase orders.
         </p>
         <Link
           href="/dashboard/settings/team"
-          className="inline-flex items-center gap-2 font-sans text-[10px] uppercase tracking-[0.2em] text-hm-text border border-hm-text/25 hover:bg-hm-text hover:text-bg rounded-full px-6 py-2.5 transition-colors"
+          className="inline-flex items-center gap-2 font-sans text-[10px] uppercase tracking-[0.2em] text-ink border border-line-strong hover:bg-ink hover:text-bg rounded-full px-6 py-2.5 transition-colors"
         >
           Manage team →
         </Link>
       </Section>
 
       <Section title="Finance & taxes">
-        <p className="font-garamond text-[0.95rem] text-hm-nav mb-4">
+        <p className="font-garamond text-[0.95rem] text-ink-muted mb-4">
           Accounting basis, fiscal year start, and estimated tax rates used
           across every report and the quarterly estimated taxes tracker.
         </p>
         <Link
           href="/dashboard/settings/finance"
-          className="inline-flex items-center gap-2 font-sans text-[10px] uppercase tracking-[0.2em] text-hm-text border border-hm-text/25 hover:bg-hm-text hover:text-bg rounded-full px-6 py-2.5 transition-colors"
+          className="inline-flex items-center gap-2 font-sans text-[10px] uppercase tracking-[0.2em] text-ink border border-line-strong hover:bg-ink hover:text-bg rounded-full px-6 py-2.5 transition-colors"
         >
           Finance settings →
         </Link>
@@ -250,10 +240,10 @@ function Section({
 }) {
   return (
     <section className="mb-10">
-      <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-4">
+      <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-4">
         {title}
       </div>
-      <div className="border border-hm-text/10 p-6">{children}</div>
+      <div className="border border-line p-6">{children}</div>
     </section>
   )
 }

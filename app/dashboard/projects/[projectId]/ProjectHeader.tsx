@@ -32,7 +32,7 @@ export default function ProjectHeader({ projectId }: { projectId: string }) {
   }, [projectId])
 
   if (!project) {
-    return <div className="h-20 mb-2 animate-pulse bg-hm-text/[0.04] rounded-sm" />
+    return <div className="h-20 mb-2 animate-pulse bg-ink/[0.04] rounded-sm" />
   }
 
   return (
@@ -42,7 +42,7 @@ export default function ProjectHeader({ projectId }: { projectId: string }) {
           <h1 className="font-serif text-[clamp(1.7rem,2.6vw,2.4rem)] leading-[1.1] tracking-[-0.015em]">
             {project.name}
           </h1>
-          <div className="mt-2 font-garamond text-[1rem] text-hm-nav">
+          <div className="mt-2 font-garamond text-[1rem] text-ink-muted">
             {client?.name ?? 'No client'}
             {project.location ? ` · ${project.location}` : ''}
             {project.budget_cents != null

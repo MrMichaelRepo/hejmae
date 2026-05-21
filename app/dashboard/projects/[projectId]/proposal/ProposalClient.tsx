@@ -7,8 +7,9 @@ import { formatCents, formatDate } from '@/lib/format'
 import EmptyState from '@/components/ui/EmptyState'
 import Button from '@/components/ui/Button'
 import { Field } from '@/components/ui/Input'
+import { Checkbox } from '@/components/ui/Checkbox'
 import Modal from '@/components/ui/Modal'
-import { StatusBadge } from '@/components/ui/Badge'
+import { StatusBadge, Badge } from '@/components/ui/Badge'
 import { toast } from '@/components/ui/Toast'
 import type { Proposal, ProposalRoom, Room, Item } from '@/lib/types-ui'
 
@@ -66,7 +67,7 @@ export default function ProposalClient({
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav">
+        <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted">
           Proposals ({proposals.length})
         </div>
         <Button variant="primary" onClick={() => setOpenCreate(true)} disabled={rooms.length === 0}>
@@ -104,8 +105,8 @@ export default function ProposalClient({
             })
             const grand = roomTotals.reduce((a, r) => a + r.total, 0)
             return (
-              <div key={p.id} className="border border-hm-text/10">
-                <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-hm-text/10 bg-hm-text/[0.02]">
+              <div key={p.id} className="border border-line">
+                <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-line bg-ink/[0.02]">
                   <div className="flex items-center gap-3 flex-wrap">
                     <span className="font-serif text-[1.1rem]">
                       Proposal · {formatDate(p.created_at)}
@@ -113,7 +114,7 @@ export default function ProposalClient({
                     <StatusBadge kind="proposal" status={p.status} />
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-garamond text-[0.95rem] text-hm-nav">
+                    <span className="font-garamond text-[0.95rem] text-ink-muted">
                       {formatCents(grand)}
                     </span>
                     {p.status === 'draft' ? (
@@ -127,7 +128,7 @@ export default function ProposalClient({
                     )}
                   </div>
                 </div>
-                <div className="divide-y divide-hm-text/10">
+                <div className="divide-y divide-line">
                   {roomTotals.map(({ pr, total, items: ri, room }) => (
                     <div key={pr.id} className="px-5 py-4">
                       <div className="flex items-center justify-between mb-3">
@@ -136,27 +137,27 @@ export default function ProposalClient({
                         </div>
                         <div className="flex items-center gap-3">
                           {pr.approved_at ? (
-                            <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-emerald-800">
+                            <Badge tone="sage">
                               Approved {formatDate(pr.approved_at)}
-                            </span>
+                            </Badge>
                           ) : null}
-                          <span className="font-garamond text-[0.95rem] text-hm-nav">
+                          <span className="font-garamond text-[0.95rem] text-ink-muted">
                             {formatCents(total)}
                           </span>
                         </div>
                       </div>
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                         {ri.length === 0 ? (
-                          <div className="col-span-full font-garamond text-[0.9rem] text-hm-nav">
+                          <div className="col-span-full font-garamond text-[0.9rem] text-ink-muted">
                             No items in this room yet.
                           </div>
                         ) : (
                           ri.map((it) => (
                             <div
                               key={it.id}
-                              className="border border-hm-text/10 p-2"
+                              className="border border-line p-2"
                             >
-                              <div className="aspect-square bg-hm-text/[0.05] mb-2 relative overflow-hidden">
+                              <div className="aspect-square bg-ink/[0.05] mb-2 relative overflow-hidden">
                                 {it.image_url ? (
                                   <Image
                                     src={it.image_url}
@@ -171,7 +172,7 @@ export default function ProposalClient({
                               <div className="font-garamond text-[0.85rem] leading-tight truncate">
                                 {it.name}
                               </div>
-                              <div className="font-sans text-[10px] text-hm-nav uppercase tracking-[0.18em] mt-1">
+                              <div className="font-sans text-[10px] text-ink-muted uppercase tracking-[0.18em] mt-1">
                                 {formatCents(it.client_price_cents)}
                               </div>
                             </div>
@@ -179,7 +180,7 @@ export default function ProposalClient({
                         )}
                       </div>
                       {pr.client_comment ? (
-                        <div className="mt-3 font-garamond text-[0.9rem] text-hm-nav italic border-l-2 border-hm-text/15 pl-3">
+                        <div className="mt-3 font-garamond text-[0.9rem] text-ink-muted italic border-l-2 border-line pl-3">
                           “{pr.client_comment}”
                         </div>
                       ) : null}
@@ -249,10 +250,9 @@ function CreateProposalModal({
           {rooms.map((r) => (
             <label
               key={r.id}
-              className="flex items-center gap-3 px-3 py-2 border border-hm-text/10 cursor-pointer hover:bg-hm-text/[0.03] transition-colors"
+              className="group flex items-center gap-3 px-3 py-2 border border-line rounded-sm cursor-pointer hover:border-line-strong hover:bg-ink/[0.03] transition-colors"
             >
-              <input
-                type="checkbox"
+              <Checkbox
                 checked={picked.has(r.id)}
                 onChange={(e) => {
                   setPicked((s) => {
@@ -263,7 +263,7 @@ function CreateProposalModal({
                   })
                 }}
               />
-              <span className="font-garamond text-[1rem]">{r.name}</span>
+              <span className="font-garamond text-[1rem] text-ink">{r.name}</span>
             </label>
           ))}
         </div>

@@ -124,8 +124,8 @@ export default function ItemsClient({ projectId, initialItems, initialRooms }: P
           }
         />
       ) : (
-        <div className="border border-hm-text/10">
-          <div className="hidden md:grid grid-cols-[64px_2fr_1fr_120px_120px_140px_120px] gap-4 items-center px-4 py-3 border-b border-hm-text/10 font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+        <div className="border border-line">
+          <div className="hidden md:grid grid-cols-[64px_2fr_1fr_120px_120px_140px_120px] gap-4 items-center px-4 py-3 border-b border-line font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
             <div></div>
             <div>Item</div>
             <div>Room</div>
@@ -145,9 +145,9 @@ export default function ItemsClient({ projectId, initialItems, initialRooms }: P
                   if (tag === 'SELECT' || tag === 'OPTION') return
                   setEditing(it)
                 }}
-                className="grid grid-cols-[64px_1fr_auto] md:grid-cols-[64px_2fr_1fr_120px_120px_140px_120px] gap-4 items-center px-4 py-3 border-t border-hm-text/10 hover:bg-hm-text/[0.02] transition-colors cursor-pointer"
+                className="grid grid-cols-[64px_1fr_auto] md:grid-cols-[64px_2fr_1fr_120px_120px_140px_120px] gap-4 items-center px-4 py-3 border-t border-line hover:bg-ink/[0.03] transition-colors cursor-pointer"
               >
-                <div className="w-12 h-12 bg-hm-text/[0.05] rounded-sm overflow-hidden shrink-0 relative">
+                <div className="w-12 h-12 bg-ink/[0.05] rounded-sm overflow-hidden shrink-0 relative">
                   {it.image_url ? (
                     <Image
                       src={it.image_url}
@@ -163,18 +163,18 @@ export default function ItemsClient({ projectId, initialItems, initialRooms }: P
                   <div className="font-serif text-[1.05rem] leading-tight truncate">
                     {it.name}
                   </div>
-                  <div className="font-garamond text-[0.85rem] text-hm-nav truncate">
+                  <div className="font-garamond text-[0.85rem] text-ink-muted truncate">
                     {it.vendor ?? 'No vendor'}
                     {it.quantity > 1 ? ` · qty ${it.quantity}` : ''}
                   </div>
                 </div>
-                <div className="hidden md:block font-garamond text-[0.95rem] text-hm-nav">
+                <div className="hidden md:block font-garamond text-[0.95rem] text-ink-muted">
                   {room?.name ?? '—'}
                 </div>
-                <div className="hidden md:block text-right font-garamond text-[0.95rem] text-hm-nav">
+                <div className="hidden md:block text-right font-garamond text-[0.95rem] text-ink-muted">
                   {formatCents(it.trade_price_cents)}
                 </div>
-                <div className="hidden md:block text-right font-garamond text-[0.95rem] text-hm-text">
+                <div className="hidden md:block text-right font-garamond text-[0.95rem] text-ink">
                   {formatCents(it.client_price_cents)}
                 </div>
                 <div className="hidden md:block">
@@ -196,7 +196,7 @@ export default function ItemsClient({ projectId, initialItems, initialRooms }: P
                   <StatusBadge kind="item" status={it.status} />
                 </div>
                 <div className="hidden md:flex justify-end">
-                  <span className="font-garamond text-[0.85rem] text-hm-nav">
+                  <span className="font-garamond text-[0.85rem] text-ink-muted">
                     {formatCents(it.client_price_cents * it.quantity)}
                   </span>
                 </div>

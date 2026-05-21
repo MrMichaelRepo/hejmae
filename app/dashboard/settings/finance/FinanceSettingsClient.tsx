@@ -5,6 +5,7 @@ import { api, ApiError } from '@/lib/api'
 import { PageHeader } from '@/components/ui/EmptyState'
 import Button from '@/components/ui/Button'
 import { Field, Input, Select } from '@/components/ui/Input'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { toast } from '@/components/ui/Toast'
 import type { StudioFinanceSettings } from '@/lib/finances/studio_settings'
 import type {
@@ -71,9 +72,9 @@ export default function FinanceSettingsClient({
       />
 
       <Section title="Accounting basis">
-        <p className="font-garamond text-[0.95rem] text-hm-nav mb-4 leading-[1.6]">
-          <span className="text-hm-text">Cash basis</span> recognizes revenue
-          when payments are received. <span className="text-hm-text">Accrual</span>{' '}
+        <p className="font-garamond text-[0.95rem] text-ink-muted mb-4 leading-[1.6]">
+          <span className="text-ink">Cash basis</span> recognizes revenue
+          when payments are received. <span className="text-ink">Accrual</span>{' '}
           recognizes when invoices are sent. Most US sole props file on cash —
           ask your CPA before switching.
         </p>
@@ -112,7 +113,7 @@ export default function FinanceSettingsClient({
       </Section>
 
       <Section title="Estimated taxes">
-        <p className="font-garamond text-[0.95rem] text-hm-nav mb-4 leading-[1.6]">
+        <p className="font-garamond text-[0.95rem] text-ink-muted mb-4 leading-[1.6]">
           Used to project quarterly estimated payments on the Estimated Taxes
           page. These are estimates only — your CPA should confirm before you
           send anything to the IRS.
@@ -165,7 +166,7 @@ export default function FinanceSettingsClient({
       </Section>
 
       <Section title="Sales tax">
-        <p className="font-garamond text-[0.95rem] text-hm-nav mb-4 leading-[1.6]">
+        <p className="font-garamond text-[0.95rem] text-ink-muted mb-4 leading-[1.6]">
           Default rate and jurisdiction applied to new invoices. Per-line
           taxability and the per-invoice rate are still editable when you
           draft an invoice — this is just the starting point. Leave the rate
@@ -213,7 +214,7 @@ export default function FinanceSettingsClient({
       </Section>
 
       <Section title="Invoice emails">
-        <p className="font-garamond text-[0.95rem] text-hm-nav mb-4 leading-[1.6]">
+        <p className="font-garamond text-[0.95rem] text-ink-muted mb-4 leading-[1.6]">
           When you hit Send on an invoice, hejmae pre-fills the email body.
           Choose the default — you can always switch on a per-invoice basis,
           and the ✨ Rewrite-with-AI button is available either way.
@@ -249,7 +250,7 @@ export default function FinanceSettingsClient({
       </div>
 
       {!canEdit ? (
-        <p className="mt-4 font-garamond text-[0.9rem] text-hm-nav/80">
+        <p className="mt-4 font-garamond text-[0.9rem] text-ink-subtle">
           Only the studio owner (or an admin with the finance settings
           permission) can change these.
         </p>
@@ -282,7 +283,7 @@ function PercentInput({
           onChange(Number.isFinite(n) ? n : 0)
         }}
       />
-      <span className="absolute right-3 top-1/2 -translate-y-1/2 font-garamond text-[0.9rem] text-hm-nav">
+      <span className="absolute right-3 top-1/2 -translate-y-1/2 font-garamond text-[0.9rem] text-ink-muted">
         %
       </span>
     </div>
@@ -310,15 +311,15 @@ function EmailModeOption({
       type="button"
       onClick={() => !disabled && onPick(value)}
       disabled={disabled}
-      className={`text-left border px-4 py-3 ${active ? 'border-hm-text bg-hm-text/[0.04]' : 'border-hm-text/15 hover:border-hm-text/40'} ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+      className={`text-left border px-4 py-3 ${active ? 'border-ink bg-ink/[0.04]' : 'border-line hover:border-line-strong'} ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
     >
       <div className="flex items-center gap-2">
         <span
-          className={`inline-block h-3 w-3 rounded-full border ${active ? 'border-hm-text bg-hm-text' : 'border-hm-text/30'}`}
+          className={`inline-block h-3 w-3 rounded-full border ${active ? 'border-ink bg-ink' : 'border-line-strong'}`}
         />
         <div className="font-serif text-[1.05rem]">{title}</div>
       </div>
-      <div className="mt-1 font-garamond text-[0.9rem] text-hm-nav">{body}</div>
+      <div className="mt-1 font-garamond text-[0.9rem] text-ink-muted">{body}</div>
     </button>
   )
 }
@@ -337,6 +338,7 @@ function PeriodLockSection({ canEdit }: { canEdit: boolean }) {
   )
   const [reason, setReason] = useState('')
   const [adding, setAdding] = useState(false)
+  const confirm = useConfirm()
 
   const load = async () => {
     try {
@@ -352,7 +354,12 @@ function PeriodLockSection({ canEdit }: { canEdit: boolean }) {
 
   const addLock = async () => {
     if (!canEdit) return
-    if (!confirm(`Lock all journal entries on or before ${date}? You can unlock later.`)) return
+    const ok = await confirm({
+      title: `Lock entries through ${date}?`,
+      body: 'No journal entries on or before this date can be edited or deleted. You can unlock later.',
+      confirmLabel: 'Lock period',
+    })
+    if (!ok) return
     setAdding(true)
     try {
       await api.post('/api/finances/period-locks', {
@@ -371,7 +378,13 @@ function PeriodLockSection({ canEdit }: { canEdit: boolean }) {
 
   const removeLock = async (id: string) => {
     if (!canEdit) return
-    if (!confirm('Remove this lock?')) return
+    const ok = await confirm({
+      title: 'Remove this lock?',
+      body: 'Journal entries inside this range will be editable again.',
+      confirmLabel: 'Remove lock',
+      tone: 'danger',
+    })
+    if (!ok) return
     try {
       await api.del(`/api/finances/period-locks/${id}`)
       toast.success('Lock removed')
@@ -383,7 +396,7 @@ function PeriodLockSection({ canEdit }: { canEdit: boolean }) {
 
   return (
     <div>
-      <p className="font-garamond text-[0.95rem] text-hm-nav mb-4 leading-[1.6]">
+      <p className="font-garamond text-[0.95rem] text-ink-muted mb-4 leading-[1.6]">
         Lock a fiscal period to prevent edits or deletions of journal entries
         dated on or before the chosen date. Useful at year-end or after
         sending out tax filings. The latest lock wins; remove the row to
@@ -411,15 +424,15 @@ function PeriodLockSection({ canEdit }: { canEdit: boolean }) {
         </Button>
       </div>
       {locks === null ? (
-        <div className="font-garamond text-[0.9rem] text-hm-nav">Loading…</div>
+        <div className="font-garamond text-[0.9rem] text-ink-muted">Loading…</div>
       ) : locks.length === 0 ? (
-        <div className="font-garamond text-[0.9rem] text-hm-nav italic">
+        <div className="font-garamond text-[0.9rem] text-ink-muted italic">
           No locks. All journal entries are editable.
         </div>
       ) : (
         <table className="w-full font-garamond text-[0.92rem]">
           <thead>
-            <tr className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav text-left">
+            <tr className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted text-left">
               <th className="py-2">Locked through</th>
               <th className="py-2">When</th>
               <th className="py-2">Reason</th>
@@ -428,12 +441,12 @@ function PeriodLockSection({ canEdit }: { canEdit: boolean }) {
           </thead>
           <tbody>
             {locks.map((l) => (
-              <tr key={l.id} className="border-t border-hm-text/10">
+              <tr key={l.id} className="border-t border-line">
                 <td className="py-2">{l.locked_through_date}</td>
-                <td className="py-2 text-hm-nav">
+                <td className="py-2 text-ink-muted">
                   {new Date(l.locked_at).toLocaleString()}
                 </td>
-                <td className="py-2 text-hm-nav">{l.reason ?? '—'}</td>
+                <td className="py-2 text-ink-muted">{l.reason ?? '—'}</td>
                 <td className="py-2 text-right">
                   <button
                     type="button"
@@ -456,10 +469,10 @@ function PeriodLockSection({ canEdit }: { canEdit: boolean }) {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mb-10">
-      <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-4">
+      <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-4">
         {title}
       </div>
-      <div className="border border-hm-text/10 p-6">{children}</div>
+      <div className="border border-line p-6">{children}</div>
     </section>
   )
 }

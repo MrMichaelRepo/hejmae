@@ -47,11 +47,11 @@ export default async function Form1099Page({ searchParams }: Props) {
         }
       />
 
-      <div className="flex items-center gap-3 mb-6 pb-6 border-b border-hm-text/10">
-        <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav">
+      <div className="flex items-center gap-3 mb-6 pb-6 border-b border-line">
+        <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted">
           Tax year
         </span>
-        <div className="inline-flex border border-hm-text/15 rounded-sm overflow-hidden">
+        <div className="inline-flex border border-line rounded-sm overflow-hidden">
           {yearOptions.map((y) => (
             <Link
               key={y}
@@ -59,8 +59,8 @@ export default async function Form1099Page({ searchParams }: Props) {
               className={[
                 'px-4 py-2 font-sans text-[10px] uppercase tracking-[0.2em] transition-colors',
                 y === taxYear
-                  ? 'bg-hm-text text-bg'
-                  : 'text-hm-nav hover:text-hm-text',
+                  ? 'bg-ink text-bg'
+                  : 'text-ink-muted hover:text-ink',
               ].join(' ')}
             >
               {y}
@@ -91,11 +91,11 @@ export default async function Form1099Page({ searchParams }: Props) {
         />
       </StatGrid>
 
-      <p className="font-garamond text-[0.95rem] text-hm-nav mb-4 leading-[1.6]">
+      <p className="font-garamond text-[0.95rem] text-ink-muted mb-4 leading-[1.6]">
         Excludes expenses paid by credit card or Stripe — those are reported
         on 1099-K by the processor, not by you. Mark a vendor as 1099-eligible
         in the{' '}
-        <Link href="/dashboard/vendors" className="underline hover:text-hm-text">
+        <Link href="/dashboard/vendors" className="underline hover:text-ink">
           Vendors directory
         </Link>{' '}
         and capture their W-9 (legal name, address, TIN) before issuing.
@@ -108,10 +108,10 @@ export default async function Form1099Page({ searchParams }: Props) {
           small
         />
       ) : (
-        <div className="border border-hm-text/10 overflow-x-auto">
+        <div className="border border-line overflow-x-auto">
           <table className="w-full font-garamond text-[0.95rem]">
             <thead>
-              <tr className="bg-hm-text/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+              <tr className="bg-ink/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
                 <th className="text-left px-4 py-3">Vendor</th>
                 <th className="text-left px-4 py-3">Legal name (W-9)</th>
                 <th className="text-left px-4 py-3">Status</th>
@@ -123,38 +123,38 @@ export default async function Form1099Page({ searchParams }: Props) {
               {summary.rows.map((r) => (
                 <tr
                   key={r.vendor_id}
-                  className="border-t border-hm-text/10 hover:bg-hm-text/[0.02]"
+                  className="border-t border-line hover:bg-ink/[0.03]"
                 >
                   <td className="px-4 py-3">
                     <Link
                       href={`/dashboard/vendors`}
-                      className="hover:text-hm-text"
+                      className="hover:text-ink"
                     >
                       {r.name}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-hm-nav">
+                  <td className="px-4 py-3 text-ink-muted">
                     {r.legal_name ?? (
-                      <span className="italic text-hm-nav/60">
+                      <span className="italic text-ink-subtle">
                         not on file
                       </span>
                     )}
                   </td>
                   <td className="px-4 py-3">
                     {r.needs_1099 ? (
-                      <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-emerald-800">
+                      <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-success">
                         1099 required
                       </span>
                     ) : r.threshold_unflagged ? (
-                      <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-amber-800">
+                      <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-warn">
                         Review
                       </span>
                     ) : r.is_1099_eligible ? (
-                      <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav">
+                      <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted">
                         Below threshold
                       </span>
                     ) : (
-                      <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav/60">
+                      <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-subtle">
                         Not eligible
                       </span>
                     )}
@@ -162,7 +162,7 @@ export default async function Form1099Page({ searchParams }: Props) {
                   <td className="text-right px-4 py-3">
                     {formatCents(r.ytd_paid_cents)}
                   </td>
-                  <td className="text-right px-4 py-3 text-hm-nav text-[0.85rem]">
+                  <td className="text-right px-4 py-3 text-ink-muted text-[0.85rem]">
                     {r.needs_1099 && !r.has_tax_id
                       ? 'Missing TIN'
                       : ''}
@@ -175,11 +175,11 @@ export default async function Form1099Page({ searchParams }: Props) {
       )}
 
       {summary.unmatched_count > 0 ? (
-        <div className="mt-6 border border-amber-700/30 bg-amber-50/30 p-5">
-          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-amber-900 mb-2">
+        <div className="mt-6 border border-warn/30 bg-warn-soft/40/30 p-5">
+          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-warn mb-2">
             Free-text vendors
           </div>
-          <p className="font-garamond text-[0.95rem] text-amber-950 leading-[1.6]">
+          <p className="font-garamond text-[0.95rem] text-warn leading-[1.6]">
             {summary.unmatched_count} expense
             {summary.unmatched_count === 1 ? '' : 's'} totaling{' '}
             <span className="font-semibold">

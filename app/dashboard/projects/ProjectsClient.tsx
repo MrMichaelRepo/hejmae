@@ -12,6 +12,8 @@ import { StatusBadge } from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import { Field, Input, Select, Textarea } from '@/components/ui/Input'
 import Modal from '@/components/ui/Modal'
+import Alert from '@/components/ui/Alert'
+import { useDensity, rowClass } from '@/components/ui/Density'
 import { toast } from '@/components/ui/Toast'
 
 export interface ProjectListItem {
@@ -43,6 +45,7 @@ export default function ProjectsClient({ initialProjects, initialClients }: Prop
   const [search, setSearch] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [openCreate, setOpenCreate] = useState(false)
+  const { density } = useDensity()
 
   useOpenOnQuery(
     'new',
@@ -81,7 +84,7 @@ export default function ProjectsClient({ initialProjects, initialClients }: Prop
       />
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        <div className="flex gap-px bg-hm-text/10 rounded-sm overflow-hidden">
+        <div className="flex gap-px bg-ink/10 rounded-sm overflow-hidden">
           {(['active', 'completed', 'archived', 'all'] as StatusFilter[]).map((s) => (
             <button
               key={s}
@@ -89,8 +92,8 @@ export default function ProjectsClient({ initialProjects, initialClients }: Prop
               className={[
                 'font-sans text-[10px] uppercase tracking-[0.2em] px-4 py-2 transition-colors',
                 filter === s
-                  ? 'bg-hm-text text-bg'
-                  : 'bg-bg text-hm-nav hover:text-hm-text',
+                  ? 'bg-ink text-bg'
+                  : 'bg-bg text-ink-muted hover:text-ink',
               ].join(' ')}
             >
               {s}
@@ -106,9 +109,7 @@ export default function ProjectsClient({ initialProjects, initialClients }: Prop
       </div>
 
       {error ? (
-        <div className="border border-red-700/30 p-4 font-garamond text-red-900">
-          {error}
-        </div>
+        <Alert tone="danger">{error}</Alert>
       ) : filtered.length === 0 ? (
         projects.length === 0 ? (
           <ProjectsEmpty onCreate={() => setOpenCreate(true)} />
@@ -119,7 +120,7 @@ export default function ProjectsClient({ initialProjects, initialClients }: Prop
           />
         )
       ) : (
-        <div className="border border-hm-text/10">
+        <div className="border border-line">
           {filtered.map((p, i) => {
             const client = clients.find((c) => c.id === p.client_id)
             return (
@@ -127,23 +128,24 @@ export default function ProjectsClient({ initialProjects, initialClients }: Prop
                 key={p.id}
                 href={`/dashboard/projects/${p.id}`}
                 className={[
-                  'grid grid-cols-[1fr_auto_auto_auto] gap-6 items-center px-5 py-4 hover:bg-hm-text/[0.03] transition-colors',
-                  i > 0 ? 'border-t border-hm-text/10' : '',
+                  'grid grid-cols-[1fr_auto_auto_auto] gap-6 items-center px-5 hover:bg-ink/[0.03] transition-colors',
+                  rowClass(density),
+                  i > 0 ? 'border-t border-line' : '',
                 ].join(' ')}
               >
                 <div className="min-w-0">
                   <div className="font-serif text-[1.1rem] leading-tight truncate">
                     {p.name}
                   </div>
-                  <div className="font-garamond text-[0.9rem] text-hm-nav truncate mt-0.5">
+                  <div className="font-garamond text-[0.9rem] text-ink-muted truncate mt-0.5">
                     {client?.name ?? 'No client'}
                     {p.location ? ` · ${p.location}` : ''}
                   </div>
                 </div>
-                <div className="font-garamond text-[0.95rem] text-hm-nav hidden md:block">
+                <div className="font-garamond text-[0.95rem] text-ink-muted hidden md:block">
                   {formatCents(p.budget_cents)}
                 </div>
-                <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav/70 hidden md:block">
+                <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-subtle hidden md:block">
                   {formatRelative(p.updated_at)}
                 </div>
                 <StatusBadge kind="project" status={p.status} />
@@ -266,11 +268,7 @@ function CreateProjectModal({
           />
         </Field>
 
-        {err ? (
-          <div className="mb-4 border border-red-700/30 px-3 py-2 font-garamond text-[0.9rem] text-red-900">
-            {err}
-          </div>
-        ) : null}
+        {err ? <Alert tone="danger" className="mb-4">{err}</Alert> : null}
 
         <div className="flex justify-end gap-3">
           <Button type="button" variant="ghost" onClick={onClose}>

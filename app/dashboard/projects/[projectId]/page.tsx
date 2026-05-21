@@ -81,9 +81,9 @@ export default async function ProjectOverviewPage({
             <Link
               key={s}
               href={`/dashboard/projects/${projectId}/items?status=${s}`}
-              className="bg-bg p-5 hover:bg-hm-text/[0.03] transition-colors"
+              className="bg-bg p-5 hover:bg-ink/[0.03] transition-colors"
             >
-              <div className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav mb-2">
+              <div className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted mb-2">
                 {titleCase(s)}
               </div>
               <div className="font-serif text-[1.6rem] leading-none">
@@ -106,7 +106,7 @@ export default async function ProjectOverviewPage({
             ['Outstanding', outstandingTotal],
           ].map(([label, value]) => (
             <div key={label as string} className="bg-bg p-5">
-              <div className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav mb-2">
+              <div className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted mb-2">
                 {label as string}
               </div>
               <div className="font-serif text-[1.4rem] leading-none">

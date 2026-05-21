@@ -115,7 +115,7 @@ export default function ImageSearchModal({
 
   return (
     <Modal open={open} onClose={onClose} title="Search by image">
-      <div className="flex gap-px bg-hm-text/10 rounded-sm overflow-hidden w-fit mb-5">
+      <div className="flex gap-px bg-ink/10 rounded-sm overflow-hidden w-fit mb-5">
         {(
           [
             ['upload', 'Upload image'],
@@ -129,8 +129,8 @@ export default function ImageSearchModal({
             className={[
               'font-sans text-[10px] uppercase tracking-[0.22em] px-5 py-2.5 transition-colors',
               tab === k
-                ? 'bg-hm-text text-bg'
-                : 'bg-bg text-hm-nav hover:text-hm-text',
+                ? 'bg-ink text-bg'
+                : 'bg-bg text-ink-muted hover:text-ink',
             ].join(' ')}
           >
             {label}
@@ -155,12 +155,12 @@ export default function ImageSearchModal({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="w-full border border-dashed border-hm-text/25 px-6 py-12 hover:border-hm-text/50 hover:bg-hm-text/[0.02] transition-colors text-center"
+              className="w-full border border-dashed border-line-strong px-6 py-12 hover:border-ink/50 hover:bg-ink/[0.03] transition-colors text-center"
             >
               <div className="font-serif text-[1.05rem]">
                 Pick an image
               </div>
-              <div className="font-garamond text-[0.9rem] text-hm-nav mt-1">
+              <div className="font-garamond text-[0.9rem] text-ink-muted mt-1">
                 JPEG, PNG, or WebP — up to 5 MB
               </div>
             </button>
@@ -183,7 +183,7 @@ export default function ImageSearchModal({
               autoFocus
             />
           </Field>
-          <div className="font-garamond text-[0.9rem] text-hm-nav">
+          <div className="font-garamond text-[0.9rem] text-ink-muted">
             We fetch the image server-side, send it to the vision model,
             and search the catalog for visually similar products.
           </div>
@@ -210,21 +210,21 @@ export default function ImageSearchModal({
 
 function PreviewBlock({ src, onClear }: { src: string; onClear: () => void }) {
   return (
-    <div className="border border-hm-text/15 p-4 flex gap-4 items-start">
-      <div className="w-32 h-32 bg-hm-text/[0.05] shrink-0 relative overflow-hidden">
+    <div className="border border-line p-4 flex gap-4 items-start">
+      <div className="w-32 h-32 bg-ink/[0.05] shrink-0 relative overflow-hidden">
         <Image src={src} alt="" fill sizes="128px" className="object-cover" unoptimized />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="font-garamond text-[0.95rem] text-hm-text">
+        <div className="font-garamond text-[0.95rem] text-ink">
           Ready to search.
         </div>
-        <div className="font-garamond text-[0.85rem] text-hm-nav mt-1">
+        <div className="font-garamond text-[0.85rem] text-ink-muted mt-1">
           We&apos;ll analyze this image and find visually similar products in
           the master catalog.
         </div>
         <button
           onClick={onClear}
-          className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav hover:text-hm-text mt-3"
+          className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted hover:text-ink mt-3"
         >
           Choose a different image
         </button>
@@ -241,12 +241,12 @@ function AnalyzingProgress() {
       <div className="font-serif text-[1.1rem] text-center mb-1">
         Analyzing image…
       </div>
-      <div className="font-garamond text-[0.9rem] text-hm-nav text-center mb-5">
+      <div className="font-garamond text-[0.9rem] text-ink-muted text-center mb-5">
         Describing the product and searching the catalog.
       </div>
-      <div className="relative h-[3px] bg-hm-text/10 overflow-hidden">
+      <div className="relative h-[3px] bg-ink/10 overflow-hidden">
         <div
-          className="absolute inset-y-0 left-0 w-1/3 bg-hm-text/70"
+          className="absolute inset-y-0 left-0 w-1/3 bg-ink/70"
           style={{ animation: 'hm-image-search-slide 1.6s ease-in-out infinite' }}
         />
       </div>

@@ -87,10 +87,10 @@ export default async function AgingPage({ searchParams }: Props) {
           small
         />
       ) : (
-        <div className="border border-hm-text/10 overflow-x-auto">
+        <div className="border border-line overflow-x-auto">
           <table className="w-full font-garamond text-[0.95rem]">
             <thead>
-              <tr className="bg-hm-text/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+              <tr className="bg-ink/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
                 <th className="text-left px-4 py-3">Invoice</th>
                 <th className="text-left px-4 py-3">Client</th>
                 <th className="text-left px-4 py-3">Sent</th>
@@ -104,30 +104,30 @@ export default async function AgingPage({ searchParams }: Props) {
               {rows.map((r) => (
                 <tr
                   key={r.invoice_id}
-                  className="border-t border-hm-text/10 hover:bg-hm-text/[0.02]"
+                  className="border-t border-line hover:bg-ink/[0.03]"
                 >
                   <td className="px-4 py-3">
                     <Link
                       href={`/dashboard/projects/${r.project_id}/invoices/${r.invoice_id}`}
-                      className="hover:text-hm-text"
+                      className="hover:text-ink"
                     >
                       {r.invoice_number_display}
                     </Link>
                   </td>
-                  <td className="px-4 py-3 text-hm-nav">
+                  <td className="px-4 py-3 text-ink-muted">
                     {r.client_name ?? '—'}
                   </td>
-                  <td className="px-4 py-3 text-hm-nav whitespace-nowrap">
+                  <td className="px-4 py-3 text-ink-muted whitespace-nowrap">
                     {formatDate(r.sent_at)}
                   </td>
                   <td className="text-right px-4 py-3">
                     <span
                       className={
                         r.bucket === 'bucket_over_90_cents'
-                          ? 'text-red-700'
+                          ? 'text-danger'
                           : r.bucket === 'bucket_61_90_cents'
-                            ? 'text-amber-700'
-                            : 'text-hm-text'
+                            ? 'text-warn'
+                            : 'text-ink'
                       }
                     >
                       {r.days_outstanding}
@@ -136,7 +136,7 @@ export default async function AgingPage({ searchParams }: Props) {
                   <td className="text-right px-4 py-3">
                     {formatCents(r.total_cents)}
                   </td>
-                  <td className="text-right px-4 py-3 text-hm-nav">
+                  <td className="text-right px-4 py-3 text-ink-muted">
                     {formatCents(r.paid_cents)}
                   </td>
                   <td className="text-right px-4 py-3">
@@ -144,7 +144,7 @@ export default async function AgingPage({ searchParams }: Props) {
                   </td>
                 </tr>
               ))}
-              <tr className="border-t border-hm-text/30 font-sans text-[10px] uppercase tracking-[0.18em]">
+              <tr className="border-t border-line-strong font-sans text-[10px] uppercase tracking-[0.18em]">
                 <td className="px-4 py-3" colSpan={6}>
                   Total
                 </td>

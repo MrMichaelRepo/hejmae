@@ -29,8 +29,8 @@ export default function ReportsNav() {
               className={[
                 'font-sans text-[10px] uppercase tracking-[0.22em] px-4 py-2 border rounded-sm transition-colors',
                 active
-                  ? 'border-hm-text text-hm-text bg-hm-text/[0.04]'
-                  : 'border-hm-text/15 text-hm-nav hover:text-hm-text',
+                  ? 'border-ink text-ink bg-ink/[0.04]'
+                  : 'border-line text-ink-muted hover:text-ink',
               ].join(' ')}
             >
               {label}

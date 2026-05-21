@@ -9,6 +9,8 @@ import EmptyState from '@/components/ui/EmptyState'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import { Input, Label, Select, Textarea } from '@/components/ui/Input'
+import { Checkbox } from '@/components/ui/Checkbox'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { StatGrid, StatTile } from '@/components/finances/SummaryTile'
 import { toast } from '@/components/ui/Toast'
 import {
@@ -166,7 +168,7 @@ export default function MyTimeClient({
         <button
           type="button"
           onClick={() => setWeekStart((w) => addDays(w, -7))}
-          className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-hm-text"
+          className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted hover:text-ink"
         >
           ← Previous week
         </button>
@@ -176,18 +178,18 @@ export default function MyTimeClient({
         <button
           type="button"
           onClick={() => setWeekStart((w) => addDays(w, 7))}
-          className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-hm-text"
+          className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted hover:text-ink"
         >
           Next week →
         </button>
         <button
           type="button"
           onClick={() => setWeekStart(startOfWeekMonday(new Date()))}
-          className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-hm-text ml-2"
+          className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted hover:text-ink ml-2"
         >
           This week
         </button>
-        <div className="ml-auto inline-flex border border-hm-text/15 rounded-sm overflow-hidden">
+        <div className="ml-auto inline-flex border border-line rounded-sm overflow-hidden">
           {(['grid', 'list'] as const).map((v) => (
             <button
               key={v}
@@ -196,8 +198,8 @@ export default function MyTimeClient({
               className={[
                 'px-3 py-1.5 font-sans text-[10px] uppercase tracking-[0.2em] transition-colors',
                 view === v
-                  ? 'bg-hm-text text-bg'
-                  : 'text-hm-nav hover:text-hm-text',
+                  ? 'bg-ink text-bg'
+                  : 'text-ink-muted hover:text-ink',
               ].join(' ')}
             >
               {v}
@@ -318,7 +320,7 @@ function RunningTimer({
     const s = elapsedSec % 60
     const projName = projects.find((p) => p.id === running.project_id)?.name ?? '—'
     return (
-      <div className="border border-emerald-700/40 bg-emerald-50/40 p-5 mb-8 flex items-center gap-4">
+      <div className="border border-success/40 bg-success-soft/40 p-5 mb-8 flex items-center gap-4">
         <div className="font-serif text-[1.6rem] tabular-nums leading-none">
           {h}:{String(m).padStart(2, '0')}:{String(s).padStart(2, '0')}
         </div>
@@ -326,7 +328,7 @@ function RunningTimer({
           <div className="font-garamond text-[1rem] truncate">
             {running.description}
           </div>
-          <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-emerald-800">
+          <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-success">
             {projName} · {running.billable ? 'Billable' : 'Internal'}
           </div>
         </div>
@@ -338,7 +340,7 @@ function RunningTimer({
   }
 
   return (
-    <div className="border border-hm-text/15 bg-bg p-5 mb-8 grid grid-cols-1 md:grid-cols-[1fr_2fr_auto_auto] items-end gap-3">
+    <div className="border border-line bg-bg p-5 mb-8 grid grid-cols-1 md:grid-cols-[1fr_2fr_auto_auto] items-end gap-3">
       <div>
         <Label htmlFor="t-proj">Project</Label>
         <Select
@@ -371,14 +373,12 @@ function RunningTimer({
           }}
         />
       </div>
-      <label className="inline-flex items-center gap-2 cursor-pointer pb-2.5">
-        <input
-          type="checkbox"
-          checked={billable}
-          onChange={(e) => setBillable(e.target.checked)}
-        />
-        <span className="font-garamond text-[0.9rem]">Billable</span>
-      </label>
+      <Checkbox
+        className="pb-2.5"
+        checked={billable}
+        onChange={(e) => setBillable(e.target.checked)}
+        label="Billable"
+      />
       <Button variant="primary" onClick={start} loading={submitting}>
         Start
       </Button>
@@ -416,10 +416,10 @@ function WeeklyGrid({
   })
 
   return (
-    <div className="border border-hm-text/10 overflow-x-auto">
+    <div className="border border-line overflow-x-auto">
       <table className="w-full font-garamond text-[0.95rem]">
         <thead>
-          <tr className="bg-hm-text/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+          <tr className="bg-ink/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
             <th className="text-left px-4 py-3">Project</th>
             {weekDates.map((d, i) => (
               <th key={i} className="text-right px-3 py-3">
@@ -435,12 +435,12 @@ function WeeklyGrid({
             const proj = projects.find((p) => p.id === pid)
             const total = Array.from(inner.values()).reduce((a, n) => a + n, 0)
             return (
-              <tr key={pid} className="border-t border-hm-text/10">
+              <tr key={pid} className="border-t border-line">
                 <td className="px-4 py-3">
                   {proj ? (
                     <Link
                       href={`/dashboard/projects/${pid}`}
-                      className="hover:text-hm-text"
+                      className="hover:text-ink"
                     >
                       {proj.name}
                     </Link>
@@ -455,7 +455,7 @@ function WeeklyGrid({
                       key={i}
                       className={[
                         'text-right px-3 py-3 tabular-nums',
-                        v === 0 ? 'text-hm-nav/40' : '',
+                        v === 0 ? 'text-ink-subtle/70' : '',
                       ].join(' ')}
                     >
                       {v > 0 ? fmtMinutes(v) : '—'}
@@ -468,7 +468,7 @@ function WeeklyGrid({
               </tr>
             )
           })}
-          <tr className="border-t border-hm-text/30 font-sans text-[10px] uppercase tracking-[0.18em]">
+          <tr className="border-t border-line-strong font-sans text-[10px] uppercase tracking-[0.18em]">
             <td className="px-4 py-3">Day totals</td>
             {dayTotals.map((d, i) => (
               <td key={i} className="text-right px-3 py-3 tabular-nums">
@@ -498,10 +498,10 @@ function EntryList({
     return <EmptyState title="No entries this week" small />
   }
   return (
-    <div className="border border-hm-text/10 overflow-x-auto">
+    <div className="border border-line overflow-x-auto">
       <table className="w-full font-garamond text-[0.95rem]">
         <thead>
-          <tr className="bg-hm-text/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+          <tr className="bg-ink/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
             <th className="text-left px-4 py-3">Date</th>
             <th className="text-left px-4 py-3">Project</th>
             <th className="text-left px-4 py-3">Description</th>
@@ -522,10 +522,10 @@ function EntryList({
                 key={e.id}
                 onClick={() => (isBilled ? undefined : onEdit(e))}
                 className={[
-                  'border-t border-hm-text/10',
+                  'border-t border-line',
                   isBilled
                     ? 'cursor-default'
-                    : 'hover:bg-hm-text/[0.02] cursor-pointer',
+                    : 'hover:bg-ink/[0.03] cursor-pointer',
                 ].join(' ')}
               >
                 <td className="px-4 py-3 whitespace-nowrap">
@@ -535,7 +535,7 @@ function EntryList({
                 <td className="px-4 py-3">
                   {e.description}
                   {!e.billable ? (
-                    <span className="ml-2 font-sans text-[9px] uppercase tracking-[0.2em] text-hm-nav">
+                    <span className="ml-2 font-sans text-[9px] uppercase tracking-[0.2em] text-ink-muted">
                       internal
                     </span>
                   ) : null}
@@ -543,7 +543,7 @@ function EntryList({
                 <td className="text-right px-4 py-3 tabular-nums">
                   {fmtMinutes(minutes)}
                 </td>
-                <td className="text-right px-4 py-3 text-hm-nav">
+                <td className="text-right px-4 py-3 text-ink-muted">
                   {formatCents(e.hourly_rate_cents)}/hr
                 </td>
                 <td className="text-right px-4 py-3 tabular-nums">
@@ -551,15 +551,15 @@ function EntryList({
                 </td>
                 <td className="text-center px-4 py-3">
                   {isBilled ? (
-                    <span className="font-sans text-[9px] uppercase tracking-[0.2em] text-emerald-700">
+                    <span className="font-sans text-[9px] uppercase tracking-[0.2em] text-success">
                       Invoiced
                     </span>
                   ) : e.ended_at ? (
-                    <span className="font-sans text-[9px] uppercase tracking-[0.2em] text-hm-nav">
+                    <span className="font-sans text-[9px] uppercase tracking-[0.2em] text-ink-muted">
                       Logged
                     </span>
                   ) : (
-                    <span className="font-sans text-[9px] uppercase tracking-[0.2em] text-emerald-700">
+                    <span className="font-sans text-[9px] uppercase tracking-[0.2em] text-success">
                       Running
                     </span>
                   )}
@@ -608,6 +608,7 @@ function ManualEntryForm({
   const [notes, setNotes] = useState(existing?.notes ?? '')
   const [submitting, setSubmitting] = useState(false)
   const [err, setErr] = useState<string | null>(null)
+  const confirm = useConfirm()
 
   async function save(e: React.FormEvent) {
     e.preventDefault()
@@ -658,7 +659,13 @@ function ManualEntryForm({
 
   async function remove() {
     if (!existing) return
-    if (!confirm('Delete this entry?')) return
+    const ok = await confirm({
+      title: 'Delete this entry?',
+      body: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    })
+    if (!ok) return
     setSubmitting(true)
     try {
       await api.del(`/api/time-entries/${existing.id}`)
@@ -731,14 +738,11 @@ function ManualEntryForm({
           required
         />
       </div>
-      <label className="flex items-center gap-3 cursor-pointer">
-        <input
-          type="checkbox"
-          checked={billable}
-          onChange={(e) => setBillable(e.target.checked)}
-        />
-        <span className="font-garamond text-[0.95rem]">Billable</span>
-      </label>
+      <Checkbox
+        checked={billable}
+        onChange={(e) => setBillable(e.target.checked)}
+        label="Billable"
+      />
       <div>
         <Label htmlFor="te-notes">Notes</Label>
         <Textarea
@@ -749,7 +753,7 @@ function ManualEntryForm({
         />
       </div>
       {err ? (
-        <div className="font-garamond text-[0.95rem] text-red-700">{err}</div>
+        <div className="font-garamond text-[0.95rem] text-danger">{err}</div>
       ) : null}
       <div className="flex justify-between pt-2">
         {existing && !existing.invoice_line_item_id ? (

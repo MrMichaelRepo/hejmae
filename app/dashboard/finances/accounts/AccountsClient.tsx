@@ -116,10 +116,10 @@ export default function AccountsClient({
               <h2 className="font-serif text-[1.2rem] mb-3">
                 {TYPE_LABEL[type]}
               </h2>
-              <div className="border border-hm-text/10 overflow-x-auto">
+              <div className="border border-line overflow-x-auto">
                 <table className="w-full font-garamond text-[0.95rem]">
                   <thead>
-                    <tr className="bg-hm-text/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+                    <tr className="bg-ink/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
                       <th className="text-left px-4 py-3 w-24">Code</th>
                       <th className="text-left px-4 py-3">Name</th>
                       {showsSchedC ? (
@@ -137,8 +137,8 @@ export default function AccountsClient({
                   </thead>
                   <tbody>
                     {rows.map((a) => (
-                      <tr key={a.id} className="border-t border-hm-text/10">
-                        <td className="px-4 py-3 text-hm-nav">{a.code}</td>
+                      <tr key={a.id} className="border-t border-line">
+                        <td className="px-4 py-3 text-ink-muted">{a.code}</td>
                         <td className="px-4 py-3">{a.name}</td>
                         {showsSchedC ? (
                           <td className="px-4 py-3">
@@ -159,7 +159,7 @@ export default function AccountsClient({
                                 ))}
                               </Select>
                             ) : (
-                              <span className="text-hm-nav">
+                              <span className="text-ink-muted">
                                 {a.schedule_c_line
                                   ? SCHEDULE_C_LABEL[a.schedule_c_line]
                                   : '—'}
@@ -179,7 +179,7 @@ export default function AccountsClient({
                               className={[
                                 'text-left',
                                 canReconcile
-                                  ? 'cursor-pointer hover:text-hm-text'
+                                  ? 'cursor-pointer hover:text-ink'
                                   : 'cursor-default',
                               ].join(' ')}
                             >
@@ -190,19 +190,19 @@ export default function AccountsClient({
                                       a.last_reconciled_through_date,
                                     )}
                                   </div>
-                                  <div className="font-sans text-[9px] uppercase tracking-[0.2em] text-emerald-700">
+                                  <div className="font-sans text-[9px] uppercase tracking-[0.2em] text-success">
                                     Reconciled
                                   </div>
                                 </>
                               ) : (
-                                <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav">
+                                <span className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted">
                                   {canReconcile ? 'Mark reconciled' : '—'}
                                 </span>
                               )}
                             </button>
                           </td>
                         ) : null}
-                        <td className="px-4 py-3 text-hm-nav">
+                        <td className="px-4 py-3 text-ink-muted">
                           {a.description ?? ''}
                         </td>
                       </tr>
@@ -275,7 +275,7 @@ function ReconcileForm({
 
   return (
     <div className="space-y-5">
-      <p className="font-garamond text-[0.95rem] text-hm-nav leading-[1.6]">
+      <p className="font-garamond text-[0.95rem] text-ink-muted leading-[1.6]">
         Mark this account as tied to your bank/CC statement through the date
         below. Use this when you&apos;ve matched every transaction up to that date.
       </p>
@@ -290,7 +290,7 @@ function ReconcileForm({
         />
       </div>
       {err ? (
-        <div className="font-garamond text-[0.95rem] text-red-700">{err}</div>
+        <div className="font-garamond text-[0.95rem] text-danger">{err}</div>
       ) : null}
       <div className="flex justify-between pt-2">
         {account.last_reconciled_through_date ? (

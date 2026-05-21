@@ -115,7 +115,7 @@ export default function ReviewClient({
 
   if (!data) {
     return (
-      <div className="font-garamond text-hm-nav">Loading…</div>
+      <div className="font-garamond text-ink-muted">Loading…</div>
     )
   }
 
@@ -136,7 +136,7 @@ export default function ReviewClient({
           <div className="flex gap-2">
             <Link
               href="/dashboard/finances/banking"
-              className="font-sans text-[10px] uppercase tracking-[0.22em] border border-hm-text/25 px-4 py-2 hover:bg-hm-text hover:text-bg transition-colors"
+              className="font-sans text-[10px] uppercase tracking-[0.22em] border border-line-strong px-4 py-2 hover:bg-ink hover:text-bg transition-colors"
             >
               ← All imports
             </Link>
@@ -148,20 +148,20 @@ export default function ReviewClient({
       />
 
       {data.import.status === 'matching' || polling ? (
-        <div className="mb-4 p-3 border border-blue-700/30 bg-blue-50 font-garamond text-[0.9rem]">
+        <div className="mb-4 p-3 border border-accent/30 bg-accent-soft/30 font-garamond text-[0.9rem]">
           AI matching in progress…
         </div>
       ) : null}
       {data.import.ai_error ? (
-        <div className="mb-4 p-3 border border-amber-700/40 bg-amber-50 font-garamond text-[0.9rem] text-amber-900">
+        <div className="mb-4 p-3 border border-warn/40 bg-warn-soft/40 font-garamond text-[0.9rem] text-warn">
           Last AI run failed: {data.import.ai_error}
         </div>
       ) : null}
 
-      <div className="border border-hm-text/10 overflow-x-auto">
+      <div className="border border-line overflow-x-auto">
         <table className="w-full font-garamond text-[0.92rem]">
           <thead>
-            <tr className="bg-hm-text/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+            <tr className="bg-ink/[0.03] font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
               <th className="text-left px-3 py-2 w-24">Date</th>
               <th className="text-left px-3 py-2">Description</th>
               <th className="text-right px-3 py-2 w-24">Amount</th>
@@ -179,24 +179,24 @@ export default function ReviewClient({
                     ? paymentById.get(t.proposed_entity_id)
                     : null
               return (
-                <tr key={t.id} className="border-t border-hm-text/10 align-top">
-                  <td className="px-3 py-3 text-hm-nav whitespace-nowrap">
+                <tr key={t.id} className="border-t border-line align-top">
+                  <td className="px-3 py-3 text-ink-muted whitespace-nowrap">
                     {t.txn_date}
                   </td>
                   <td className="px-3 py-3 break-words max-w-md">
                     {t.description}
                   </td>
                   <td
-                    className={`text-right px-3 py-3 whitespace-nowrap ${t.amount_cents >= 0 ? 'text-emerald-700' : 'text-amber-800'}`}
+                    className={`text-right px-3 py-3 whitespace-nowrap ${t.amount_cents >= 0 ? 'text-success' : 'text-warn'}`}
                   >
                     {formatCents(t.amount_cents)}
                   </td>
                   <td className="px-3 py-3">
                     {t.status === 'ignored' ? (
-                      <span className="text-hm-nav italic">Ignored</span>
+                      <span className="text-ink-muted italic">Ignored</span>
                     ) : proposed ? (
                       <div className="space-y-1">
-                        <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+                        <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
                           {t.proposed_entity_type} ·{' '}
                           {Math.round((t.proposed_confidence ?? 0) * 100)}% conf
                         </div>
@@ -205,7 +205,7 @@ export default function ReviewClient({
                         'expense_date' in proposed ? (
                           <div>
                             {proposed.vendor_name ?? 'Expense'}{' '}
-                            <span className="text-hm-nav">
+                            <span className="text-ink-muted">
                               · {proposed.expense_date} ·{' '}
                               {formatCents(proposed.amount_cents)}
                             </span>
@@ -216,20 +216,20 @@ export default function ReviewClient({
                         'received_at' in proposed ? (
                           <div>
                             Payment{' '}
-                            <span className="text-hm-nav">
+                            <span className="text-ink-muted">
                               · {proposed.received_at.slice(0, 10)} ·{' '}
                               {formatCents(proposed.amount_cents)}
                             </span>
                           </div>
                         ) : null}
                         {t.proposed_reasoning ? (
-                          <div className="text-hm-nav text-[0.85rem]">
+                          <div className="text-ink-muted text-[0.85rem]">
                             {t.proposed_reasoning}
                           </div>
                         ) : null}
                       </div>
                     ) : (
-                      <span className="text-hm-nav italic">No match found</span>
+                      <span className="text-ink-muted italic">No match found</span>
                     )}
                   </td>
                   <td className="px-3 py-3">
@@ -299,12 +299,12 @@ export default function ReviewClient({
 
 function StatusPill({ status }: { status: BankTransactionRow['status'] }) {
   const map: Record<BankTransactionRow['status'], string> = {
-    pending: 'text-hm-nav border-hm-nav/30',
-    matched: 'text-emerald-700 border-emerald-700/30',
-    created_expense: 'text-emerald-700 border-emerald-700/30',
-    created_payment: 'text-emerald-700 border-emerald-700/30',
-    ignored: 'text-hm-nav border-hm-nav/30',
-    split: 'text-hm-nav border-hm-nav/30',
+    pending: 'text-ink-muted border-line',
+    matched: 'text-success border-success/30',
+    created_expense: 'text-success border-success/30',
+    created_payment: 'text-success border-success/30',
+    ignored: 'text-ink-muted border-line',
+    split: 'text-ink-muted border-line',
   }
   return (
     <span
@@ -362,7 +362,7 @@ function CreateExpenseForm({
   }
 
   return (
-    <div className="mt-3 p-3 border border-hm-text/20 bg-bg space-y-3">
+    <div className="mt-3 p-3 border border-line-strong bg-bg space-y-3">
       <div className="grid grid-cols-3 gap-2">
         <Select
           value={categoryId}

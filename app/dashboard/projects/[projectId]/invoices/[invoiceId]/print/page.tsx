@@ -65,7 +65,7 @@ export default async function InvoicePrintPage({
   const logoSignedUrl = await resolveAssetUrl(user.logo_url)
 
   return (
-    <div className="bg-white text-hm-text">
+    <div className="bg-white text-ink">
       <PrintBar invoiceId={invoiceId} projectId={projectId} />
 
       <div className="max-w-[800px] mx-auto px-10 py-12 print:px-0 print:py-0">
@@ -101,7 +101,7 @@ export default async function InvoicePrintPage({
             <div className="font-serif text-[1.4rem] mt-1">
               #{invoice.id.slice(0, 8).toUpperCase()}
             </div>
-            <div className="font-garamond text-[0.95rem] text-hm-nav mt-1">
+            <div className="font-garamond text-[0.95rem] text-ink-muted mt-1">
               {invoice.sent_at
                 ? formatDate(invoice.sent_at)
                 : formatDate(invoice.created_at)}
@@ -111,29 +111,29 @@ export default async function InvoicePrintPage({
 
         <div className="grid grid-cols-2 gap-8 mb-10">
           <div>
-            <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
+            <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-2">
               Bill to
             </div>
             <div className="font-serif text-[1.1rem]">
               {client?.name ?? '—'}
             </div>
             {client?.email ? (
-              <div className="font-garamond text-[0.95rem] text-hm-nav mt-1">
+              <div className="font-garamond text-[0.95rem] text-ink-muted mt-1">
                 {client.email}
               </div>
             ) : null}
           </div>
           <div>
-            <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
+            <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-2">
               Project
             </div>
             <div className="font-serif text-[1.1rem]">{project.name}</div>
             {project.location ? (
-              <div className="font-garamond text-[0.95rem] text-hm-nav mt-1">
+              <div className="font-garamond text-[0.95rem] text-ink-muted mt-1">
                 {project.location}
               </div>
             ) : null}
-            <div className="font-garamond text-[0.85rem] text-hm-nav mt-1 capitalize">
+            <div className="font-garamond text-[0.85rem] text-ink-muted mt-1 capitalize">
               {invoice.type} · {invoice.status.replace('_', ' ')}
             </div>
           </div>
@@ -161,9 +161,9 @@ export default async function InvoicePrintPage({
           </thead>
           <tbody>
             {lines.map((l) => (
-              <tr key={l.id} className="border-b border-hm-text/10">
+              <tr key={l.id} className="border-b border-line">
                 <td className="py-3">{l.description}</td>
-                <td className="py-3 text-right text-hm-nav">{l.quantity}</td>
+                <td className="py-3 text-right text-ink-muted">{l.quantity}</td>
                 <td className="py-3 text-right">
                   {formatCents(l.unit_price_cents)}
                 </td>
@@ -186,12 +186,12 @@ export default async function InvoicePrintPage({
             {paid > 0 ? (
               <tr>
                 <td
-                  className="py-1 font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav"
+                  className="py-1 font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted"
                   colSpan={3}
                 >
                   Payments received
                 </td>
-                <td className="py-1 text-right font-garamond text-hm-nav">
+                <td className="py-1 text-right font-garamond text-ink-muted">
                   −{formatCents(paid)}
                 </td>
               </tr>
@@ -215,8 +215,8 @@ export default async function InvoicePrintPage({
         </table>
 
         {invoice.notes ? (
-          <div className="mt-10 pt-6 border-t border-hm-text/10">
-            <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
+          <div className="mt-10 pt-6 border-t border-line">
+            <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-2">
               Notes
             </div>
             <p className="font-garamond text-[0.95rem] leading-[1.7] whitespace-pre-wrap">
@@ -226,7 +226,7 @@ export default async function InvoicePrintPage({
         ) : null}
 
         {invoice.paid_at ? (
-          <div className="mt-10 font-garamond text-[0.95rem] text-hm-nav text-center">
+          <div className="mt-10 font-garamond text-[0.95rem] text-ink-muted text-center">
             Paid {formatDate(invoice.paid_at)}. Thank you.
           </div>
         ) : null}

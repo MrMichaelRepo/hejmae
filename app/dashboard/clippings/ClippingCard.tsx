@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { formatCents } from '@/lib/format'
+import { Badge } from '@/components/ui/Badge'
 import type { ClippingItemFeedRow } from '@/lib/types-ui'
 
 interface Props {
@@ -38,8 +39,8 @@ export default function ClippingCard({
       className={[
         'group border bg-bg flex flex-col transition-colors relative',
         selectMode && selected
-          ? 'border-hm-text ring-1 ring-hm-text'
-          : 'border-hm-text/10',
+          ? 'border-ink ring-1 ring-accent'
+          : 'border-line',
       ].join(' ')}
     >
       {/* Select-mode overlay — captures clicks across the whole card so
@@ -61,8 +62,8 @@ export default function ClippingCard({
           className={[
             'absolute top-2.5 right-2.5 z-30 inline-flex items-center justify-center w-6 h-6 rounded-full border transition-colors',
             selected
-              ? 'bg-hm-text border-hm-text text-bg'
-              : 'bg-bg/90 backdrop-blur border-hm-text/30 text-transparent',
+              ? 'bg-ink border-ink text-bg'
+              : 'bg-bg/90 backdrop-blur border-line-strong text-transparent',
           ].join(' ')}
         >
           <svg viewBox="0 0 24 24" className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="3">
@@ -76,7 +77,7 @@ export default function ClippingCard({
         href={row.source_url}
         target="_blank"
         rel="noreferrer noopener"
-        className="relative block aspect-[4/3] bg-hm-text/[0.05] overflow-hidden"
+        className="relative block aspect-[4/3] bg-ink/[0.05] overflow-hidden"
       >
         {row.image_url && !isFailed ? (
           <Image
@@ -99,7 +100,7 @@ export default function ClippingCard({
             name={row.clipper.name ?? row.clipper.email}
             logoUrl={row.clipper.logo_url}
           />
-          <span className="font-sans text-[9px] uppercase tracking-[0.18em] text-hm-text max-w-[120px] truncate">
+          <span className="font-sans text-[9px] uppercase tracking-[0.18em] text-ink max-w-[120px] truncate">
             {row.clipper.name?.trim() || row.clipper.email}
           </span>
         </div>
@@ -117,22 +118,18 @@ export default function ClippingCard({
             (isPending ? 'Loading product…' : sourceHost ?? row.source_url)}
         </a>
 
-        <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav truncate">
+        <div className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted truncate">
           {row.brand?.trim() || sourceHost || '—'}
         </div>
 
         <div className="flex items-center gap-2 flex-wrap mt-0.5">
           {row.retail_price_cents != null ? (
-            <span className="font-garamond text-[0.95rem] text-hm-text">
+            <span className="font-garamond text-[0.95rem] text-ink">
               {formatCents(row.retail_price_cents)}
             </span>
           ) : null}
-          {row.project ? (
-            <span className="font-sans text-[9px] uppercase tracking-[0.18em] text-hm-text border border-hm-text/20 px-2 py-0.5">
-              {row.project.name}
-            </span>
-          ) : null}
-          <span className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav ml-auto">
+          {row.project ? <Badge tone="neutral">{row.project.name}</Badge> : null}
+          <span className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted ml-auto">
             {weekLabel}
           </span>
         </div>
@@ -140,11 +137,11 @@ export default function ClippingCard({
         {/* Actions — hidden in bulk select mode so the only affordance
             is the selection click target. */}
         {selectMode ? null : (
-          <div className="mt-3 pt-3 border-t border-hm-text/10 flex items-center justify-between gap-2">
+          <div className="mt-3 pt-3 border-t border-line flex items-center justify-between gap-2">
             <button
               onClick={onAddToProject}
               disabled={isPending}
-              className="font-sans text-[10px] uppercase tracking-[0.22em] bg-hm-text text-bg px-4 py-2 rounded-full hover:bg-hm-text/90 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="font-sans text-[10px] uppercase tracking-[0.22em] bg-ink text-bg px-4 py-2 rounded-full hover:bg-ink/90 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Add to project
             </button>
@@ -152,7 +149,7 @@ export default function ClippingCard({
               <button
                 onClick={onDelete}
                 aria-label="Delete clipping"
-                className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav hover:text-red-700 px-3 py-2"
+                className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted hover:text-danger px-3 py-2"
               >
                 ✕
               </button>
@@ -167,7 +164,7 @@ export default function ClippingCard({
 function ShimmerOverlay() {
   return (
     <div
-      className="absolute inset-0 bg-gradient-to-r from-hm-text/[0.04] via-hm-text/[0.10] to-hm-text/[0.04] animate-pulse"
+      className="absolute inset-0 bg-gradient-to-r from-ink/[0.04] via-ink/[0.10] to-ink/[0.04] animate-pulse"
       aria-label="Loading product details"
     />
   )
@@ -175,8 +172,8 @@ function ShimmerOverlay() {
 
 function BrokenImagePlaceholder() {
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-hm-text/[0.05]">
-      <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav">
+    <div className="absolute inset-0 flex items-center justify-center bg-ink/[0.05]">
+      <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted">
         Preview unavailable
       </span>
     </div>
@@ -192,14 +189,14 @@ function ClipperAvatar({
 }) {
   if (logoUrl) {
     return (
-      <span className="relative w-5 h-5 rounded-full overflow-hidden bg-hm-text/[0.05]">
+      <span className="relative w-5 h-5 rounded-full overflow-hidden bg-ink/[0.05]">
         <Image src={logoUrl} alt="" fill sizes="20px" unoptimized />
       </span>
     )
   }
   const initial = (name.trim()[0] ?? '?').toUpperCase()
   return (
-    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-hm-text text-bg font-sans text-[9px]">
+    <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-ink text-bg font-sans text-[9px]">
       {initial}
     </span>
   )

@@ -5,6 +5,8 @@ import { api, ApiError } from '@/lib/api'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import { Input, Label, Select, Textarea } from '@/components/ui/Input'
+import { Checkbox } from '@/components/ui/Checkbox'
+import Alert from '@/components/ui/Alert'
 import type { AccountRow, ProjectRow, VendorRow } from '@/lib/supabase/types'
 
 interface Props {
@@ -177,7 +179,7 @@ export default function ExpenseModal({ open, onClose, accounts, projects, vendor
               onChange={(e) => setVendor(e.target.value)}
               placeholder="e.g. Visual Comfort"
             />
-            <div className="mt-1.5 font-garamond text-[0.85rem] text-hm-nav/70">
+            <div className="mt-1.5 font-garamond text-[0.85rem] text-ink-subtle">
               Pick a vendor above to count toward 1099 totals.
             </div>
           </div>
@@ -254,20 +256,13 @@ export default function ExpenseModal({ open, onClose, accounts, projects, vendor
           />
         </div>
 
-        <label className="flex items-center gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={billable}
-            onChange={(e) => setBillable(e.target.checked)}
-          />
-          <span className="font-garamond text-[0.95rem]">
-            Billable to client (reimbursable)
-          </span>
-        </label>
+        <Checkbox
+          checked={billable}
+          onChange={(e) => setBillable(e.target.checked)}
+          label="Billable to client (reimbursable)"
+        />
 
-        {err ? (
-          <div className="font-garamond text-[0.95rem] text-red-700">{err}</div>
-        ) : null}
+        {err ? <Alert tone="danger">{err}</Alert> : null}
 
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="ghost" onClick={onClose} disabled={submitting}>

@@ -16,6 +16,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Button from '@/components/ui/Button'
+import Alert from '@/components/ui/Alert'
 import { toast } from '@/components/ui/Toast'
 
 const HELCIM_LOADER_SRC = 'https://secure.helcim.app/helcim-pay/services/start.js'
@@ -40,6 +41,7 @@ export default function HelcimPaymentForm({
   returnUrl,
 }: Props) {
   const [loadingScript, setLoadingScript] = useState(true)
+  const [scriptError, setScriptError] = useState(false)
   const [mounted, setMounted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const handlerRef = useRef<((ev: MessageEvent) => void) | null>(null)
@@ -61,7 +63,10 @@ export default function HelcimPaymentForm({
       if (!cancelled) setLoadingScript(false)
     }
     const onErr = () => {
-      if (!cancelled) toast.error('Could not load Helcim payment script')
+      if (!cancelled) {
+        setScriptError(true)
+        setLoadingScript(false)
+      }
     }
     s.addEventListener('load', onLoad)
     s.addEventListener('error', onErr)
@@ -126,22 +131,43 @@ export default function HelcimPaymentForm({
   }
 
   return (
-    <div>
+    <div className="space-y-3">
+      {scriptError ? (
+        <Alert tone="danger" title="Couldn’t load the payment form">
+          The Helcim checkout script failed to load. Refresh the page or try
+          again from a different network.
+        </Alert>
+      ) : null}
+
       {!mounted ? (
         <Button
           variant="primary"
           size="lg"
           onClick={openPay}
           loading={loadingScript || submitting}
-          disabled={loadingScript || submitting}
+          disabled={loadingScript || submitting || scriptError}
           style={{ background: brandColor, borderColor: brandColor }}
         >
           {submitting ? 'Confirming payment…' : 'Pay invoice'}
         </Button>
       ) : (
-        <div className="font-garamond text-[0.95rem] text-hm-nav">
-          Complete payment in the Helcim window. This page will refresh
-          automatically when payment is confirmed.
+        <div className="space-y-3">
+          <div className="font-garamond text-[0.95rem] text-ink-muted">
+            Complete payment in the Helcim window. This page will refresh
+            automatically when payment is confirmed.
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              try {
+                window.removeHelcimPayIframe?.()
+              } catch {}
+              setMounted(false)
+            }}
+            className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted hover:text-ink transition-colors"
+          >
+            Cancel and start over
+          </button>
         </div>
       )}
     </div>

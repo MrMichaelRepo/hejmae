@@ -14,6 +14,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { api } from '@/lib/api'
 import Button from '@/components/ui/Button'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { toast } from '@/components/ui/Toast'
 import type {
   QboConnectionRow,
@@ -37,6 +38,7 @@ export default function QuickBooksSection({ canEdit }: { canEdit: boolean }) {
   const [state, setState] = useState<QboState | null>(null)
   const [connecting, setConnecting] = useState(false)
   const [disconnecting, setDisconnecting] = useState(false)
+  const confirm = useConfirm()
 
   const refresh = async () => {
     try {
@@ -89,7 +91,13 @@ export default function QuickBooksSection({ canEdit }: { canEdit: boolean }) {
   }
 
   const disconnect = async () => {
-    if (!confirm('Disconnect QuickBooks? Sync will stop until you reconnect.')) return
+    const ok = await confirm({
+      title: 'Disconnect QuickBooks?',
+      body: 'Sync will stop until you reconnect. Previously synced data stays in place.',
+      confirmLabel: 'Disconnect',
+      tone: 'danger',
+    })
+    if (!ok) return
     setDisconnecting(true)
     try {
       await api.del('/api/integrations/qbo')
@@ -104,13 +112,13 @@ export default function QuickBooksSection({ canEdit }: { canEdit: boolean }) {
 
   if (!state) {
     return (
-      <div className="font-garamond text-[0.95rem] text-hm-nav">Loading…</div>
+      <div className="font-garamond text-[0.95rem] text-ink-muted">Loading…</div>
     )
   }
 
   if (!state.configured) {
     return (
-      <div className="font-garamond text-[0.95rem] text-hm-nav leading-[1.6]">
+      <div className="font-garamond text-[0.95rem] text-ink-muted leading-[1.6]">
         QuickBooks integration is not configured on this deployment. An admin
         needs to set <code className="font-mono text-[0.85rem]">QBO_CLIENT_ID</code> and{' '}
         <code className="font-mono text-[0.85rem]">QBO_CLIENT_SECRET</code> in the environment.
@@ -123,46 +131,46 @@ export default function QuickBooksSection({ canEdit }: { canEdit: boolean }) {
 
   return (
     <div>
-      <p className="font-garamond text-[0.95rem] text-hm-nav mb-5 leading-[1.6]">
+      <p className="font-garamond text-[0.95rem] text-ink-muted mb-5 leading-[1.6]">
         Sync customers, invoices, payments, expenses, and journal entries to
         QuickBooks Online — or import your existing books to migrate over.
         You can also keep both running in parallel during a trial.
       </p>
 
       <div
-        className={`border p-5 ${isActive ? 'border-hm-text bg-hm-text/[0.04]' : 'border-hm-text/15'}`}
+        className={`border p-5 ${isActive ? 'border-ink bg-ink/[0.04]' : 'border-line'}`}
       >
         <div className="flex items-start justify-between gap-3 mb-2">
           <div className="font-serif text-[1.2rem]">QuickBooks Online</div>
           {isActive ? (
-            <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-text border border-hm-text px-2 py-0.5">
+            <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink border border-ink px-2 py-0.5">
               Connected
             </span>
           ) : conn?.status === 'expired' ? (
-            <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-amber-700 border border-amber-700/40 px-2 py-0.5">
+            <span className="font-sans text-[10px] uppercase tracking-[0.22em] text-warn border border-warn/40 px-2 py-0.5">
               Reconnect needed
             </span>
           ) : null}
         </div>
 
         {isActive && conn ? (
-          <div className="font-garamond text-[0.9rem] text-hm-nav space-y-1 mb-4">
+          <div className="font-garamond text-[0.9rem] text-ink-muted space-y-1 mb-4">
             <div>
               Company:{' '}
-              <span className="text-hm-text">
+              <span className="text-ink">
                 {state.company?.companyName ?? '—'}
               </span>
             </div>
             <div>
               Realm: <span className="font-mono text-[0.85rem]">{conn.realm_id}</span>
-              <span className="ml-2 text-hm-nav">
+              <span className="ml-2 text-ink-muted">
                 ({envLabel(conn.environment)})
               </span>
             </div>
             {conn.refresh_token_expires_at ? (
               <div>
                 Refresh token expires{' '}
-                <span className="text-hm-text">
+                <span className="text-ink">
                   {new Date(conn.refresh_token_expires_at).toLocaleDateString()}
                 </span>
               </div>
@@ -184,7 +192,7 @@ export default function QuickBooksSection({ canEdit }: { canEdit: boolean }) {
           {isActive ? (
             <Link
               href="/dashboard/settings/qbo"
-              className="inline-flex items-center gap-2 font-sans text-[10px] uppercase tracking-[0.2em] text-hm-text border border-hm-text/25 hover:bg-hm-text hover:text-bg rounded-full px-6 py-2.5 transition-colors"
+              className="inline-flex items-center gap-2 font-sans text-[10px] uppercase tracking-[0.2em] text-ink border border-line-strong hover:bg-ink hover:text-bg rounded-full px-6 py-2.5 transition-colors"
             >
               Manage mapping & sync →
             </Link>

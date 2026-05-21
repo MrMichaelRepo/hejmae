@@ -27,7 +27,7 @@ export function StatTile({
 }) {
   return (
     <div className={['bg-bg p-6', emphasis ? '' : ''].join(' ')}>
-      <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-2">
+      <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-2">
         {label}
       </div>
       <div
@@ -39,7 +39,7 @@ export function StatTile({
         {value}
       </div>
       {sub ? (
-        <div className="mt-2 font-garamond text-[0.85rem] text-hm-nav/80">
+        <div className="mt-2 font-garamond text-[0.85rem] text-ink-subtle">
           {sub}
         </div>
       ) : null}

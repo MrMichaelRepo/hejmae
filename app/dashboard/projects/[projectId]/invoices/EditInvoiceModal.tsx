@@ -97,8 +97,8 @@ export default function EditInvoiceModal({
       </div>
 
       <Field label="Line items">
-        <div className="border border-hm-text/10">
-          <div className="grid grid-cols-[1fr_80px_120px_120px_40px] gap-2 px-3 py-2 border-b border-hm-text/10 bg-hm-text/[0.02] font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+        <div className="border border-line">
+          <div className="grid grid-cols-[1fr_80px_120px_120px_40px] gap-2 px-3 py-2 border-b border-line bg-ink/[0.02] font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
             <div>Description</div>
             <div className="text-right">Qty</div>
             <div className="text-right">Unit</div>
@@ -108,7 +108,7 @@ export default function EditInvoiceModal({
           {lines.map((l, i) => (
             <div
               key={i}
-              className="grid grid-cols-[1fr_80px_120px_120px_40px] gap-2 px-3 py-2 border-t border-hm-text/10 first:border-t-0 items-center"
+              className="grid grid-cols-[1fr_80px_120px_120px_40px] gap-2 px-3 py-2 border-t border-line first:border-t-0 items-center"
             >
               <Input
                 value={l.description}
@@ -134,12 +134,12 @@ export default function EditInvoiceModal({
                 placeholder="0.00"
                 className="text-right"
               />
-              <div className="text-right font-garamond text-[0.95rem] text-hm-nav">
+              <div className="text-right font-garamond text-[0.95rem] text-ink-muted">
                 {formatCents(l.unit_price_cents * l.quantity)}
               </div>
               <button
                 onClick={() => setLines((s) => s.filter((_, idx) => idx !== i))}
-                className="font-sans text-[14px] text-hm-nav hover:text-red-700"
+                className="font-sans text-[14px] text-ink-muted hover:text-danger"
                 aria-label="Remove line"
               >
                 ×
@@ -155,7 +155,7 @@ export default function EditInvoiceModal({
                 { description: '', quantity: 1, unit_price_cents: 0 },
               ])
             }
-            className="font-sans text-[10px] uppercase tracking-[0.2em] text-hm-nav hover:text-hm-text"
+            className="font-sans text-[10px] uppercase tracking-[0.2em] text-ink-muted hover:text-ink"
           >
             + Add line
           </button>
@@ -171,7 +171,7 @@ export default function EditInvoiceModal({
         />
       </Field>
 
-      <div className="flex justify-end gap-3 border-t border-hm-text/10 pt-5 mt-2">
+      <div className="flex justify-end gap-3 border-t border-line pt-5 mt-2">
         <Button variant="ghost" onClick={onClose} disabled={submitting}>
           Cancel
         </Button>

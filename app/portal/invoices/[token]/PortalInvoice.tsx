@@ -110,7 +110,7 @@ export default function PortalInvoice({ token }: { token: string }) {
     return (
       <div className="max-w-md mx-auto pt-32 px-6 text-center">
         <h1 className="font-serif text-[2rem] mb-3">Invoice unavailable</h1>
-        <p className="font-garamond text-[1rem] text-hm-nav">{error}</p>
+        <p className="font-garamond text-[1rem] text-ink-muted">{error}</p>
       </div>
     )
   if (!data) return <PageSpinner />
@@ -144,10 +144,10 @@ export default function PortalInvoice({ token }: { token: string }) {
           )}
         </div>
         <div className="text-right">
-          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav">
+          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted">
             Invoice
           </div>
-          <div className="font-garamond text-[0.95rem] text-hm-nav mt-1">
+          <div className="font-garamond text-[0.95rem] text-ink-muted mt-1">
             {data.invoice.sent_at ? formatDate(data.invoice.sent_at) : ''}
           </div>
         </div>
@@ -158,18 +158,18 @@ export default function PortalInvoice({ token }: { token: string }) {
           {data.project?.name ?? 'Your project'}
         </h1>
         {data.project?.location ? (
-          <div className="mt-1 font-garamond text-[1rem] text-hm-nav">
+          <div className="mt-1 font-garamond text-[1rem] text-ink-muted">
             {data.project.location}
           </div>
         ) : null}
-        <div className="mt-3 font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav">
+        <div className="mt-3 font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted">
           {data.invoice.type} · {data.invoice.status}
         </div>
       </div>
 
-      <table className="w-full font-garamond text-[1rem] mb-8 border-t border-hm-text/10">
+      <table className="w-full font-garamond text-[1rem] mb-8 border-t border-line">
         <thead>
-          <tr className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-nav">
+          <tr className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink-muted">
             <th className="text-left px-2 py-3">Description</th>
             <th className="text-right px-2 py-3 w-16">Qty</th>
             <th className="text-right px-2 py-3 w-28">Unit</th>
@@ -178,9 +178,9 @@ export default function PortalInvoice({ token }: { token: string }) {
         </thead>
         <tbody>
           {data.lines.map((l) => (
-            <tr key={l.id} className="border-t border-hm-text/10">
+            <tr key={l.id} className="border-t border-line">
               <td className="px-2 py-3">{l.description}</td>
-              <td className="text-right px-2 py-3 text-hm-nav">{l.quantity}</td>
+              <td className="text-right px-2 py-3 text-ink-muted">{l.quantity}</td>
               <td className="text-right px-2 py-3">
                 {formatCents(l.unit_price_cents)}
               </td>
@@ -201,7 +201,7 @@ export default function PortalInvoice({ token }: { token: string }) {
       </table>
 
       {data.invoice.notes ? (
-        <p className="font-garamond text-[0.95rem] text-hm-nav mb-8 whitespace-pre-wrap">
+        <p className="font-garamond text-[0.95rem] text-ink-muted mb-8 whitespace-pre-wrap">
           {data.invoice.notes}
         </p>
       ) : null}
@@ -222,8 +222,8 @@ export default function PortalInvoice({ token }: { token: string }) {
           Payment received — confirming with your designer’s account…
         </div>
       ) : pay ? (
-        <div className="border border-hm-text/15 p-5">
-          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-hm-nav mb-4">
+        <div className="border border-line p-5">
+          <div className="font-sans text-[10px] uppercase tracking-[0.22em] text-ink-muted mb-4">
             Pay {formatCents(data.invoice.total_cents)}
           </div>
           {pay.processor === 'stripe' ? (
@@ -242,12 +242,12 @@ export default function PortalInvoice({ token }: { token: string }) {
           )}
         </div>
       ) : (
-        <div className="border border-hm-text/15 p-5 flex items-center justify-between gap-4 flex-wrap">
+        <div className="border border-line p-5 flex items-center justify-between gap-4 flex-wrap">
           <div>
             <div className="font-serif text-[1.2rem] leading-tight">
               {formatCents(data.invoice.total_cents)} due
             </div>
-            <div className="font-garamond text-[0.9rem] text-hm-nav mt-1">
+            <div className="font-garamond text-[0.9rem] text-ink-muted mt-1">
               Pay securely.
             </div>
           </div>
@@ -256,6 +256,7 @@ export default function PortalInvoice({ token }: { token: string }) {
             size="lg"
             onClick={initPayment}
             loading={loadingPay}
+            style={{ background: brand, borderColor: brand }}
           >
             Pay invoice
           </Button>

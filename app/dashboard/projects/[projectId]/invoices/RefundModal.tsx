@@ -71,8 +71,8 @@ export default function RefundModal({
 
   return (
     <Modal open={open} onClose={onClose} title="Refund payment" size="md">
-      <div className="mb-5 border border-hm-text/10 bg-hm-text/[0.02] px-4 py-3 font-garamond text-[0.95rem]">
-        <div className="text-hm-nav text-[0.85rem]">Refundable balance</div>
+      <div className="mb-5 border border-line bg-ink/[0.02] px-4 py-3 font-garamond text-[0.95rem]">
+        <div className="text-ink-muted text-[0.85rem]">Refundable balance</div>
         <div className="font-serif text-[1.2rem]">{formatCents(refundable)}</div>
       </div>
 
@@ -86,7 +86,7 @@ export default function RefundModal({
       </Field>
 
       {amountCents > 0 ? (
-        <div className="-mt-3 mb-5 font-garamond text-[0.85rem] text-hm-nav">
+        <div className="-mt-3 mb-5 font-garamond text-[0.85rem] text-ink-muted">
           {isFull ? 'Full refund' : isPartial ? 'Partial refund' : null}
         </div>
       ) : null}
@@ -100,12 +100,12 @@ export default function RefundModal({
         />
       </Field>
 
-      <p className="mb-5 font-garamond text-[0.85rem] text-hm-nav/80">
+      <p className="mb-5 font-garamond text-[0.85rem] text-ink-subtle">
         The refund goes through Stripe on your connected account. Bookkeeping
         and the client portal update automatically when Stripe confirms.
       </p>
 
-      <div className="flex justify-end gap-3 border-t border-hm-text/10 pt-5">
+      <div className="flex justify-end gap-3 border-t border-line pt-5">
         <Button variant="ghost" onClick={onClose} disabled={submitting}>
           Cancel
         </Button>

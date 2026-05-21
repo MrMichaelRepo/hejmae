@@ -5,6 +5,7 @@ import { api } from '@/lib/api'
 import Button from '@/components/ui/Button'
 import { Field, Input, Select, Textarea } from '@/components/ui/Input'
 import { Drawer } from '@/components/ui/Modal'
+import { useConfirm } from '@/components/ui/ConfirmDialog'
 import { toast } from '@/components/ui/Toast'
 import ImageUploader from '@/components/ui/ImageUploader'
 import type { Item, Room, ItemStatus, Vendor } from '@/lib/types-ui'
@@ -46,6 +47,7 @@ export default function EditItemDrawer({
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const confirm = useConfirm()
   const [vendors, setVendors] = useState<Vendor[]>([])
 
   // Fetch vendors lazily on first drawer open. Per-designer count is
@@ -121,7 +123,13 @@ export default function EditItemDrawer({
   }
 
   const remove = async () => {
-    if (!confirm('Delete this item?')) return
+    const ok = await confirm({
+      title: 'Delete this item?',
+      body: 'This cannot be undone.',
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    })
+    if (!ok) return
     setDeleting(true)
     try {
       await api.del(`/api/projects/${projectId}/items/${item.id}`)
@@ -198,14 +206,14 @@ export default function EditItemDrawer({
         </Field>
       </div>
       {suggestedTradeDollars && trade !== suggestedTradeDollars ? (
-        <div className="-mt-3 mb-5 flex items-center justify-between gap-3 px-3 py-2 border border-hm-text/10 bg-hm-text/[0.03]">
-          <div className="font-garamond text-[0.9rem] text-hm-nav">
+        <div className="-mt-3 mb-5 flex items-center justify-between gap-3 px-3 py-2 border border-line bg-ink/[0.03]">
+          <div className="font-garamond text-[0.9rem] text-ink-muted">
             {matchedVendor?.name} trade ({Number(matchedVendor?.trade_discount_percent)}% off): ${suggestedTradeDollars}
           </div>
           <button
             type="button"
             onClick={() => setTrade(suggestedTradeDollars)}
-            className="font-sans text-[10px] uppercase tracking-[0.18em] text-hm-text hover:underline"
+            className="font-sans text-[10px] uppercase tracking-[0.18em] text-ink hover:underline"
           >
             Apply
           </button>
@@ -222,7 +230,7 @@ export default function EditItemDrawer({
         />
       </Field>
 
-      <div className="flex justify-between gap-3 pt-2 border-t border-hm-text/10 mt-2">
+      <div className="flex justify-between gap-3 pt-2 border-t border-line mt-2">
         <Button variant="danger" onClick={remove} loading={deleting}>
           Delete
         </Button>
