@@ -33,14 +33,19 @@ export default function SettingsClient({ initialUser }: { initialUser: DesignerU
   // animate.
   useEffect(() => {
     const TARGET = '#account'
-    const QUIET_MS = 250
-    const MAX_WAIT_MS = 1800
+    const QUIET_MS = 400
+    const MAX_WAIT_MS = 3000
 
     const doScroll = () => {
-      const el = document.getElementById('account')
-      if (!el) return
-      const top = el.getBoundingClientRect().top + window.scrollY - 24
-      smoothScrollTo(top, 900)
+      // Pass a function so the easing re-measures the element each frame.
+      // Async sections above #account (Payment processors, QuickBooks) can
+      // continue to shift the heading down even after our initial settle
+      // window. Tracking the live position prevents an undershoot.
+      smoothScrollTo(() => {
+        const el = document.getElementById('account')
+        if (!el) return null
+        return el.getBoundingClientRect().top + window.scrollY - 24
+      }, 900)
     }
 
     let cleanupSettle: (() => void) | null = null
@@ -316,15 +321,27 @@ export default function SettingsClient({ initialUser }: { initialUser: DesignerU
 // Slow, eased scroll so the user can track where the page is taking them.
 // Mirrors the easing used on the marketing site nav so the motion feels
 // consistent across the app.
-function smoothScrollTo(targetY: number, duration: number) {
+//
+// `target` is a thunk so we can re-measure each frame. The Account heading
+// keeps moving while async sections above it finish loading, and a fixed
+// pre-computed target would land short.
+function smoothScrollTo(
+  target: () => number | null,
+  duration: number,
+) {
   const startY = window.scrollY
-  const distance = targetY - startY
-  if (Math.abs(distance) < 4) return
+  const initialTarget = target()
+  if (initialTarget === null) return
+  if (Math.abs(initialTarget - startY) < 4) return
   let startTime: number | null = null
   const step = (ts: number) => {
     if (startTime === null) startTime = ts
     const p = Math.min((ts - startTime) / duration, 1)
     const ease = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2
+    // Re-measure live. Falls back to the initial target if the element
+    // disappears mid-animation (unlikely but defensive).
+    const live = target() ?? initialTarget
+    const distance = live - startY
     window.scrollTo(0, startY + distance * ease)
     if (p < 1) requestAnimationFrame(step)
   }
