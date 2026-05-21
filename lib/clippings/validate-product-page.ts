@@ -18,7 +18,7 @@
 import { load } from 'cheerio'
 
 const USER_AGENT =
-  'Mozilla/5.0 (compatible; HejmaeClipper/1.0; +https://hejmae.com/clipper)'
+  'Mozilla/5.0 (compatible; hejmaeClipper/1.0; +https://hejmae.com/clipper)'
 
 // Domains we know are editorial / social. Hostname must match the suffix
 // (so www.nytimes.com and m.facebook.com are both caught).

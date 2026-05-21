@@ -101,7 +101,7 @@ export default function PortalProposal({ token }: { token: string }) {
               className="font-sans text-[12px] font-bold uppercase tracking-[0.22em]"
               style={{ color: brand }}
             >
-              {data.designer?.studio_name ?? 'Hejmae'}
+              {data.designer?.studio_name ?? 'hejmae'}
             </div>
           )}
         </div>

@@ -1,9 +1,9 @@
 import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
-  title: 'Hejmae Clipper — Privacy Policy',
+  title: 'hejmae Clipper — Privacy Policy',
   description:
-    'How the Hejmae Clipper Chrome extension collects and handles data. Single-purpose, no third-party trackers, full sub-processor disclosure.',
+    'How the hejmae Clipper Chrome extension collects and handles data. Single-purpose, no third-party trackers, full sub-processor disclosure.',
 }
 
 const EFFECTIVE_DATE = '2026-05-19'
@@ -17,7 +17,7 @@ export default function ClipperPrivacyPage() {
           Legal · Chrome Extension
         </div>
         <h1 className="font-serif text-[clamp(2rem,4vw,3rem)] leading-[1.05] tracking-[-0.015em] mb-4">
-          Hejmae Clipper — Privacy Policy
+          hejmae Clipper — Privacy Policy
         </h1>
         <div className="font-sans text-[11px] uppercase tracking-[0.22em] text-ink-subtle">
           Effective {EFFECTIVE_DATE}
@@ -25,16 +25,16 @@ export default function ClipperPrivacyPage() {
       </header>
 
       <Lede>
-        This policy describes what the <strong>Hejmae Clipper</strong> Chrome
-        extension does with information on your device and on Hejmae&rsquo;s
+        This policy describes what the <strong>hejmae Clipper</strong> Chrome
+        extension does with information on your device and on hejmae&rsquo;s
         servers. It is written to be read end-to-end. If anything below is
-        unclear, write to <Email>{CONTACT_EMAIL}</Email>. The main Hejmae
+        unclear, write to <Email>{CONTACT_EMAIL}</Email>. The main hejmae
         Studio privacy policy is at <a href="/legal/privacy">/legal/privacy</a>.
       </Lede>
 
       <Section title="TL;DR">
         <Bullets>
-          <li>The extension does one thing: save a product you&rsquo;re looking at to your Hejmae account.</li>
+          <li>The extension does one thing: save a product you&rsquo;re looking at to your hejmae account.</li>
           <li>
             <strong>The extension itself transmits data only to hejmae.com — your own account.</strong>{' '}
             No analytics, no third-party trackers, no advertising.
@@ -42,15 +42,15 @@ export default function ClipperPrivacyPage() {
           <li>
             When you click <strong>Save</strong>, the extension uploads the
             current tab&rsquo;s URL, title, and the page&rsquo;s rendered HTML
-            (up to 1.5 MB) so Hejmae can extract the product name, brand,
+            (up to 1.5 MB) so hejmae can extract the product name, brand,
             price, and image.{' '}
             <strong>
               Raw HTML is used for that extraction and is not retained in the
-              Hejmae database afterwards.
+              hejmae database afterwards.
             </strong>
           </li>
           <li>
-            To turn the page into structured product data, the Hejmae server
+            To turn the page into structured product data, the hejmae server
             sends a cleaned excerpt of the HTML (scripts/styles/navigation
             removed, capped at ~120 KB) to{' '}
             <strong>Anthropic&rsquo;s Claude API</strong> as a sub-processor,
@@ -62,7 +62,7 @@ export default function ClipperPrivacyPage() {
             sub-processor list is below.
           </li>
           <li>
-            The extension reads your Hejmae sign-in cookie so it knows
+            The extension reads your hejmae sign-in cookie so it knows
             you&rsquo;re logged in. It cannot read cookies from any other
             site.
           </li>
@@ -76,10 +76,10 @@ export default function ClipperPrivacyPage() {
 
       <Section title="What the extension does">
         <p>
-          The Hejmae Clipper is a Chrome extension for interior designers who
-          already have a Hejmae account. Its single function is: when
+          The hejmae Clipper is a Chrome extension for interior designers who
+          already have a hejmae account. Its single function is: when
           you&rsquo;re browsing a product page (a sofa, a sconce, a rug), you
-          can click the extension and save that product to your Hejmae
+          can click the extension and save that product to your hejmae
           library, optionally tagged to a specific project. The extension
           does not run unless you click it.
         </p>
@@ -88,7 +88,7 @@ export default function ClipperPrivacyPage() {
       <Section title="Information we process">
         <SubH>1. Active tab metadata — read only when you open the popup</SubH>
         <p>
-          When you click the Hejmae Clipper icon, the extension reads the
+          When you click the hejmae Clipper icon, the extension reads the
           URL, page title, and favicon of the tab you&rsquo;re currently
           looking at. This happens because the extension was designed for you
           to click <em>Save</em> on that page. It does <strong>not</strong>{' '}
@@ -120,16 +120,16 @@ export default function ClipperPrivacyPage() {
           cart.{' '}
           <strong>
             Only click Save on pages you&rsquo;re comfortable sharing with
-            your own Hejmae account.
+            your own hejmae account.
           </strong>{' '}
           The extension does not capture HTML at any other time.
         </p>
         <p>
-          <strong>How the server uses the HTML.</strong> The Hejmae server
+          <strong>How the server uses the HTML.</strong> The hejmae server
           parses the upload, extracts the product fields, and discards the
           raw HTML once extraction completes. The extracted product fields
           (name, brand, price, image URL) are stored as a clipping in your
-          Hejmae account.
+          hejmae account.
         </p>
 
         <SubH>3. Authentication cookie — read only from hejmae.com</SubH>
@@ -142,13 +142,13 @@ export default function ClipperPrivacyPage() {
           you sign in. This is how the extension knows whether you&rsquo;re
           logged in. The extension does not read cookies from any other site.
           The cookie itself is never sent to anything outside hejmae.com — it
-          is passed automatically by Chrome on requests to the Hejmae API.
+          is passed automatically by Chrome on requests to the hejmae API.
         </p>
 
         <SubH>4. Profile and project list — cached on your device</SubH>
         <p>After you sign in, the extension fetches and caches:</p>
         <Bullets>
-          <li>Your Hejmae profile: user id, email, name, studio logo URL, studio id, role</li>
+          <li>Your hejmae profile: user id, email, name, studio logo URL, studio id, role</li>
           <li>Your active project list: project ids, names, statuses</li>
           <li>The id of the last project you tagged a clipping with</li>
         </Bullets>
@@ -157,7 +157,7 @@ export default function ClipperPrivacyPage() {
           <code className="font-mono text-[0.9em]">chrome.storage.local</code>{' '}
           on your own computer for up to five minutes (the profile and
           project list refresh automatically after that). The last-used
-          project id persists until you sign out. When you sign out of Hejmae
+          project id persists until you sign out. When you sign out of hejmae
           on the web, the extension automatically clears its profile cache.
         </p>
         <p>
@@ -189,7 +189,7 @@ export default function ClipperPrivacyPage() {
           domains.
         </p>
 
-        <SubH>What the Hejmae server does with your clipping</SubH>
+        <SubH>What the hejmae server does with your clipping</SubH>
         <p>
           Once the rendered HTML arrives at hejmae.com, the server forwards
           portions of the data to a small number of trusted sub-processors as
@@ -216,9 +216,9 @@ export default function ClipperPrivacyPage() {
       <Section title="Sub-processors">
         <p>
           A sub-processor is a third-party service that handles user data on
-          Hejmae&rsquo;s behalf. We use the following sub-processors. Each
+          hejmae&rsquo;s behalf. We use the following sub-processors. Each
           is bound by contract to use your data only to deliver their service
-          to Hejmae, not for any independent purpose.
+          to hejmae, not for any independent purpose.
         </p>
         <Table>
           <thead>
@@ -244,13 +244,13 @@ export default function ClipperPrivacyPage() {
             />
             <Row
               name="OpenAI (vision)"
-              purpose='Power the optional "search by image" feature in the Hejmae catalog (web app only).'
+              purpose='Power the optional "search by image" feature in the hejmae catalog (web app only).'
               receives="An image you explicitly upload to the catalog search box. The clipper extension does not trigger this."
               retention="Up to 30 days for abuse monitoring; not used for training."
             />
             <Row
               name="Supabase"
-              purpose="Primary database and image storage for your Hejmae account."
+              purpose="Primary database and image storage for your hejmae account."
               receives="All clipping metadata and downloaded product images."
               retention="Until you delete the clipping or your account."
             />
@@ -309,7 +309,7 @@ export default function ClipperPrivacyPage() {
             />
             <PermRow
               name="cookies"
-              why="Read the __session cookie from hejmae.com to determine whether you're signed in. We only read this single cookie, only from Hejmae domains."
+              why="Read the __session cookie from hejmae.com to determine whether you're signed in. We only read this single cookie, only from hejmae domains."
             />
             <PermRow
               name="storage"
@@ -317,7 +317,7 @@ export default function ClipperPrivacyPage() {
             />
             <PermRow
               name="host_permissions: hejmae.com"
-              why="Send authenticated requests to your Hejmae account, and read the sign-in cookie from the Hejmae domains."
+              why="Send authenticated requests to your hejmae account, and read the sign-in cookie from the hejmae domains."
             />
           </tbody>
         </Table>
@@ -326,7 +326,7 @@ export default function ClipperPrivacyPage() {
       <Section title="Server-side data retention">
         <p>
           Once a clipping is saved, the underlying product data lives in your
-          Hejmae account under the normal account terms (see the main Hejmae
+          hejmae account under the normal account terms (see the main hejmae
           privacy policy at <a href="/legal/privacy">/legal/privacy</a>). You
           can delete clippings at any time from{' '}
           <a href="/dashboard/clippings">/dashboard/clippings</a>. Deleting a
@@ -335,14 +335,14 @@ export default function ClipperPrivacyPage() {
         <p>
           The raw HTML uploaded when you click Save is consumed by the
           server&rsquo;s extraction pipeline and is not persisted to the
-          Hejmae database. Standard server logs may retain request metadata
+          hejmae database. Standard server logs may retain request metadata
           (timestamp, URL, response status) for operational debugging; logs
           do <strong>not</strong> include the raw HTML body of the upload.
         </p>
       </Section>
 
       <Section title="Your rights">
-        <p>If you have a Hejmae account, you can:</p>
+        <p>If you have a hejmae account, you can:</p>
         <Bullets>
           <li>
             View every clipping in your account at{' '}
@@ -350,7 +350,7 @@ export default function ClipperPrivacyPage() {
           </li>
           <li>Delete any clipping.</li>
           <li>
-            Delete your entire Hejmae account by contacting{' '}
+            Delete your entire hejmae account by contacting{' '}
             <Email>{CONTACT_EMAIL}</Email>. Deletion removes the clippings
             stored on the server. The extension&rsquo;s local cache is
             cleared automatically when you sign out.
@@ -365,7 +365,7 @@ export default function ClipperPrivacyPage() {
 
       <Section title="Children">
         <p>
-          The Hejmae Clipper is a tool for professional interior designers
+          The hejmae Clipper is a tool for professional interior designers
           and is not directed at children under 13. We do not knowingly
           collect information from children.
         </p>

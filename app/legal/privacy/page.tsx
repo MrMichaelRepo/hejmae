@@ -3,7 +3,7 @@ import type { Metadata } from 'next'
 export const metadata: Metadata = {
   title: 'Privacy Policy',
   description:
-    'How Hejmae collects, uses, and protects the data that interior design studios entrust to it.',
+    'How hejmae collects, uses, and protects the data that interior design studios entrust to it.',
 }
 
 const EFFECTIVE_DATE = '2026-05-19'
@@ -25,9 +25,9 @@ export default function PrivacyPage() {
       </header>
 
       <Lede>
-        Hejmae is studio software for interior designers — project management,
+        hejmae is studio software for interior designers — project management,
         sourcing, proposals, purchase orders, invoicing, time tracking, and
-        accounting. This page describes what data Hejmae collects, how we use
+        accounting. This page describes what data hejmae collects, how we use
         it, and the third-party services we use to deliver the product. It is
         written to be read end-to-end. If anything is unclear, write to{' '}
         <Email>{CONTACT_EMAIL}</Email>.
@@ -35,16 +35,17 @@ export default function PrivacyPage() {
 
       <Section title="Who we are">
         <p>
-          Hejmae is operated by Michael Schickling. Contact:{' '}
-          <Email>{CONTACT_EMAIL}</Email>. When this policy says &ldquo;we&rdquo;
-          or &ldquo;us,&rdquo; it means Hejmae.
+          hejmae is operated by Emilia Studio LLC, a California limited
+          liability company. Contact: <Email>{CONTACT_EMAIL}</Email>. When this
+          policy says &ldquo;we&rdquo; or &ldquo;us,&rdquo; it means Emilia
+          Studio LLC, operating hejmae.
         </p>
       </Section>
 
       <Section title="What we collect">
         <SubH>1. Account information</SubH>
         <p>
-          When you create a Hejmae account (via{' '}
+          When you create a hejmae account (via{' '}
           <a href="https://hejmae.com/sign-up">hejmae.com/sign-up</a>), we
           collect your email address, name, and the studio name you provide.
           Authentication is handled by Clerk; sign-in events and email
@@ -52,7 +53,7 @@ export default function PrivacyPage() {
         </p>
         <SubH>2. Studio data you enter</SubH>
         <p>
-          Hejmae stores whatever you put into it. That includes:
+          hejmae stores whatever you put into it. That includes:
         </p>
         <Bullets>
           <li>
@@ -90,9 +91,9 @@ export default function PrivacyPage() {
             estimated taxes.
           </li>
         </Bullets>
-        <SubH>3. Clippings from the Hejmae Clipper extension</SubH>
+        <SubH>3. Clippings from the hejmae Clipper extension</SubH>
         <p>
-          The Hejmae Clipper Chrome extension uploads the URL, page title, and
+          The hejmae Clipper Chrome extension uploads the URL, page title, and
           rendered HTML (capped at 1.5 MB) of a product page when you click
           Save. We use that HTML to extract the product&rsquo;s name, brand,
           price, and image. <strong>The raw HTML is not retained</strong>{' '}
@@ -102,8 +103,8 @@ export default function PrivacyPage() {
         </p>
         <SubH>4. Payment information</SubH>
         <p>
-          Hejmae uses <strong>Stripe Connect</strong> — payments your clients
-          make flow directly to your own Stripe account, not through Hejmae.
+          hejmae uses <strong>Stripe Connect</strong> — payments your clients
+          make flow directly to your own Stripe account, not through hejmae.
           We see only the metadata Stripe shares with the connected
           application: payment status, amount, currency, and the linked
           invoice. We never see card numbers, bank credentials, or full
@@ -152,7 +153,7 @@ export default function PrivacyPage() {
         <p>
           A sub-processor is a third-party service that handles data on our
           behalf. Each one below is bound by contract to use the data only to
-          deliver its service to Hejmae.
+          deliver its service to hejmae.
         </p>
         <Table>
           <thead>
@@ -166,7 +167,7 @@ export default function PrivacyPage() {
             <Row
               name="Supabase"
               purpose="Primary database and file storage (Postgres + object storage)."
-              receives="Everything you save in Hejmae: account info, studio data, clipping metadata, floor plan and product images."
+              receives="Everything you save in hejmae: account info, studio data, clipping metadata, floor plan and product images."
             />
             <Row
               name="Vercel"
@@ -213,7 +214,7 @@ export default function PrivacyPage() {
           in the studio history so reports stay accurate.
         </p>
         <p>
-          The Hejmae <strong>catalog</strong> is the one piece of data shared
+          The hejmae <strong>catalog</strong> is the one piece of data shared
           across studios: when any designer clips a product, the product
           itself (name, brand, price, image, source URL) is added to a
           platform-wide catalog so the next designer to clip the same
@@ -225,7 +226,7 @@ export default function PrivacyPage() {
 
       <Section title="Where data is stored">
         <p>
-          Hejmae&rsquo;s primary data is stored in Supabase&rsquo;s US-region
+          hejmae&rsquo;s primary data is stored in Supabase&rsquo;s US-region
           infrastructure. Vercel serves the application from edge locations
           worldwide. Email delivery (Resend) and authentication (Clerk) run
           in the US. AI sub-processors (Anthropic and OpenAI) process
@@ -303,7 +304,7 @@ export default function PrivacyPage() {
 
       <Section title="Cookies">
         <p>
-          Hejmae uses a small number of strictly-necessary cookies to keep
+          hejmae uses a small number of strictly-necessary cookies to keep
           you signed in (managed by Clerk) and to remember your in-app
           preferences. We do not set advertising cookies or share cookies
           with third-party advertising networks.
@@ -312,7 +313,7 @@ export default function PrivacyPage() {
 
       <Section title="Children">
         <p>
-          Hejmae is built for professional interior designers and is not
+          hejmae is built for professional interior designers and is not
           directed at children under 13. We do not knowingly collect
           information from children.
         </p>

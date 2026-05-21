@@ -25,7 +25,7 @@ export default function ClippingsEmpty() {
           Clip products as you browse.
         </h2>
         <p className="font-garamond text-[1.02rem] leading-[1.65] text-ink-muted mb-6 max-w-md">
-          Install the Hejmae Clipper — a one-click browser extension that
+          Install the hejmae Clipper — a one-click browser extension that
           captures any product page (name, brand, price, image) and saves it
           here. From here you can attach a clipping to a project room with
           one click, or batch-select to specify a whole moodboard at once.

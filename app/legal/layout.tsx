@@ -29,7 +29,7 @@ export default function LegalLayout({ children }: { children: React.ReactNode })
       </main>
       <footer className="border-t border-line">
         <div className="max-w-3xl mx-auto px-6 md:px-8 py-6 flex items-center justify-between font-sans text-[10px] uppercase tracking-[0.22em] text-ink-subtle">
-          <span>Hejmae</span>
+          <span>hejmae</span>
           <Link href="/legal/privacy" className="hover:text-ink-muted transition-colors">
             Privacy
           </Link>

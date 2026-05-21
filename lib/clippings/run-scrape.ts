@@ -35,7 +35,7 @@ import { persistCatalogImage } from './persist-image'
 import { generateCatalogEmbedding } from '@/lib/catalog/embed'
 
 const USER_AGENT =
-  'Mozilla/5.0 (compatible; HejmaeClipper/1.0; +https://hejmae.com/clipper)'
+  'Mozilla/5.0 (compatible; hejmaeClipper/1.0; +https://hejmae.com/clipper)'
 
 export interface RunScrapeInput {
   clippingItemId: string

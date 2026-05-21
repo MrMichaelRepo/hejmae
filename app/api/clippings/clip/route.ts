@@ -1,4 +1,4 @@
-// POST /api/clippings/clip — entry-point for the Hejmae Clipper extension.
+// POST /api/clippings/clip — entry-point for the hejmae Clipper extension.
 //
 // Flow:
 //   1. Auth (Clerk).

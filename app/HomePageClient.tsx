@@ -148,7 +148,7 @@ function HomePageContent() {
       {/* ── FOOTER ────────────────────────────────────────────────────────── */}
       <footer className="px-8 md:px-12 py-10 text-center border-t border-line">
         <p className="font-sans text-[11px] uppercase tracking-[0.18em] text-ink-subtle">
-          &copy; {new Date().getFullYear()} hejmae
+          &copy; {new Date().getFullYear()} Emilia Studio LLC. All rights reserved.
         </p>
       </footer>
     </div>

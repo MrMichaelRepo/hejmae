@@ -44,7 +44,7 @@ export interface BalanceSheet {
 }
 
 // Returns: positive balance = the natural side for that account type.
-// Hejmae stores signed amounts (positive=debit, negative=credit). Normal
+// hejmae stores signed amounts (positive=debit, negative=credit). Normal
 // balance for each type:
 //   asset, expense → debit-positive (use raw sum)
 //   liability, equity, income → credit-positive (negate the sum)

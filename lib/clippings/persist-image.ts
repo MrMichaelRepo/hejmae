@@ -10,7 +10,7 @@ const MAX_BYTES = 8 * 1024 * 1024 // 8 MB — well above any reasonable product 
 const FETCH_TIMEOUT_MS = 10_000
 
 const USER_AGENT =
-  'Mozilla/5.0 (compatible; HejmaeClipper/1.0; +https://hejmae.com/clipper)'
+  'Mozilla/5.0 (compatible; hejmaeClipper/1.0; +https://hejmae.com/clipper)'
 
 const ALLOWED_CONTENT_TYPES = new Set([
   'image/jpeg',

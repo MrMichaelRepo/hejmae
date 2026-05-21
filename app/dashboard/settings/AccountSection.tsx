@@ -1648,7 +1648,7 @@ function BackupCodesModal({
     >
       <p className="font-garamond text-[1rem] text-ink-muted leading-[1.6] mb-4">
         Save these one-time codes somewhere safe. Each works only once.{' '}
-        <strong className="text-ink">We won't show them again.</strong>
+        <strong className="text-ink">We won&rsquo;t show them again.</strong>
       </p>
       {codes ? (
         <div className="grid grid-cols-2 gap-2 bg-surface border border-line rounded p-4 mb-5">
@@ -1672,7 +1672,7 @@ function BackupCodesModal({
           </Button>
         </div>
         <Button variant="primary" onClick={onClose}>
-          I've saved them
+          I&rsquo;ve saved them
         </Button>
       </div>
     </Modal>

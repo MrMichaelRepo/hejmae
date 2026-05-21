@@ -1,4 +1,4 @@
-// GET /api/me — minimal designer profile used by the Hejmae Clipper
+// GET /api/me — minimal designer profile used by the hejmae Clipper
 // extension to render "you're signed in as …" without having to pull
 // the full /api/settings payload. Returns the *caller's* user row, not
 // the studio owner's.
