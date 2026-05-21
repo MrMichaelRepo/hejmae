@@ -95,11 +95,31 @@ export default function SettingsClient({ initialUser }: { initialUser: DesignerU
       }
     }
 
+    // If we arrived from another page via the AccountMenu shortcut, the
+    // page loads at top (no hash). Pause briefly so the user registers
+    // "I'm on settings" before the slow scroll starts, then set the hash
+    // which triggers scheduleScroll via the hashchange listener.
+    let armed = false
+    try {
+      if (sessionStorage.getItem('hejmae:scroll-to-account') === '1') {
+        sessionStorage.removeItem('hejmae:scroll-to-account')
+        armed = true
+      }
+    } catch {
+      // ignore: privacy-restricted storage
+    }
+    const armedTimer = armed
+      ? setTimeout(() => {
+          window.location.hash = 'account'
+        }, 450)
+      : null
+
     scheduleScroll()
     window.addEventListener('hashchange', scheduleScroll)
     return () => {
       window.removeEventListener('hashchange', scheduleScroll)
       cleanupSettle?.()
+      if (armedTimer) clearTimeout(armedTimer)
     }
   }, [])
 

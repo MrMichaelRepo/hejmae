@@ -46,7 +46,17 @@ export default function AccountMenu() {
         window.location.hash = 'account'
       }
     } else {
-      router.push('/dashboard/settings#account')
+      // Coming from a different page: navigate to settings *without* the
+      // hash so we land at the top of the page, then SettingsClient picks
+      // up this flag, pauses a beat so the user sees the top, and runs
+      // the slow scroll down to #account. Avoids the clunky mid-page jump
+      // the browser would otherwise do for hash navigation.
+      try {
+        sessionStorage.setItem('hejmae:scroll-to-account', '1')
+      } catch {
+        // sessionStorage can throw in privacy-restricted contexts; ignore.
+      }
+      router.push('/dashboard/settings')
     }
   }
 
