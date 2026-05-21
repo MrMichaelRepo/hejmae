@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { api } from '@/lib/api'
 import { PageHeader } from '@/components/ui/EmptyState'
@@ -20,6 +20,26 @@ export default function SettingsClient({ initialUser }: { initialUser: DesignerU
   // Only the owner can edit payment-processor settings — gate on role/email
   // already enforced server-side; the UI mirrors it for clarity.
   const canEditPayments = true
+
+  // Next.js App Router doesn't reliably honor URL hashes on client navigation
+  // (and the UserButton popup link `/dashboard/settings#account` lands here
+  // after a soft nav), so do our own smooth scroll. Also listens for
+  // hashchange so clicking "Manage account" while already on this page works.
+  useEffect(() => {
+    const scrollToHash = () => {
+      if (window.location.hash !== '#account') return
+      // Wait one frame so layout is settled (avatar, sub-sections all mounted).
+      requestAnimationFrame(() => {
+        const el = document.getElementById('account')
+        if (!el) return
+        const top = el.getBoundingClientRect().top + window.scrollY - 24
+        smoothScrollTo(top, 900)
+      })
+    }
+    scrollToHash()
+    window.addEventListener('hashchange', scrollToHash)
+    return () => window.removeEventListener('hashchange', scrollToHash)
+  }, [])
 
   const update = (patch: Partial<DesignerUser>) => {
     setUser((u) => ({ ...u, ...patch }))
@@ -234,6 +254,24 @@ export default function SettingsClient({ initialUser }: { initialUser: DesignerU
       </Section>
     </div>
   )
+}
+
+// Slow, eased scroll so the user can track where the page is taking them.
+// Mirrors the easing used on the marketing site nav so the motion feels
+// consistent across the app.
+function smoothScrollTo(targetY: number, duration: number) {
+  const startY = window.scrollY
+  const distance = targetY - startY
+  if (Math.abs(distance) < 4) return
+  let startTime: number | null = null
+  const step = (ts: number) => {
+    if (startTime === null) startTime = ts
+    const p = Math.min((ts - startTime) / duration, 1)
+    const ease = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2
+    window.scrollTo(0, startY + distance * ease)
+    if (p < 1) requestAnimationFrame(step)
+  }
+  requestAnimationFrame(step)
 }
 
 function Section({
