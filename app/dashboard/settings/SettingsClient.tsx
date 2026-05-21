@@ -12,6 +12,7 @@ import { toast } from '@/components/ui/Toast'
 import type { DesignerUser, PricingMode } from '@/lib/types-ui'
 import PaymentProcessorsSection from './PaymentProcessorsSection'
 import QuickBooksSection from './QuickBooksSection'
+import AccountSection from './AccountSection'
 
 export default function SettingsClient({ initialUser }: { initialUser: DesignerUser }) {
   const [user, setUser] = useState<DesignerUser>(initialUser)
@@ -226,6 +227,10 @@ export default function SettingsClient({ initialUser }: { initialUser: DesignerU
 
       <Section title="Accounting">
         <QuickBooksSection canEdit={canEditPayments} />
+      </Section>
+
+      <Section title="Account">
+        <AccountSection />
       </Section>
     </div>
   )
