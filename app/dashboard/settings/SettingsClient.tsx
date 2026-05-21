@@ -22,23 +22,80 @@ export default function SettingsClient({ initialUser }: { initialUser: DesignerU
   const canEditPayments = true
 
   // Next.js App Router doesn't reliably honor URL hashes on client navigation
-  // (and the UserButton popup link `/dashboard/settings#account` lands here
-  // after a soft nav), so do our own smooth scroll. Also listens for
-  // hashchange so clicking "Manage account" while already on this page works.
+  // (and the AccountMenu popup deep-links to `/dashboard/settings#account`),
+  // so do our own smooth scroll.
+  //
+  // Two surfaces above the Account section load async — PaymentProcessorsSection
+  // and QuickBooksSection both fetch on mount — which means the #account
+  // heading's y-position keeps moving down for ~500-1500ms after this page
+  // mounts. If we start scrolling immediately we'll undershoot. Wait for
+  // layout to quiet down (no resize for 250ms, or 1800ms max) and then
+  // animate.
   useEffect(() => {
-    const scrollToHash = () => {
-      if (window.location.hash !== '#account') return
-      // Wait one frame so layout is settled (avatar, sub-sections all mounted).
-      requestAnimationFrame(() => {
-        const el = document.getElementById('account')
-        if (!el) return
-        const top = el.getBoundingClientRect().top + window.scrollY - 24
-        smoothScrollTo(top, 900)
-      })
+    const TARGET = '#account'
+    const QUIET_MS = 250
+    const MAX_WAIT_MS = 1800
+
+    const doScroll = () => {
+      const el = document.getElementById('account')
+      if (!el) return
+      const top = el.getBoundingClientRect().top + window.scrollY - 24
+      smoothScrollTo(top, 900)
     }
-    scrollToHash()
-    window.addEventListener('hashchange', scrollToHash)
-    return () => window.removeEventListener('hashchange', scrollToHash)
+
+    let cleanupSettle: (() => void) | null = null
+
+    const scheduleScroll = () => {
+      if (window.location.hash !== TARGET) return
+      // Cancel any in-flight settle handler so re-clicks restart cleanly.
+      cleanupSettle?.()
+
+      const startedAt = Date.now()
+      let quietTimer: ReturnType<typeof setTimeout> | null = null
+      let maxTimer: ReturnType<typeof setTimeout> | null = null
+      let done = false
+
+      const finish = () => {
+        if (done) return
+        done = true
+        if (quietTimer) clearTimeout(quietTimer)
+        if (maxTimer) clearTimeout(maxTimer)
+        ro.disconnect()
+        cleanupSettle = null
+        doScroll()
+      }
+
+      const bumpQuiet = () => {
+        if (quietTimer) clearTimeout(quietTimer)
+        // If we've been waiting longer than MAX_WAIT_MS, scroll immediately.
+        if (Date.now() - startedAt >= MAX_WAIT_MS) {
+          finish()
+          return
+        }
+        quietTimer = setTimeout(finish, QUIET_MS)
+      }
+
+      const ro = new ResizeObserver(bumpQuiet)
+      ro.observe(document.body)
+      // Kick off the initial quiet window so we still scroll even when no
+      // resize ever fires (everything already painted).
+      bumpQuiet()
+      maxTimer = setTimeout(finish, MAX_WAIT_MS)
+
+      cleanupSettle = () => {
+        done = true
+        if (quietTimer) clearTimeout(quietTimer)
+        if (maxTimer) clearTimeout(maxTimer)
+        ro.disconnect()
+      }
+    }
+
+    scheduleScroll()
+    window.addEventListener('hashchange', scheduleScroll)
+    return () => {
+      window.removeEventListener('hashchange', scheduleScroll)
+      cleanupSettle?.()
+    }
   }, [])
 
   const update = (patch: Partial<DesignerUser>) => {
